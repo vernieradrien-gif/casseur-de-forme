@@ -1,0 +1,10 @@
+{
+  "maxParticles": 300,
+  "shardsOnDestroy": 36,
+  "sparksOnHit": 4,
+  "floatingTextLife": 0.9,
+  "shakeOnDestroy": 6,
+  "shakeDecay": 10,
+  "flashOnDestroy": 0.25,
+  "tierColors": ["#3ee6ff"]
+}

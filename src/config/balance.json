@@ -1,0 +1,28 @@
+{
+  "shape": {
+    "baseHp": 10,
+    "hpGrowth": 1.22,
+    "baseCoins": 1,
+    "coinGrowth": 1.17,
+    "tierMultipliers": [
+      1
+    ],
+    "levelsPerTier": 10,
+    "rotationSpeed": 0.6,
+    "radius": 0.34,
+    "respawnDelay": 0.45
+  },
+  "cannon": {
+    "baseDamage": 1,
+    "shotsPerSecond": 3,
+    "projectileSpeed": 1.6,
+    "distance": 0.8
+  },
+  "upgrades": {
+    "damage": {
+      "baseCost": 10,
+      "costGrowth": 1.15,
+      "effectPerLevel": 0.1
+    }
+  }
+}
