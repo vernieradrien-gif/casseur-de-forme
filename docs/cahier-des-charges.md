@@ -2,146 +2,157 @@
 
 > Ce document est la **source de vérité** du projet. En cas de doute ou de contradiction, c'est lui qui fait foi.
 >
-> **Version 2** : le concept passe d'un pur jeu « idle » (la forme encaisse les tirs) à un jeu hybride : la grande forme est un **boss** qui envoie des **vagues d'ennemis** sur un **canon contrôlable** qui a sa propre barre de vie. Voir l'historique en fin de document.
+> **Version 3.** Contrôle uniquement au glisser avec tir droit ; la visée automatique devient une capacité. Niveaux en deux temps (vagues puis boss), menu principal, musique, version Android. Recherche préalable : [recherche-design.md](recherche-design.md). Historique en fin de document.
 
 ---
 
 ## 1. Vision et contraintes
 
-Jeu de tir hybride (action + incrémental) pour Android : en haut de l'écran, une grande forme géométrique (le boss) tourne et lance des vagues d'ennemis qui foncent sur le canon du joueur, en bas. Le canon tire automatiquement ; le joueur peut le déplacer et/ou l'orienter pour esquiver et viser. Les pièces gagnées améliorent le canon pendant la partie ; les diamants et les gemmes le rendent plus fort de façon permanente.
+Jeu de tir vertical hybride (action + progression) pour Android. En haut de l'écran, une grande forme géométrique lance des vagues d'ennemis sur le canon du joueur, en bas. Une fois les vagues passées, la forme devient un boss vulnérable qui se déplace et attaque. Le joueur **glisse le doigt** pour déplacer son canon, qui **tire tout seul droit vers le haut**. Les pièces améliorent le canon pendant la partie ; les diamants et les gemmes le rendent plus fort pour toujours.
 
-- **Coût d'infrastructure 0 €** : aucun backend, hébergement statique gratuit (GitHub Pages).
+- **Coût d'infrastructure 0 €** : aucun backend, hébergement statique (GitHub Pages).
 - **Cible** : Android (APK/AAB via Capacitor) + version web PWA.
-- **Aucun asset graphique** : formes tracées en code.
-- **Français d'abord**, textes externalisés (i18n) pour ajouter l'anglais.
-- **Hybride** : le canon tire et vise seul (on peut le laisser jouer), mais le contrôle du joueur (déplacement, visée, capacités) fait la différence. Sans intervention, on progresse un peu puis on perd.
-- **Sessions courtes**, revenu via pubs récompensées.
+- **Aucun asset graphique** : formes tracées en code. **Aucun fichier audio** : musique et sons synthétisés en code.
+- **Français d'abord**, anglais disponible (i18n).
+- **Sessions courtes**, niveaux de 30 à 90 s.
 - **Hors v1** : multijoueur, classement en ligne, comptes, achats intégrés.
 
-## 2. Stack
+## 2. Stack et règles de code
 
-TypeScript + Vite, Canvas 2D natif (particules maison), Capacitor, AdMob (`@capacitor-community/admob`) avec consentement UMP, localStorage (JSON versionné), GitHub Pages.
+TypeScript strict + Vite, Canvas 2D, Web Audio, Capacitor (Android), AdMob (`@capacitor-community/admob`) avec consentement UMP, localStorage (JSON versionné), GitHub Pages, GitHub Actions.
 
-**Règles :**
-
-- Simulation séparée du rendu, pas de temps fixe : 60 mises à jour/s. La simulation reçoit les commandes du joueur sous forme abstraite (cible de déplacement, point visé) et ne touche jamais au DOM.
-- Hasard de la simulation par générateur pseudo-aléatoire à graine (tests reproductibles).
-- Grands nombres via **un seul module de calcul** et **un seul formateur** (1,2 K, 3,4 M, 5,6 B…).
-- Une forme = sommets calculés depuis (côtés, rayon, rotation) ; étoile = polygone alterné rayon extérieur/intérieur.
-- Couche `ads/` derrière une interface unique (`showRewarded`, `showInterstitial`) avec version factice sur le web.
-- Identifiants de test AdMob uniquement.
-- Tout l'équilibrage dans `config/*.json`.
+- Simulation séparée du rendu, pas de temps fixe de 60 mises à jour/s. La simulation reçoit les commandes sous forme abstraite (`input.moveX`) et ne touche jamais au DOM.
+- Hasard de la simulation par générateur à graine (tests reproductibles).
+- Grands nombres : un seul module de calcul et un seul formateur (1,2 K, 3,4 M…).
+- Formes = sommets calculés depuis (côtés, rayon, rotation) ; étoile = rayons alternés.
+- Publicités uniquement via `src/ads/` (`showRewarded`, `showInterstitial`), version factice sur le web, **identifiants AdMob de test uniquement**.
+- Tout l'équilibrage dans `src/config/*.json`.
 
 ## 3. Gameplay
 
-**Terrain** : portrait. Le boss occupe le haut, le canon se trouve en bas et se déplace horizontalement.
+### 3.1 Contrôle
+- Glisser le doigt n'importe où sur l'écran : le canon suit le mouvement horizontal (déplacement relatif, le doigt ne cache pas le canon).
+- Le canon tire **en continu, droit vers le haut**, même sans toucher l'écran.
+- **Visée automatique** : capacité à débloquer (gemmes). Pendant quelques secondes, le canon s'oriente seul vers l'ennemi le plus menaçant, puis elle doit se recharger.
 
-**Boucle d'un niveau** : le boss apparaît avec ses PV et tourne sur lui-même. À intervalles réguliers, il lance une **vague** d'ennemis qui foncent vers le canon. Le canon tire en continu : ses tirs détruisent les ennemis et touchent le boss. Le niveau est gagné quand le boss est détruit : les ennemis restants explosent (pièces gagnées), le canon récupère une partie de ses PV, puis le niveau suivant commence avec un boss plus fort.
+### 3.2 Structure d'un niveau
+1. **Vagues** : la forme, protégée par un bouclier, lance 3 vagues (4 à partir du niveau 21, 5 à partir du niveau 51). Chaque vague est une **formation** lisible : ligne, V, serpent, pluie, entrées par les côtés, éventail. Une barre indique la progression des vagues.
+2. **Phase boss** : quand la dernière vague est détruite ou sortie de l'écran, le bouclier tombe. La forme se déplace de gauche à droite, tire des projectiles (visés, en éventail, en anneau selon la forme) et lance parfois quelques ennemis. Sous 50 % de PV elle s'énerve : elle tourne et tire plus vite.
+3. **Victoire** : les ennemis restants explosent (pièces gagnées), le canon récupère une partie de ses PV, diamants gagnés, niveau suivant.
+- Le **niveau 10 de chaque palier** est un **grand boss** : plus grand, plus de PV, toutes les propriétés du palier, gemmes au premier passage.
+- **Boss doré** : 2 % des boss, ×10 pièces, entrée spéciale dans la collection.
+- **Zones faibles** : 1 à 3 points lumineux pulsants sur les sommets de la forme, qui tournent avec elle ; un tir qui les touche fait ×3 dégâts (nombre affiché d'une autre couleur).
 
-**Canon** :
+### 3.3 Ennemis (un nouveau type présenté à la fois)
 
-- Barre de vie ; un ennemi qui le percute lui inflige ses dégâts puis disparaît.
-- Tir automatique ; visée automatique sur l'ennemi le plus menaçant (le plus proche du canon), sinon sur le boss.
-- **Modes de contrôle, au choix du joueur dans les paramètres** :
-  1. *Glisser + visée auto* (par défaut) : on glisse le doigt n'importe où pour déplacer le canon à gauche/droite ; la visée reste automatique.
-  2. *Glisser + visée au doigt* : le canon se déplace vers le doigt et tire vers le point touché.
-  3. *Canon fixe, visée au doigt* : le canon reste au centre et s'oriente vers le point touché.
-- Quand le joueur ne touche pas l'écran, le canon vise automatiquement (mode hybride).
+| Ennemi | Dès le niveau | Forme | Comportement |
+|--------|---------------|-------|--------------|
+| Éclat | 1 | petit triangle | descend en ligne droite |
+| Virevolteur | 3 | losange fin | descend en zigzag |
+| Bloc | 6 | carré | lent, très résistant, gros dégâts |
+| Chasseur | 12 | flèche | suit le canon (virage limité) |
+| Tireur | 16 | hexagone | s'arrête à mi-hauteur, tire sur le canon, repart |
+| Diviseur | 22 | pentagone | se divise en 2 Éclats à sa mort |
+| Kamikaze | 30 | triangle allongé | s'arrête, vise, puis fonce très vite |
+| Blindé | 40 | octogone | bouclier frontal qui absorbe les premiers tirs |
+| Étoile dorée (rare) | 3 | étoile | zigzague et s'enfuit ; donne **1 gemme** |
 
-**Défaite** : quand les PV du canon tombent à 0, la partie s'arrête et **repart au niveau 1**. Pièces et améliorations de partie sont perdues ; diamants, gemmes, améliorations permanentes et capacités sont conservés. Plus tard : des **mondes** de 50 niveaux au moins serviront de points de reprise (on reprendra au début du dernier monde atteint).
+PV, dégâts et pièces des ennemis augmentent à chaque niveau.
 
-**Ennemis** (plus de types débloqués avec les niveaux) :
+### 3.4 Propriétés des boss par palier
 
-| Ennemi | Forme | Comportement | Récompense |
-|--------|-------|--------------|------------|
-| Éclat | petit triangle | fonce en ligne droite vers la position du canon au moment du lancer | peu de pièces |
-| Bloc | carré | lent, résistant, gros dégâts | beaucoup de pièces |
-| Chasseur | losange | suit le canon (virage limité) | pièces moyennes |
-| Rare | étoile dorée | zigzague sans viser, s'enfuit par le bas | **1 gemme** + pièces |
-
-**Difficulté par niveau** (formules en config) : PV du boss, PV / dégâts / pièces des ennemis croissent exponentiellement ; les vagues sont plus fréquentes et plus nombreuses (avec plafonds).
-
-**Capacités spéciales** (débloquées avec des gemmes) : Bouclier (invulnérable quelques secondes, recharge), Tir double (passif), Onde de choc (détruit tous les ennemis à l'écran et entame le boss, recharge). Plus tard : armes Orbes, Laser, Éclairs.
-
-**Game feel** : nombres de dégâts flottants, secousse d'écran légère, particules, flash, éclats à la destruction, flash rouge et vibration courte quand le canon est touché (désactivable).
-
-## 4. Catalogue
-
-10 paliers de 10 niveaux (100 niveaux). La forme du boss change à chaque palier :
-
-| Palier | Boss | Plus tard (propriétés) |
-|--------|------|------------------------|
+| Palier | Forme | Propriété apprise |
+|--------|-------|-------------------|
 | 1 | Triangle | aucune |
-| 2 | Carré | rotation plus rapide |
-| 3 | Pentagone | blindage léger |
-| 4 | Hexagone | régénération |
-| 5 | Octogone | bouclier 3 coups |
-| 6 | Étoile 5 branches | fragmentation en 2 |
+| 2 | Carré | rotation et tirs plus rapides |
+| 3 | Pentagone | blindage léger (réduit chaque coup d'une valeur fixe) |
+| 4 | Hexagone | régénération (PV/s si non touché) |
+| 5 | Octogone | bouclier qui absorbe N coups et se recharge |
+| 6 | Étoile 5 branches | fragmentation : se divise en 2 à sa mort |
 | 7 | Losange | blindage fort |
 | 8 | Étoile 8 branches | bouclier + régénération |
-| 9 | Cercle | anneaux à détruire un par un |
-| 10 | Cristal | toutes propriétés |
+| 9 | Cercle à anneaux | anneaux à détruire un par un avant le cœur |
+| 10 | Cristal | toutes les propriétés |
 
-**Formules** (modifiables en config) :
+Au-delà du niveau 100, **mode infini** : les formes recommencent, plus fortes.
 
-- PV du boss = base × croissance^(niveau − 1) × multiplicateur du palier.
-- Ennemis : PV, dégâts et pièces = base du type × croissance^(niveau − 1).
+### 3.5 Armes secondaires (Armurerie)
+Débloquées avec des gemmes, améliorées avec des diamants, équipées dans des emplacements (1 emplacement au départ, 2e au meilleur niveau 30, 3e au meilleur niveau 60).
+- **Orbes** : sphères en orbite autour du canon ; détruisent les ennemis et les projectiles ennemis au contact.
+- **Laser** : rayon vertical périodique qui transperce tout et ignore le blindage.
+- **Éclairs** : frappent périodiquement l'ennemi le plus proche et rebondissent sur les suivants.
+
+### 3.6 Capacités (gemmes)
+- **Visée auto** (bouton) : visée automatique quelques secondes, recharge.
+- **Bouclier** (bouton) : invulnérable quelques secondes, recharge.
+- **Onde de choc** (bouton) : détruit tous les ennemis et projectiles à l'écran et entame le boss, recharge.
+- **Multi-tir** (passif) : tir double, puis triple.
+Chaque capacité active s'améliore (durée plus longue, recharge plus courte).
+
+### 3.7 Défaite et mondes
+- PV du canon à 0 : **explosion du canon** (en plusieurs temps, ralenti), puis écran de défaite après un court délai.
+- Une **seconde chance** par partie (pub récompensée) : canon réparé à 50 %.
+- La partie repart au niveau 1, ou au début d'un **monde** déjà atteint (mondes de 50 niveaux : 1-50, 51-100, 101-150…). Départ d'un monde avancé : pièces de départ pour acheter les améliorations de partie.
+- Pièces et améliorations de partie sont perdues ; diamants, gemmes, atelier, armurerie, capacités, succès et collection sont conservés.
+
+### 3.8 Game feel
+Nombres de dégâts flottants (couleur différente pour les zones faibles), éclair blanc sur les cibles touchées, secousse d'écran légère, particules, anneaux d'explosion, traînées des projectiles, flash rouge et vibration quand le canon est touché (désactivable).
+
+## 4. Formules (modifiables en config)
+- PV du boss = base × croissance^(niveau − 1) × multiplicateur de palier (× grand boss).
+- Ennemis : PV, dégâts, pièces = base du type × croissance^(niveau − 1).
 - Coût d'une amélioration = coût de base × croissance^(achats).
+- Diamants par boss = 1 + plancher((niveau − 1) / 5), +2 au premier passage, ×2 avec une pub en fin de partie.
 
 ## 5. Progression
 
 **Monnaies** :
+- **Pièces** : ennemis et boss ; améliorations de partie ; perdues à la défaite.
+- **Diamants** : boss, gains hors ligne ; atelier et armes.
+- **Gemmes** : étoiles dorées, premier passage des grands boss, succès, objectif quotidien ; capacités et déblocage des armes.
 
-- **Pièces** : gagnées en détruisant ennemis et boss (plus ou moins selon l'ennemi), dépensées pendant la partie, **perdues à la défaite**.
-- **Diamants** (permanents) : gagnés à chaque boss vaincu, davantage la première fois qu'un niveau est franchi. Servent à améliorer les **statistiques de base** du canon.
-- **Gemmes** (permanentes) : ennemis rares, premier franchissement de chaque palier de 10 niveaux ; plus tard succès, objectif quotidien et pubs récompensées. Servent à débloquer les **capacités spéciales**.
+**Améliorations de partie (pièces)** : Dégâts, Cadence, Blindage (PV max, soigne le gain). Achat x1, x10, x100, max.
 
-**Améliorations de partie (pièces)** : Dégâts, Cadence, PV max (soigne aussi le gain). Achat en lot x1, x10, x100, max.
+**Atelier (diamants)** : Dégâts, Cadence, PV de base, Gain de pièces, Pièces de départ, Réparation (soin en fin de niveau), Coffre hors ligne (durée max).
 
-**Atelier (diamants)** : Dégâts de base, Cadence de base, PV de base, Gain de pièces.
+**Succès** : 30 succès donnant des gemmes. **Objectif quotidien** : détruire 150 ennemis (gemmes). **Collection** : formes de boss vaincues (normales et dorées) et types d'ennemis rencontrés.
 
-**Capacités (gemmes)** : Bouclier, Tir double, Onde de choc (puis Orbes, Laser, Éclairs).
-
-**Plus tard** : mondes-points de reprise (≥ 50 niveaux), hors ligne (gain réduit), succès donnant des gemmes, objectif quotidien (détruire N ennemis), collection des boss vaincus.
+**Hors ligne** : diamants = taux selon le meilleur niveau × temps absent, plafond 2 h (jusqu'à 8 h avec l'atelier), écran de bienvenue avec « Doubler (pub) » ; aucun gain si l'horloge recule.
 
 ## 6. Écrans
+Portrait, boutons d'au moins 56 dp.
+- **Menu principal** : titre animé, Jouer / Continuer, choix du monde, Atelier, Armurerie, Capacités, Collection, Succès, Paramètres, objectif quotidien, boost (pub).
+- **Jeu** : niveau, progression des vagues, pièces, pause ; améliorations de partie en bas ; boutons de capacités à droite.
+- **Pause** : reprendre, paramètres, menu principal (la partie est conservée).
+- **Défaite** : niveau atteint, record, gains ; continuer (pub), doubler les diamants (pub), rejouer, menu.
+- **Bienvenue** (gains hors ligne), **Victoire** (niveau 100 atteint).
+- **Paramètres** : musique, effets sonores, vibration, économie d'énergie (30 images/s), langue, consentement publicités, export/import de la sauvegarde, effacer, À propos, politique de confidentialité.
+- Pause automatique en arrière-plan ; bouton retour Android géré.
 
-Portrait, boutons d'au moins 56 dp, rien de profond.
+**Rendu** : fond sombre étoilé, formes néon (contour lumineux, remplissage translucide), palette par palier, 300 particules max, silhouettes distinctes (accessibilité).
 
-- **Jeu** : barre du haut (niveau, pièces, diamants, gemmes, pause) ; boss en haut, canon en bas avec sa barre de vie ; améliorations de partie en bas ; boutons de capacités sur le côté.
-- **Pause** : reprendre, atelier, capacités, paramètres.
-- **Défaite** : niveau atteint, meilleur niveau, diamants et gemmes gagnés, accès atelier / capacités, rejouer.
-- **Atelier** (diamants) et **Capacités** (gemmes).
-- **Paramètres** : mode de contrôle, vibration, (plus tard : son, langue, consentement pubs, export/import), effacer la sauvegarde, À propos.
-- Pause automatique en arrière-plan.
+## 7. Audio
+Musiques composées et synthétisées en code (Web Audio) : thème du menu (calme), thème de jeu (rythmé), thème de boss (intense), fondu entre les thèmes. Effets : tir, impact, explosion, boss vaincu, canon touché, explosion du canon, gemme, clic, fin de niveau. Volumes réglables séparément.
 
-**Rendu** : fond sombre, formes en contour lumineux avec remplissage translucide, palette par palier, 300 particules max, mode économie d'énergie (30 images/s) plus tard, formes distinctes par silhouette (accessibilité).
+## 8. Publicités
+**Récompensées** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min). **Interstitiel** rare : au plus toutes les 4 min, après 3 min de session, uniquement au retour au menu après une défaite. Jamais de pub pendant un niveau. Consentement RGPD (UMP) sur Android ; politique de confidentialité publiée sur GitHub Pages.
 
-## 7. Publicités (plus tard)
+## 9. Données
+Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3) : partie en cours (reprise au début du niveau), méta-progression, succès, collection, objectif quotidien, paramètres, horodatage. Sauvegarde toutes les 10 s, à chaque niveau, à chaque passage en arrière-plan. Export/import en code texte. Script de simulation sans rendu pour l'équilibrage (joueur automatique).
 
-**Récompensées** : continuer une fois après la défaite (canon réparé à 50 %) ; boost x2 dégâts et pièces 5 min (recharge 10 min) ; diamants du boss x2 ; gemmes. **Interstitiel** rare (au plus toutes les 4 min, après une session de plus de 3 min, jamais pendant un niveau). Consentement RGPD (UMP) et politique de confidentialité sur GitHub Pages.
+## 10. Jalons
+1. **Cœur initial** *(fait)*.
+2. **Boss + vagues + canon contrôlable** *(fait, version 2)*.
+3. **Jeu complet v3** : contrôle au glisser, niveaux vagues → boss, 8 ennemis, propriétés et zones faibles, armes, capacités, mondes, menus, succès, collection, hors ligne, audio, i18n, PWA.
+4. **Android et pubs** : Capacitor, AdMob test + UMP, APK construit par GitHub Actions.
+5. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
 
-## 8. Données
-
-**Sauvegarde** JSON versionnée avec migrations : partie en cours (reprise au début du niveau en cours), méta-progression (diamants, gemmes, atelier, capacités, meilleur niveau), paramètres, horodatage. Sauvegarde auto toutes les 10 s, à chaque niveau et à chaque passage en arrière-plan. Export/import en code texte (plus tard).
-
-**Équilibrage** : simulation sans rendu avec un joueur automatique. Rythme visé : une première partie sans amélioration permanente atteint le niveau 5 à 10 ; chaque retour à l'atelier permet d'aller plus loin ; palier 10 après plusieurs heures.
-
-## 9. Jalons
-
-1. **Cœur initial** *(fait)* : forme qui tourne, canon automatique, pièces, amélioration de dégâts, grands nombres.
-2. **Nouveau cœur** : canon contrôlable (3 modes), boss + vagues, 4 types d'ennemis, PV du canon, défaite → niveau 1, améliorations de partie, diamants + atelier, gemmes + 3 capacités, 10 formes de boss, paramètres, sauvegarde v2.
-3. **Contenu** : propriétés des boss, zones faibles, armes Orbes / Laser / Éclairs, nouveaux ennemis, mondes-points de reprise.
-4. **Progression** : succès, objectif quotidien, hors ligne, collection, export/import, simulation d'équilibrage complète.
-5. **Pubs et Android** : `ads/`, AdMob test, RGPD, Capacitor, APK construit par GitHub Action.
-6. **Publication** : politique de confidentialité, fiche Google Play, test fermé de 12 testeurs sur 14 jours, production.
-
-## 10. Critères d'acceptation v1
-
-- 100 niveaux jouables ; le canon tire et vise seul, le contrôle améliore nettement les résultats.
-- Les trois modes de contrôle fonctionnent au doigt.
+## 11. Critères d'acceptation v1
+- 100 niveaux jouables, puis mode infini ; le contrôle au doigt fait la différence.
+- Tir sur zone faible = ×3.
 - Grands nombres corrects jusqu'à 1e30.
-- La défaite renvoie au niveau 1 en conservant diamants, gemmes, atelier et capacités.
+- Gain hors ligne calculé, plafonné, doublable.
+- La défaite conserve diamants, gemmes, atelier, armes, capacités, succès et collection.
 - 60 images/s avec 300 particules.
 - Consentement RGPD dans l'Espace économique européen.
 - Sauvegarde robuste aux fermetures brutales et aux mises à jour.
@@ -149,6 +160,6 @@ Portrait, boutons d'au moins 56 dp, rien de profond.
 ---
 
 ## Historique
-
-- **v1** : jeu idle, la forme encaisse les tirs automatiques ; renaissance au niveau 30 donnant des cristaux.
-- **v2** : la forme devient un boss qui lance des vagues d'ennemis ; canon contrôlable avec barre de vie ; pièces (partie), diamants (statistiques de base), gemmes (capacités) ; la défaite remplace la renaissance (retour au niveau 1) ; mondes-points de reprise prévus.
+- **v1** : jeu idle, la forme encaisse les tirs automatiques ; renaissance au niveau 30.
+- **v2** : la forme devient un boss qui lance des vagues ; canon contrôlable (3 modes) avec PV ; pièces, diamants, gemmes ; défaite = retour au niveau 1.
+- **v3** : contrôle unique au glisser avec tir droit ; visée auto = capacité ; niveaux vagues puis boss ; 8 ennemis ; armes ; mondes de 50 niveaux ; menu principal ; audio ; Android.
