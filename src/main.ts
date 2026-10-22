@@ -64,8 +64,6 @@ let extra = loaded.extra;
 setLanguage(settings.language);
 document.title = t('title');
 
-/** Une partie peut être reprise depuis le menu. */
-let runActive = loaded.hasRun;
 let mode: 'menu' | 'game' = 'menu';
 let hidden = document.hidden;
 let hiddenAt = 0;
@@ -152,7 +150,7 @@ function setMode(m: 'menu' | 'game'): void {
 function enterGame(): void {
   setMode('game');
   screens.reset(null);
-  runActive = true;
+  extra.runActive = true;
   if (state.run.level <= 2 && state.meta.stats.runs <= 2) hud.showHint();
 }
 
@@ -166,7 +164,7 @@ function newRun(world: number): void {
 
 function toMenu(): void {
   const lost = state.run.phase === 'gameOver';
-  if (lost) runActive = false;
+  if (lost) extra.runActive = false;
   setMode('menu');
   screens.reset('menu');
   effects.clear();
@@ -208,7 +206,7 @@ const screens = new Screens(app, {
   state: () => state,
   settings: () => settings,
   extra: () => extra,
-  hasRun: () => runActive && state.run.phase !== 'gameOver',
+  hasRun: () => extra.runActive && state.run.phase !== 'gameOver',
   newRun,
   resume() {
     if (state.run.phase === 'gameOver') return;
@@ -508,6 +506,9 @@ function handleEvents(): void {
 
 // ------------------------------------------------------------ Boucle
 
+/** Mesure du temps de calcul par image (tests de performance). */
+const perf = { frames: 0, work: 0, max: 0, current: 0 };
+
 const isSimulating = () => mode === 'game' && !hidden && screens.open === null && !adBusy;
 
 function updateMusic(): void {
@@ -519,6 +520,7 @@ function updateMusic(): void {
 startLoop(
   () => {
     if (!isSimulating()) return;
+    const t0 = performance.now();
     input.sync();
     if (AUTOPLAY) {
       AUTOPLAY.play(state, events);
@@ -526,8 +528,10 @@ startLoop(
     }
     step(state, events);
     handleEvents();
+    perf.current += performance.now() - t0;
   },
   (alpha, frameDt) => {
+    const t0 = performance.now();
     if (events.length) handleEvents();
     if (mode === 'game') {
       const running = isSimulating();
@@ -541,6 +545,11 @@ startLoop(
     }
     screens.update();
     updateMusic();
+    const work = perf.current + performance.now() - t0;
+    perf.current = 0;
+    perf.frames++;
+    perf.work += work;
+    perf.max = Math.max(perf.max, work);
   },
   () => settings.powerSave,
 );
@@ -595,8 +604,16 @@ void setupPlatform({
   onResume: onShow,
 });
 
+// PWA : le jeu reste jouable hors connexion (version web publiée uniquement).
+if (!isNative && import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+
 // Prépare les publicités (consentement UMP sur Android) sans bloquer le démarrage.
 void createAds(isNative).then((a) => (ads = a));
 
 // Pour les tests automatiques (Playwright) : accès en lecture à l'état.
-(window as unknown as { __game?: unknown }).__game = { state, settings: () => settings, STEP };
+(window as unknown as { __game?: unknown }).__game = { state, settings: () => settings, effects, STEP, screen: () => screens.open, mode: () => mode,
+  perf: () => ({ avg: perf.work / Math.max(1, perf.frames), max: perf.max, frames: perf.frames }),
+  resetPerf: () => Object.assign(perf, { frames: 0, work: 0, max: 0 }),
+};

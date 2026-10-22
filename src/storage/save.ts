@@ -33,6 +33,8 @@ export interface Extra {
   lastInterstitialAt: number;
   /** Écran de victoire (niveau 100) déjà montré. */
   victoryShown: boolean;
+  /** Une partie commencée peut être reprise (« Continuer »). */
+  runActive: boolean;
 }
 
 export function defaultLanguage(nav: string | undefined = typeof navigator !== 'undefined' ? navigator.language : 'fr'): Language {
@@ -44,7 +46,7 @@ export function defaultSettings(): Settings {
 }
 
 export function defaultExtra(): Extra {
-  return { boostReadyAt: 0, lastInterstitialAt: 0, victoryShown: false };
+  return { boostReadyAt: 0, lastInterstitialAt: 0, victoryShown: false, runActive: false };
 }
 
 export interface SavedRun {
@@ -214,7 +216,8 @@ export function deserialize(raw: unknown): Loaded {
   const over = r.over === true;
   const level = over ? 1 : Math.min(int(r.level, 1, 1), Math.max(meta.bestLevel, 1) + 1);
   state.run = createRun(meta, level);
-  const hasRun = !over && (level > 1 || num(r.coins, 0) > 0 || int(r.kills, 0) > 0);
+  const e = obj(d.extra);
+  const hasRun = !over && (e.runActive === true || level > 1 || num(r.coins, 0) > 0 || int(r.kills, 0) > 0);
   if (!over) {
     const run = state.run;
     run.startLevel = Math.min(int(r.startLevel, 1, 1), level);
@@ -241,11 +244,11 @@ export function deserialize(raw: unknown): Loaded {
   if (typeof s.powerSave === 'boolean') settings.powerSave = s.powerSave;
   if (LANGUAGES.includes(s.language as Language)) settings.language = s.language as Language;
 
-  const e = obj(d.extra);
   const extra: Extra = {
     boostReadyAt: num(e.boostReadyAt, 0),
     lastInterstitialAt: num(e.lastInterstitialAt, 0),
     victoryShown: e.victoryShown === true || meta.campaignComplete,
+    runActive: hasRun,
   };
   return { state, settings, extra, savedAt: num(d.savedAt, 0), hasRun };
 }

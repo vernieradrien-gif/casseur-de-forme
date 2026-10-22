@@ -28,6 +28,7 @@ interface Star {
 
 const HALF = W.width / 2;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const STAR_LAYERS = 4;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
@@ -87,25 +88,37 @@ export class Renderer {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    const g = ctx.createLinearGradient(0, 0, 0, this.height);
-    g.addColorStop(0, '#0a0718');
-    g.addColorStop(0.55, '#07070f');
-    g.addColorStop(1, '#050a14');
-    ctx.fillStyle = g;
+    if (!this.sky || this.skyHeight !== this.height) {
+      // Dégradé du fond calculé une seule fois par taille d'écran.
+      const g = ctx.createLinearGradient(0, 0, 0, this.height);
+      g.addColorStop(0, '#0a0718');
+      g.addColorStop(0.55, '#07070f');
+      g.addColorStop(1, '#050a14');
+      this.sky = g;
+      this.skyHeight = this.height;
+    }
+    ctx.fillStyle = this.sky;
     ctx.fillRect(0, 0, this.width, this.height);
     this.starSpeed += (speed - this.starSpeed) * Math.min(1, dt * 2);
-    for (const s of this.stars) {
-      s.y += s.z * s.z * 0.05 * this.starSpeed * dt;
-      if (s.y > 1) {
-        s.y -= 1;
-        s.x = Math.random();
+    // Étoiles regroupées par luminosité (peu de changements de couleur par image).
+    for (let layer = 0; layer < STAR_LAYERS; layer++) {
+      const twinkle = 0.85 + 0.15 * Math.sin(this.clock * 2 + layer * 1.7);
+      ctx.fillStyle = `rgba(200,220,255,${((0.3 + (0.6 * (layer + 1)) / STAR_LAYERS) * twinkle).toFixed(2)})`;
+      for (const s of this.stars) {
+        if (Math.floor(s.z * STAR_LAYERS * 0.999) !== layer) continue;
+        s.y += s.z * s.z * 0.05 * this.starSpeed * dt;
+        if (s.y > 1) {
+          s.y -= 1;
+          s.x = Math.random();
+        }
+        const size = s.z * 1.8;
+        ctx.fillRect(s.x * this.width, s.y * this.height, size, size * (1 + this.starSpeed * 0.6 * s.z));
       }
-      const a = 0.35 + 0.45 * s.z * (0.75 + 0.25 * Math.sin(this.clock * 2 + s.tw));
-      const size = s.z * 1.8;
-      ctx.fillStyle = `rgba(200,220,255,${a.toFixed(3)})`;
-      ctx.fillRect(s.x * this.width, s.y * this.height, size, size * (1 + this.starSpeed * 0.6 * s.z));
     }
   }
+
+  private sky: CanvasGradient | null = null;
+  private skyHeight = 0;
 
   // ------------------------------------------------------------ Menu
 
@@ -241,10 +254,12 @@ export class Renderer {
     }
 
     // Corps : contour lumineux (halo flou une seule fois par image), plaque intérieure si blindé.
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 18;
+    this.path(pts);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = color + '18';
+    ctx.lineWidth = (boss.grand ? 4 : 3) * 7;
+    ctx.stroke();
     this.neon(pts, color, boss.grand ? 4 : 3, boss.flash, '1c');
-    ctx.shadowBlur = 0;
     const inner = bossVertices({ ...boss, x, radius: boss.radius * 0.62, rotation: -rot * 1.5 });
     this.path(inner);
     ctx.strokeStyle = color + '66';
@@ -342,12 +357,14 @@ export class Renderer {
       const moving = Math.hypot(e.vx, e.vy) > 0.01;
       const angle = e.kind === 'rare' ? e.age * 3 : moving ? Math.atan2(e.vy, e.vx) : Math.PI / 2;
       if (e.kind === 'dasher' && e.mode === 1) this.drawTelegraph(e);
+      const shape = enemyVertices(e.kind, e.radius, x, y, angle);
       if (e.kind === 'rare') {
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 14;
+        this.path(shape);
+        ctx.strokeStyle = color + '30';
+        ctx.lineWidth = 14;
+        ctx.stroke();
       }
-      this.neon(enemyVertices(e.kind, e.radius, x, y, angle), color, 2.2, e.flash);
-      ctx.shadowBlur = 0;
+      this.neon(shape, color, 2.2, e.flash);
       if (e.kind === 'shooter' && e.mode === 1) {
         this.circle(x, y, e.radius * (0.4 + 0.3 * (1 - Math.max(0, e.timer) / 1.4)));
         ctx.fillStyle = color + '99';
@@ -736,11 +753,8 @@ export class Renderer {
     ctx.lineWidth = 6;
     ctx.strokeStyle = '#000000aa';
     ctx.strokeText(b.text, this.ox, y);
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = 16;
     ctx.fillStyle = b.color;
     ctx.fillText(b.text, this.ox, y);
-    ctx.shadowBlur = 0;
     if (b.sub) {
       ctx.font = `700 15px ${FONT}`;
       ctx.lineWidth = 4;
