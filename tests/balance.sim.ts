@@ -2,7 +2,7 @@
 // Des joueurs automatiques (adroit, moyen, maladroit) enchaînent les parties en dépensant tout
 // entre chaque partie ; on affiche le niveau atteint et le temps de jeu cumulé.
 import { test } from 'vitest';
-import { startRun } from '../src/game/actions';
+import { doubleRunDiamonds, startRun } from '../src/game/actions';
 import { AutoPlayer, spendCoins, spendMeta } from '../src/game/autoplayer';
 import type { AutoPlayerOptions } from '../src/game/autoplayer';
 import { checkpointCoins, worldStart, worldsUnlocked } from '../src/game/formulas';
@@ -72,6 +72,8 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
       if (s.run.startLevel === 1 && s.run.level > 50 && !coinNote) {
         coinNote = `pièces gagnées niveaux 1-50 ≈ ${s.run.coinsEarned.toExponential(2)} ; reprise au niveau 51 : ${checkpointCoins(51).toExponential(2)}`;
       }
+      // SIM_ADS=1 : le joueur regarde la pub « doubler les diamants » après chaque partie.
+      if (process.env.SIM_ADS) doubleRunDiamonds(s);
       gains.push(s.run.level - s.run.startLevel);
       if (process.env.SIM_DIAG && runIdx % 6 === 5) lines.push(`détail partie ${runIdx + 1} : ` + Object.entries(lv).map(([l, v]) => `${l}:${v.w.toFixed(0)}+${v.b.toFixed(0)}s/${v.hits}`).join(' '));
       runLog.push(`${s.run.startLevel}→${s.run.level}(${Math.round(rt / 60)}m)`);

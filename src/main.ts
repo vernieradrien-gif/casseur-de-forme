@@ -192,6 +192,21 @@ function computeOffline(seconds: number): void {
   }
 }
 
+/** Récupère les gains hors ligne (doublés par une pub récompensée si demandé). */
+async function collectOffline(double: boolean): Promise<void> {
+  let gain = offline.diamonds;
+  if (double) {
+    if (!(await rewarded('doubleOffline'))) return;
+    gain *= 2;
+  }
+  state.meta.diamonds += gain;
+  offline = { seconds: 0, diamonds: 0 };
+  sfx.play('gem');
+  toasts.show(`+${formatNumber(gain)} ${t('diamonds').toLowerCase()}`, 'gem');
+  save();
+  screens.back();
+}
+
 const hud = new Hud(app, {
   onBuy(id, count) {
     if (buyRunUpgrade(state, id, count) > 0) sfx.play('click');
@@ -245,19 +260,7 @@ const screens = new Screens(app, {
   boostRemaining: () => state.meta.boostTime,
   boostWait: () => Math.max(0, (extra.boostReadyAt - Date.now()) / 1000),
   offlineGain: () => offline,
-  async collectOffline(double) {
-    let gain = offline.diamonds;
-    if (double) {
-      if (!(await rewarded('doubleOffline'))) return;
-      gain *= 2;
-    }
-    state.meta.diamonds += gain;
-    offline = { seconds: 0, diamonds: 0 };
-    sfx.play('gem');
-    toasts.show(`+${formatNumber(gain)} ${t('diamonds').toLowerCase()}`, 'gem');
-    save();
-    screens.back();
-  },
+  collectOffline,
   buyWorkshop(id) {
     if (buyWorkshop(state, id, events)) save();
   },
@@ -589,8 +592,12 @@ void setupPlatform({
       pause();
       return true;
     }
-    if (screens.open === 'pause') {
-      screens.reset(null);
+    if (screens.open === 'pause' || screens.open === 'victory') {
+      screens.reset(mode === 'game' ? null : 'menu');
+      return true;
+    }
+    if (screens.open === 'welcome') {
+      void collectOffline(false);
       return true;
     }
     if (screens.back()) return true;
