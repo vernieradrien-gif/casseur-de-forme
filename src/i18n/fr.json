@@ -1,0 +1,16 @@
+{
+  "title": "Casseur de forme",
+  "level": "Niveau {level}",
+  "coins": "{coins}",
+  "coinsLabel": "Pièces",
+  "hp": "{hp} / {max}",
+  "upgrade.damage.name": "Dégâts",
+  "upgrade.damage.desc": "+10 % par niveau · actuel : {value}",
+  "upgrade.level": "Niv. {level}",
+  "upgrade.cost": "{cost}",
+  "pause": "Pause",
+  "paused": "En pause",
+  "resume": "Toucher pour reprendre",
+  "bulk": "x{n}",
+  "bulkMax": "Max"
+}
