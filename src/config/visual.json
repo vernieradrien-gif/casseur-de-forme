@@ -1,10 +1,14 @@
 {
   "maxParticles": 300,
-  "shardsOnDestroy": 36,
-  "sparksOnHit": 4,
+  "shardsOnBossDestroy": 48,
+  "shardsOnEnemyDestroy": 8,
+  "sparksOnHit": 3,
   "floatingTextLife": 0.9,
-  "shakeOnDestroy": 6,
+  "shakeOnBossDestroy": 8,
+  "shakeOnCannonHit": 6,
   "shakeDecay": 10,
   "flashOnDestroy": 0.25,
-  "tierColors": ["#3ee6ff"]
+  "tierColors": ["#3ee6ff", "#7cff6b", "#ffb347", "#ff6bd6", "#b18cff", "#ffe66b", "#ff6b6b", "#6bffe0", "#9ab8ff", "#ffffff"],
+  "enemyColors": { "grunt": "#ff8a5c", "tank": "#ff4d6d", "hunter": "#c86bff", "rare": "#ffd84a" },
+  "cannonColor": "#3ee6ff"
 }

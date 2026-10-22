@@ -1,94 +1,126 @@
 import { formatNumber } from '../game/bignum';
-import { cannonDamage, upgradeBulkCost, upgradeMaxAffordable } from '../game/formulas';
+import { ABILITIES, BALANCE, RUN_UPGRADES, affordable, bulkCost, cannonStats } from '../game/formulas';
+import type { AbilityId, RunUpgradeId } from '../game/formulas';
+import { isActiveAbility } from '../game/simulation';
 import type { GameState } from '../game/state';
 import { t } from '../i18n';
+import { button, currencyIcon, el, setDisabled, setText } from './dom';
 
 const BULK_STEPS = [1, 10, 100, Infinity];
 
 export interface HudCallbacks {
-  onBuyDamage(count: number): void;
-  onTogglePause(): void;
+  onBuy(id: RunUpgradeId, count: number): void;
+  onAbility(id: AbilityId): void;
+  onPause(): void;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.className = className;
-  parent?.appendChild(e);
-  return e;
+interface UpgradeButton {
+  id: RunUpgradeId;
+  btn: HTMLButtonElement;
+  level: HTMLElement;
+  desc: HTMLElement;
+  cost: HTMLElement;
 }
 
-/** Remplace le texte seulement s'il a changé (évite de toucher le DOM à chaque image). */
-function setText(e: HTMLElement, text: string): void {
-  if (e.textContent !== text) e.textContent = text;
+interface AbilityButton {
+  id: AbilityId;
+  btn: HTMLButtonElement;
 }
 
 export class Hud {
-  readonly panel: HTMLElement;
   readonly topBar: HTMLElement;
+  readonly panel: HTMLElement;
   private readonly level: HTMLElement;
   private readonly coins: HTMLElement;
-  private readonly buyBtn: HTMLButtonElement;
-  private readonly buyLevel: HTMLElement;
-  private readonly buyDesc: HTMLElement;
-  private readonly buyCost: HTMLElement;
+  private readonly diamonds: HTMLElement;
+  private readonly gems: HTMLElement;
+  private readonly upgrades: UpgradeButton[] = [];
+  private readonly abilities: AbilityButton[] = [];
   private readonly bulkBtn: HTMLButtonElement;
-  private readonly pauseOverlay: HTMLElement;
+  private readonly hint: HTMLElement;
   private bulkIndex = 0;
 
   constructor(root: HTMLElement, cb: HudCallbacks) {
     this.topBar = el('header', 'top-bar', root);
     this.level = el('div', 'level', this.topBar);
-    const coinBox = el('div', 'coins', this.topBar);
-    el('span', 'coin-icon', coinBox).setAttribute('aria-hidden', 'true');
-    this.coins = el('span', 'coin-value', coinBox);
-    coinBox.title = t('coinsLabel');
-    const pauseBtn = el('button', 'pause-btn', this.topBar);
-    pauseBtn.type = 'button';
-    pauseBtn.setAttribute('aria-label', t('pause'));
-    pauseBtn.textContent = 'II';
-    pauseBtn.addEventListener('click', () => cb.onTogglePause());
+    const wallet = el('div', 'wallet', this.topBar);
+    const money = (kind: 'coin' | 'diamond' | 'gem', label: string) => {
+      const box = el('span', `money money-${kind}`, wallet);
+      box.title = label;
+      currencyIcon(kind, box);
+      return el('span', 'money-value', box);
+    };
+    this.coins = money('coin', t('coins'));
+    this.diamonds = money('diamond', t('diamonds'));
+    this.gems = money('gem', t('gems'));
+    const pause = button('icon-btn', this.topBar, 'II', () => cb.onPause());
+    pause.setAttribute('aria-label', t('pause'));
+
+    const abilityBar = el('div', 'ability-bar', root);
+    for (const id of ABILITIES) {
+      if (!isActiveAbility(id)) continue;
+      const btn = button(`ability-btn ability-${id}`, abilityBar, undefined, () => cb.onAbility(id));
+      btn.setAttribute('aria-label', t(`ability.${id}.name`));
+      el('span', 'ability-label', btn, t(`ability.${id}.name`));
+      this.abilities.push({ id, btn });
+    }
+
+    this.hint = el('div', 'control-hint', root, t('hintControls'));
 
     this.panel = el('section', 'panel', root);
     const row = el('div', 'upgrade-row', this.panel);
-    this.buyBtn = el('button', 'upgrade-btn', row);
-    this.buyBtn.type = 'button';
-    const info = el('span', 'upgrade-info', this.buyBtn);
-    const head = el('span', 'upgrade-head', info);
-    el('span', 'upgrade-name', head).textContent = t('upgrade.damage.name');
-    this.buyLevel = el('span', 'upgrade-level', head);
-    this.buyDesc = el('span', 'upgrade-desc', info);
-    this.buyCost = el('span', 'upgrade-cost', this.buyBtn);
-    this.buyBtn.addEventListener('click', () => cb.onBuyDamage(BULK_STEPS[this.bulkIndex]));
-
-    this.bulkBtn = el('button', 'bulk-btn', row);
-    this.bulkBtn.type = 'button';
-    this.bulkBtn.addEventListener('click', () => {
+    for (const id of RUN_UPGRADES) {
+      const btn = button('upgrade-btn', row, undefined, () => cb.onBuy(id, BULK_STEPS[this.bulkIndex]));
+      el('span', 'upgrade-name', btn, t(`run.${id}.name`));
+      const level = el('span', 'upgrade-level', btn);
+      const desc = el('span', 'upgrade-desc', btn);
+      const costBox = el('span', 'upgrade-cost', btn);
+      currencyIcon('coin', costBox);
+      const cost = el('span', '', costBox);
+      this.upgrades.push({ id, btn, level, desc, cost });
+    }
+    this.bulkBtn = button('bulk-btn', row, undefined, () => {
       this.bulkIndex = (this.bulkIndex + 1) % BULK_STEPS.length;
     });
-
-    this.pauseOverlay = el('div', 'pause-overlay', root);
-    el('div', 'pause-title', this.pauseOverlay).textContent = t('paused');
-    el('div', 'pause-hint', this.pauseOverlay).textContent = t('resume');
-    this.pauseOverlay.addEventListener('click', () => cb.onTogglePause());
   }
 
-  update(state: GameState, paused: boolean): void {
-    setText(this.level, t('level', { level: state.level }));
-    setText(this.coins, formatNumber(state.coins));
+  hideHint(): void {
+    this.hint.classList.add('hidden');
+  }
 
-    const owned = state.upgrades.damage;
+  update(state: GameState): void {
+    const run = state.run;
+    const meta = state.meta;
+    setText(this.level, t('level', { level: run.level }));
+    setText(this.coins, formatNumber(run.coins));
+    setText(this.diamonds, formatNumber(meta.diamonds));
+    setText(this.gems, formatNumber(meta.gems));
+
+    const stats = cannonStats(run.upgrades, meta.upgrades);
     const step = BULK_STEPS[this.bulkIndex];
-    const affordable = upgradeMaxAffordable('damage', owned, state.coins);
-    const count = step === Infinity ? Math.max(1, affordable) : step;
-    const cost = upgradeBulkCost('damage', owned, count);
-    const canBuy = affordable >= 1 && (step === Infinity || affordable >= step);
-
-    setText(this.buyLevel, t('upgrade.level', { level: owned }));
-    setText(this.buyDesc, t('upgrade.damage.desc', { value: formatNumber(cannonDamage(owned)) }));
-    setText(this.buyCost, t('upgrade.cost', { cost: formatNumber(cost) }));
-    if (this.buyBtn.disabled === canBuy) this.buyBtn.disabled = !canBuy;
+    for (const u of this.upgrades) {
+      const def = BALANCE.runUpgrades[u.id];
+      const owned = run.upgrades[u.id];
+      const can = affordable(def, owned, run.coins);
+      const count = step === Infinity ? Math.max(1, can) : step;
+      setText(u.level, t('levelShort', { level: owned }));
+      const value = u.id === 'damage' ? stats.damage : u.id === 'fireRate' ? stats.shotsPerSecond : stats.maxHp;
+      setText(u.desc, t(`run.${u.id}.desc`, { value: formatNumber(value) }));
+      setText(u.cost, formatNumber(bulkCost(def, owned, count)));
+      setDisabled(u.btn, run.phase === 'gameOver' || can < 1 || (step !== Infinity && can < step));
+    }
     setText(this.bulkBtn, step === Infinity ? t('bulkMax') : t('bulk', { n: step }));
 
-    this.pauseOverlay.classList.toggle('visible', paused);
+    const c = run.cannon;
+    for (const a of this.abilities) {
+      const unlocked = meta.abilities[a.id];
+      a.btn.classList.toggle('hidden', !unlocked);
+      if (!unlocked) continue;
+      const def = BALANCE.abilities[a.id];
+      const total = 'cooldown' in def ? def.cooldown : 1;
+      const ratio = c.cooldowns[a.id] / total;
+      a.btn.style.setProperty('--cd', `${Math.round(ratio * 360)}deg`);
+      setDisabled(a.btn, ratio > 0 || run.phase !== 'playing');
+    }
   }
 }

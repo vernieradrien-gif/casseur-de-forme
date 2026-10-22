@@ -39,3 +39,26 @@ export function pointInPolygon(p: Vec, poly: Vec[]): boolean {
   }
   return inside;
 }
+
+/** Description d'une silhouette : polygone régulier (`sides`) ou étoile (`star` branches). */
+export interface ShapeDef {
+  sides?: number;
+  star?: number;
+  /** Rayon intérieur de l'étoile, en fraction du rayon. */
+  inner?: number;
+  /** Étirement horizontal avant rotation (losange). */
+  scaleX?: number;
+}
+
+export function shapeVertices(def: ShapeDef, radius: number, rotation: number, cx = 0, cy = 0): Vec[] {
+  const base = def.star
+    ? starVertices(def.star, radius, radius * (def.inner ?? 0.5), 0)
+    : polygonVertices(def.sides ?? 3, radius, 0);
+  const sx = def.scaleX ?? 1;
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return base.map((p) => {
+    const x = p.x * sx;
+    return { x: cx + x * cos - p.y * sin, y: cy + x * sin + p.y * cos };
+  });
+}
