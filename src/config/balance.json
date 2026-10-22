@@ -1,28 +1,194 @@
 {
-  "shape": {
-    "baseHp": 10,
+  "world": {
+    "width": 1,
+    "height": 1.6,
+    "bossY": 0.32,
+    "cannonY": 1.44,
+    "cannonMinX": -0.44,
+    "cannonMaxX": 0.44
+  },
+  "levelsPerTier": 10,
+  "boss": {
+    "baseHp": 40,
     "hpGrowth": 1.22,
-    "baseCoins": 1,
-    "coinGrowth": 1.17,
     "tierMultipliers": [
       1
     ],
-    "levelsPerTier": 10,
+    "radius": 0.16,
     "rotationSpeed": 0.6,
-    "radius": 0.34,
-    "respawnDelay": 0.45
+    "baseCoins": 10,
+    "coinGrowth": 1.15,
+    "nextLevelDelay": 1.6
+  },
+  "bossShapes": [
+    {
+      "sides": 3
+    },
+    {
+      "sides": 4
+    },
+    {
+      "sides": 5
+    },
+    {
+      "sides": 6
+    },
+    {
+      "sides": 8
+    },
+    {
+      "star": 5,
+      "inner": 0.5
+    },
+    {
+      "sides": 4,
+      "scaleX": 0.62
+    },
+    {
+      "star": 8,
+      "inner": 0.62
+    },
+    {
+      "sides": 28
+    },
+    {
+      "star": 6,
+      "inner": 0.78
+    }
+  ],
+  "waves": {
+    "firstDelay": 1.5,
+    "intervalBase": 4.5,
+    "intervalPerLevel": 0.1,
+    "intervalMin": 2,
+    "countBase": 4,
+    "countPerLevel": 0.4,
+    "countMax": 14,
+    "spawnSpacing": 0.3
+  },
+  "enemies": {
+    "grunt": {
+      "hp": 2,
+      "speed": 0.36,
+      "damage": 2,
+      "coins": 1,
+      "radius": 0.028,
+      "fromLevel": 1,
+      "weight": 10,
+      "behavior": "straight"
+    },
+    "tank": {
+      "hp": 9,
+      "speed": 0.2,
+      "damage": 5,
+      "coins": 4,
+      "radius": 0.046,
+      "fromLevel": 4,
+      "weight": 3,
+      "behavior": "straight"
+    },
+    "hunter": {
+      "hp": 3,
+      "speed": 0.38,
+      "damage": 3,
+      "coins": 2,
+      "radius": 0.03,
+      "fromLevel": 7,
+      "weight": 4,
+      "behavior": "homing",
+      "turnRate": 1.3
+    },
+    "rare": {
+      "hp": 4,
+      "speed": 0.24,
+      "damage": 0,
+      "coins": 8,
+      "radius": 0.032,
+      "fromLevel": 3,
+      "weight": 0,
+      "behavior": "zigzag"
+    }
+  },
+  "rareChance": 0.01,
+  "enemyScaling": {
+    "hpGrowth": 1.2,
+    "damageGrowth": 1.12,
+    "coinGrowth": 1.13
   },
   "cannon": {
+    "baseHp": 12,
     "baseDamage": 1,
-    "shotsPerSecond": 3,
-    "projectileSpeed": 1.6,
-    "distance": 0.8
+    "shotsPerSecond": 3.5,
+    "maxShotsPerSecond": 20,
+    "projectileSpeed": 2,
+    "projectileRadius": 0.012,
+    "moveSpeed": 2.2,
+    "turnSpeed": 14,
+    "radius": 0.05,
+    "healOnLevelClear": 0.35
   },
-  "upgrades": {
+  "runUpgrades": {
     "damage": {
+      "baseCost": 5,
+      "costGrowth": 1.22,
+      "effectPerLevel": 0.12
+    },
+    "fireRate": {
       "baseCost": 10,
-      "costGrowth": 1.15,
+      "costGrowth": 1.25,
+      "effectPerLevel": 0.05
+    },
+    "maxHp": {
+      "baseCost": 8,
+      "costGrowth": 1.22,
+      "effectPerLevel": 0.12
+    }
+  },
+  "diamondUpgrades": {
+    "damage": {
+      "baseCost": 2,
+      "costGrowth": 1.45,
       "effectPerLevel": 0.1
+    },
+    "fireRate": {
+      "baseCost": 3,
+      "costGrowth": 1.5,
+      "effectPerLevel": 0.04
+    },
+    "maxHp": {
+      "baseCost": 2,
+      "costGrowth": 1.45,
+      "effectPerLevel": 0.1
+    },
+    "coins": {
+      "baseCost": 3,
+      "costGrowth": 1.5,
+      "effectPerLevel": 0.1
+    }
+  },
+  "diamonds": {
+    "perBoss": 1,
+    "bonusEveryLevels": 5,
+    "firstClearBonus": 2
+  },
+  "gems": {
+    "rareEnemy": 1,
+    "tierFirstClear": 3
+  },
+  "abilities": {
+    "shield": {
+      "gemCost": 5,
+      "duration": 4,
+      "cooldown": 25
+    },
+    "doubleShot": {
+      "gemCost": 10,
+      "spread": 0.03
+    },
+    "shockwave": {
+      "gemCost": 15,
+      "cooldown": 40,
+      "bossDamageFraction": 0.05
     }
   }
 }
