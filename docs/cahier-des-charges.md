@@ -143,8 +143,8 @@ Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3) : partie en cours
 ## 10. Jalons
 1. **Cœur initial** *(fait)*.
 2. **Boss + vagues + canon contrôlable** *(fait, version 2)*.
-3. **Jeu complet v3** : contrôle au glisser, niveaux vagues → boss, 8 ennemis, propriétés et zones faibles, armes, capacités, mondes, menus, succès, collection, hors ligne, audio, i18n, PWA.
-4. **Android et pubs** : Capacitor, AdMob test + UMP, APK construit par GitHub Actions.
+3. **Jeu complet v3** *(fait)* : contrôle au glisser, niveaux vagues → boss, 8 ennemis, propriétés et zones faibles, armes, capacités, mondes, menus, succès, collection, hors ligne, audio, i18n, PWA.
+4. **Android et pubs** *(fait)* : Capacitor, AdMob test + UMP, APK construit par GitHub Actions.
 5. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
 
 ## 11. Critères d'acceptation v1

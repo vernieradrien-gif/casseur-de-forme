@@ -30,6 +30,9 @@ src/render    rendu Canvas 2D, particules, nombres flottants
 src/ui        interface DOM (boutons, HUD)
 src/ads       interface publicitaire (factice web, AdMob test sur Android)
 src/audio     musique et effets sonores synthétisés (Web Audio)
+public        manifeste PWA, service worker, icône SVG, politique de confidentialité
+e2e           tests Playwright
+scripts       génération des icônes PNG
 src/storage   sauvegarde versionnée
 src/config    équilibrage (JSON)
 src/i18n      textes
@@ -45,5 +48,6 @@ android/      projet Capacitor (généré, ajusté : icône, portrait, signature
 - Ne pas poser de questions sauf blocage réel ; noter les décisions prises dans le README.
 - Ne jamais supprimer un fichier existant sans demander.
 - Le déploiement GitHub Pages se fait par `.github/workflows/deploy.yml` à chaque push sur `main`.
-- L'APK Android est construit par `.github/workflows/android.yml` (le SDK Android n'est pas téléchargeable dans l'environnement cloud) et publié dans la release `android-latest`.
+- L'APK Android est construit par `.github/workflows/android.yml` et publié dans la release `android-latest` ; il peut aussi être construit sur le PC (JDK 21 d'Android Studio, `npx cap sync android` puis `gradlew assembleRelease` dans `android/`).
+- Tests de bout en bout : `npm run e2e` (Playwright, format téléphone, `?autoplay` pour une partie automatique).
 - Équilibrage : `npm run sim` (joueur automatique) avant de changer `src/config/balance.json`.
