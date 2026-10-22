@@ -9,12 +9,19 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "SIM=1 vitest run --silent=false"
+    "sim": "vitest run --silent=false"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.2.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3"
   }
 }

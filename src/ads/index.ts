@@ -1,19 +1,37 @@
 /**
- * Interface publicitaire unique (cahier des charges §2 et §7).
- * Jalon 1 : seule la version factice web existe ; AdMob arrivera au jalon 4.
+ * Interface publicitaire unique (cahier des charges §2 et §8) : le jeu n'appelle que
+ * `showRewarded` et `showInterstitial`. Version factice sur le web, AdMob (identifiants
+ * de test uniquement) avec consentement UMP sur Android.
  */
 export interface AdService {
+  init(): Promise<void>;
   /** Affiche une pub récompensée ; résout `true` si la récompense est acquise. */
   showRewarded(placement: string): Promise<boolean>;
   showInterstitial(): Promise<void>;
+  /** Le formulaire de consentement peut être rouvert (Android). */
+  consentAvailable(): boolean;
+  showConsent(): Promise<void>;
 }
 
-/** Version factice pour le web : accorde toujours la récompense, n'affiche rien. */
-export const fakeAds: AdService = {
-  async showRewarded() {
-    return true;
-  },
-  async showInterstitial() {},
-};
+export type RewardPlacement = 'continue' | 'doubleDiamonds' | 'doubleOffline' | 'boost';
 
-export const ads: AdService = fakeAds;
+let service: AdService | null = null;
+
+/** Choisit l'implémentation selon la plateforme (chargée à la demande). */
+export async function createAds(native: boolean): Promise<AdService> {
+  if (service) return service;
+  if (native) {
+    try {
+      const { AdMobService } = await import('./admob');
+      service = new AdMobService();
+    } catch {
+      const { FakeAds } = await import('./fake');
+      service = new FakeAds();
+    }
+  } else {
+    const { FakeAds } = await import('./fake');
+    service = new FakeAds();
+  }
+  await service.init().catch(() => {});
+  return service;
+}

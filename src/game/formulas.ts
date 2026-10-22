@@ -1,60 +1,125 @@
-import balance from '../config/balance.json';
 import { geometricSum, grow, maxAffordable } from './bignum';
-import type { ShapeDef } from './geometry';
+import { BALANCE, ENEMY_KINDS, FORMATIONS } from './config';
+import type {
+  AbilityId,
+  Balance,
+  CostDef,
+  EnemyKind,
+  FormationId,
+  RunUpgradeId,
+  TierDef,
+  WeaponId,
+  WorkshopId,
+} from './config';
 
-export type Balance = typeof balance;
-export type RunUpgradeId = keyof Balance['runUpgrades'];
-export type DiamondUpgradeId = keyof Balance['diamondUpgrades'];
-export type AbilityId = keyof Balance['abilities'];
-export type EnemyKind = keyof Balance['enemies'];
+// ---------- Niveaux, paliers, mondes ----------
 
-export const BALANCE: Balance = balance;
-export const RUN_UPGRADES = Object.keys(balance.runUpgrades) as RunUpgradeId[];
-export const DIAMOND_UPGRADES = Object.keys(balance.diamondUpgrades) as DiamondUpgradeId[];
-export const ABILITIES = Object.keys(balance.abilities) as AbilityId[];
-export const ENEMY_KINDS = Object.keys(balance.enemies) as EnemyKind[];
-
-/** Palier (0-indexé) d'un niveau : niveaux 1-10 → 0, 11-20 → 1… */
+/** Palier (0-indexé, sans fin) : niveaux 1-10 → 0, 11-20 → 1… */
 export function tierOf(level: number, cfg: Balance = BALANCE): number {
   return Math.floor((level - 1) / cfg.levelsPerTier);
 }
 
-export function bossShape(level: number, cfg: Balance = BALANCE): ShapeDef {
-  const shapes = cfg.bossShapes;
-  return shapes[tierOf(level, cfg) % shapes.length];
+/** Indice de la forme du palier (les formes recommencent en mode infini). */
+export function tierIndex(level: number, cfg: Balance = BALANCE): number {
+  return tierOf(level, cfg) % cfg.tiers.length;
+}
+
+export function tierDef(level: number, cfg: Balance = BALANCE): TierDef {
+  return cfg.tiers[tierIndex(level, cfg)];
+}
+
+/** Le dernier niveau de chaque palier est un grand boss. */
+export function isGrandBoss(level: number, cfg: Balance = BALANCE): boolean {
+  return level % cfg.levelsPerTier === 0;
+}
+
+/** Nombre de vagues avant la phase boss. */
+export function wavesForLevel(level: number, cfg: Balance = BALANCE): number {
+  if (isGrandBoss(level, cfg)) return cfg.level.grandBossWaves;
+  let count = cfg.level.waves[0].count;
+  for (const w of cfg.level.waves) if (level >= w.fromLevel) count = w.count;
+  return count;
+}
+
+/** Monde (0-indexé) d'un niveau : 1-50 → 0, 51-100 → 1… */
+export function worldOf(level: number, cfg: Balance = BALANCE): number {
+  return Math.floor((level - 1) / cfg.levelsPerWorld);
+}
+
+export function worldStart(world: number, cfg: Balance = BALANCE): number {
+  return 1 + world * cfg.levelsPerWorld;
+}
+
+/** Nombre de mondes où l'on peut reprendre (le début du monde a été atteint). */
+export function worldsUnlocked(bestLevel: number, cfg: Balance = BALANCE): number {
+  return worldOf(Math.max(1, bestLevel), cfg) + 1;
 }
 
 // ---------- Boss ----------
 
+/** Multiplicateur de PV du palier (tableau, puis croissance régulière en mode infini). */
+export function tierHpMultiplier(level: number, cfg: Balance = BALANCE): number {
+  const m = cfg.boss.tierHpMultipliers;
+  const t = tierOf(level, cfg);
+  const last = m.length - 1;
+  return t <= last ? m[t] : m[last] * Math.pow(cfg.boss.tierHpMultiplier, t - last);
+}
+
 export function bossHp(level: number, cfg: Balance = BALANCE): number {
-  const m = cfg.boss.tierMultipliers;
-  const mult = m[Math.min(tierOf(level, cfg), m.length - 1)];
-  return grow(cfg.boss.baseHp, cfg.boss.hpGrowth, level - 1) * mult;
+  const b = cfg.boss;
+  const grand = isGrandBoss(level, cfg) ? b.grandHpMultiplier : 1;
+  return grow(b.baseHp, b.hpGrowth, level - 1) * tierHpMultiplier(level, cfg) * grand;
 }
 
-export function bossCoins(level: number, cfg: Balance = BALANCE): number {
-  return grow(cfg.boss.baseCoins, cfg.boss.coinGrowth, level - 1);
+export function bossRadius(level: number, cfg: Balance = BALANCE): number {
+  return cfg.boss.radius * (isGrandBoss(level, cfg) ? cfg.boss.grandRadiusMultiplier : 1);
 }
 
-/** Diamants pour un boss vaincu ; bonus si le niveau est franchi pour la première fois. */
+export function bossCoins(level: number, golden: boolean, cfg: Balance = BALANCE): number {
+  const b = cfg.boss;
+  const grand = isGrandBoss(level, cfg) ? b.grandCoinMultiplier : 1;
+  return grow(b.baseCoins, b.coinGrowth, level - 1) * grand * (golden ? b.goldenCoinMultiplier : 1);
+}
+
+/** Diamants pour un niveau terminé ; bonus si le niveau est franchi pour la première fois. */
 export function bossDiamonds(level: number, firstClear: boolean, cfg: Balance = BALANCE): number {
   const d = cfg.diamonds;
-  return d.perBoss + Math.floor((level - 1) / d.bonusEveryLevels) + (firstClear ? d.firstClearBonus : 0);
+  const base = d.perBoss + Math.floor((level - 1) / d.bonusEveryLevels);
+  return base * (isGrandBoss(level, cfg) ? d.grandMultiplier : 1) + (firstClear ? d.firstClearBonus : 0);
 }
 
-// ---------- Vagues ----------
-
-export function waveInterval(level: number, cfg: Balance = BALANCE): number {
-  const w = cfg.waves;
-  return Math.max(w.intervalMin, w.intervalBase - w.intervalPerLevel * (level - 1));
+/** Gemmes au premier passage d'un grand boss. */
+export function grandBossGems(level: number, cfg: Balance = BALANCE): number {
+  if (!isGrandBoss(level, cfg)) return 0;
+  return cfg.gems.grandFirstClear + cfg.gems.grandFirstClearPerTier * tierOf(level, cfg);
 }
 
-export function waveCount(level: number, cfg: Balance = BALANCE): number {
+export function bossBulletDamage(level: number, cfg: Balance = BALANCE): number {
+  const b = cfg.boss.bullet;
+  return grow(b.damage, b.damageGrowth, level - 1);
+}
+
+export function bossFireInterval(level: number, cfg: Balance = BALANCE): number {
+  const b = cfg.boss.bullet;
+  return Math.max(b.intervalMin, b.interval - b.intervalPerLevel * (level - 1));
+}
+
+/** Valeur retirée à chaque coup par le blindage (suit la puissance attendue du joueur). */
+export function bossArmorValue(armor: number, level: number, cfg: Balance = BALANCE): number {
+  return armor * grow(cfg.cannon.baseDamage, cfg.boss.armorRefGrowth, level - 1);
+}
+
+/** Dégâts après blindage : jamais moins d'une fraction du coup. */
+export function applyArmor(damage: number, armorValue: number, cfg: Balance = BALANCE): number {
+  return Math.max(damage * cfg.boss.armorMinFraction, damage - armorValue);
+}
+
+// ---------- Vagues et ennemis ----------
+
+export function enemiesPerWave(level: number, cfg: Balance = BALANCE): number {
   const w = cfg.waves;
   return Math.min(w.countMax, w.countBase + Math.floor(w.countPerLevel * (level - 1)));
 }
-
-// ---------- Ennemis ----------
 
 export interface EnemyStats {
   hp: number;
@@ -76,24 +141,38 @@ export function enemyStats(kind: EnemyKind, level: number, cfg: Balance = BALANC
   };
 }
 
-/** Choisit un type d'ennemi (hors « rare ») selon les poids des types débloqués. `r` ∈ [0, 1[. */
-export function pickEnemyKind(level: number, r: number, cfg: Balance = BALANCE): EnemyKind {
-  const available = ENEMY_KINDS.filter((k) => cfg.enemies[k].weight > 0 && level >= cfg.enemies[k].fromLevel);
-  const total = available.reduce((sum, k) => sum + cfg.enemies[k].weight, 0);
+/** Types débloqués à ce niveau (hors étoile dorée). */
+export function enemyKindsAt(level: number, cfg: Balance = BALANCE): EnemyKind[] {
+  return ENEMY_KINDS.filter((k) => cfg.enemies[k].weight > 0 && level >= cfg.enemies[k].fromLevel);
+}
+
+/** Type présenté pour la première fois à ce niveau (un seul à la fois), sinon null. */
+export function newEnemyAt(level: number, cfg: Balance = BALANCE): EnemyKind | null {
+  return ENEMY_KINDS.find((k) => cfg.enemies[k].weight > 0 && cfg.enemies[k].fromLevel === level && level > 1) ?? null;
+}
+
+function weighted<K extends string>(keys: K[], weight: (k: K) => number, r: number): K {
+  const total = keys.reduce((sum, k) => sum + weight(k), 0);
   let x = r * total;
-  for (const k of available) {
-    x -= cfg.enemies[k].weight;
+  for (const k of keys) {
+    x -= weight(k);
     if (x < 0) return k;
   }
-  return available[available.length - 1];
+  return keys[keys.length - 1];
 }
 
-// ---------- Améliorations ----------
-
-interface CostDef {
-  baseCost: number;
-  costGrowth: number;
+/** Choisit un type d'ennemi selon les poids des types débloqués. `r` ∈ [0, 1[. */
+export function pickEnemyKind(level: number, r: number, cfg: Balance = BALANCE): EnemyKind {
+  return weighted(enemyKindsAt(level, cfg), (k) => cfg.enemies[k].weight, r);
 }
+
+export function pickFormation(level: number, r: number, cfg: Balance = BALANCE): FormationId {
+  const f = cfg.waves.formations;
+  const available = FORMATIONS.filter((id) => level >= f[id].fromLevel);
+  return weighted(available, (id) => f[id].weight, r);
+}
+
+// ---------- Coûts ----------
 
 export function cost(def: CostDef, owned: number): number {
   return grow(def.baseCost, def.costGrowth, owned);
@@ -108,9 +187,11 @@ export function affordable(def: CostDef, owned: number, budget: number): number 
 }
 
 /** Multiplicateur composé : (1 + effet)^niveau. */
-function mult(effectPerLevel: number, level: number): number {
+export function compound(effectPerLevel: number, level: number): number {
   return grow(1, 1 + effectPerLevel, level);
 }
+
+// ---------- Canon ----------
 
 export interface CannonStats {
   damage: number;
@@ -121,19 +202,100 @@ export interface CannonStats {
 
 export function cannonStats(
   run: Record<RunUpgradeId, number>,
-  perm: Record<DiamondUpgradeId, number>,
+  workshop: Record<WorkshopId, number>,
   cfg: Balance = BALANCE,
 ): CannonStats {
   const c = cfg.cannon;
   const r = cfg.runUpgrades;
-  const d = cfg.diamondUpgrades;
+  const w = cfg.workshop;
   return {
-    damage: c.baseDamage * mult(d.damage.effectPerLevel, perm.damage) * mult(r.damage.effectPerLevel, run.damage),
+    damage: c.baseDamage * compound(w.damage.effectPerLevel, workshop.damage) * compound(r.damage.effectPerLevel, run.damage),
     shotsPerSecond: Math.min(
       c.maxShotsPerSecond,
-      c.shotsPerSecond * mult(d.fireRate.effectPerLevel, perm.fireRate) * mult(r.fireRate.effectPerLevel, run.fireRate),
+      c.shotsPerSecond * compound(w.fireRate.effectPerLevel, workshop.fireRate) * compound(r.fireRate.effectPerLevel, run.fireRate),
     ),
-    maxHp: c.baseHp * mult(d.maxHp.effectPerLevel, perm.maxHp) * mult(r.maxHp.effectPerLevel, run.maxHp),
-    coinMultiplier: mult(d.coins.effectPerLevel, perm.coins),
+    maxHp: c.baseHp * compound(w.maxHp.effectPerLevel, workshop.maxHp) * compound(r.maxHp.effectPerLevel, run.maxHp),
+    coinMultiplier: compound(w.coins.effectPerLevel, workshop.coins),
   };
+}
+
+/** Part des PV max rendue en fin de niveau (Réparation de l'atelier incluse). */
+export function healOnClear(workshop: Record<WorkshopId, number>, cfg: Balance = BALANCE): number {
+  return Math.min(1, cfg.cannon.healOnLevelClear + cfg.workshop.repair.effectPerLevel * workshop.repair);
+}
+
+/** Effet affiché d'un niveau d'atelier. */
+export function workshopEffect(id: WorkshopId, level: number, cfg: Balance = BALANCE): number {
+  const def = cfg.workshop[id];
+  switch (id) {
+    case 'startCoins':
+      return def.effectPerLevel * level;
+    case 'repair':
+      return healOnClear({ repair: level } as Record<WorkshopId, number>, cfg);
+    case 'offline':
+      return offlineCapHours(level, cfg);
+    default:
+      return compound(def.effectPerLevel, level);
+  }
+}
+
+// ---------- Armes et capacités ----------
+
+export function weaponPower(level: number, cfg: Balance = BALANCE): number {
+  return 1 + cfg.weapons.levelEffect * Math.max(0, level - 1);
+}
+
+export function weaponSlots(bestLevel: number, cfg: Balance = BALANCE): number {
+  return cfg.weapons.slotLevels.filter((l) => bestLevel >= l).length;
+}
+
+export function weaponUpgradeCost(id: WeaponId, level: number, cfg: Balance = BALANCE): number {
+  return cost(cfg.weapons[id], level - 1);
+}
+
+/** Durée d'une capacité active au niveau donné (niveau 1 = juste débloquée). */
+export function abilityDuration(id: AbilityId, level: number, cfg: Balance = BALANCE): number {
+  const d = cfg.abilities[id];
+  return (d.duration ?? 0) + (d.durationPerLevel ?? 0) * Math.max(0, level - 1);
+}
+
+export function abilityCooldown(id: AbilityId, level: number, cfg: Balance = BALANCE): number {
+  const d = cfg.abilities[id];
+  return Math.max(1, (d.cooldown ?? 0) - (d.cooldownPerLevel ?? 0) * Math.max(0, level - 1));
+}
+
+export function shockwaveBossDamage(level: number, cfg: Balance = BALANCE): number {
+  const d = cfg.abilities.shockwave;
+  return (d.bossDamage ?? 0) + (d.bossDamagePerLevel ?? 0) * Math.max(0, level - 1);
+}
+
+/** Prix en gemmes du prochain niveau (0 → déblocage). */
+export function abilityPrice(id: AbilityId, level: number, cfg: Balance = BALANCE): number {
+  const d = cfg.abilities[id];
+  return level === 0 ? d.gemCost : d.upgradeCost * level;
+}
+
+// ---------- Progression ----------
+
+/** Pièces de départ quand on reprend au début d'un monde avancé. */
+export function checkpointCoins(startLevel: number, cfg: Balance = BALANCE): number {
+  if (startLevel <= 1) return 0;
+  let total = 0;
+  for (let l = 1; l < startLevel; l++) {
+    const enemies = wavesForLevel(l, cfg) * enemiesPerWave(l, cfg);
+    total += bossCoins(l, false, cfg) + enemies * enemyStats('grunt', l, cfg).coins;
+  }
+  return total * cfg.checkpoint.coinShare;
+}
+
+export function offlineCapHours(offlineLevel: number, cfg: Balance = BALANCE): number {
+  return cfg.offline.baseHours + cfg.workshop.offline.effectPerLevel * offlineLevel;
+}
+
+/** Diamants gagnés hors ligne ; 0 si l'horloge a reculé ou l'absence est trop courte. */
+export function offlineDiamonds(bestLevel: number, offlineLevel: number, seconds: number, cfg: Balance = BALANCE): number {
+  const o = cfg.offline;
+  if (!(seconds >= o.minMinutes * 60)) return 0;
+  const hours = Math.min(seconds / 3600, offlineCapHours(offlineLevel, cfg));
+  return Math.floor((o.ratePerHour + o.ratePerBestLevel * bestLevel) * o.efficiency * hours);
 }

@@ -55,10 +55,17 @@ function truncate(value: number, decimals: number): number {
   return Math.floor(value * f + EPSILON) / f;
 }
 
+/** Séparateur décimal affiché (virgule en français, point en anglais). */
+let decimalSeparator = ',';
+
+export function setDecimalSeparator(sep: string): void {
+  decimalSeparator = sep;
+}
+
 function frenchDecimal(value: number, decimals: number): string {
   const t = truncate(value, decimals);
   const s = t.toFixed(decimals).replace(/\.?0+$/, '');
-  return s.replace('.', ',');
+  return s.replace('.', decimalSeparator);
 }
 
 /**
