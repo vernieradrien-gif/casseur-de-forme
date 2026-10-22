@@ -169,7 +169,7 @@ button:disabled {
 
 .ability-bar {
   position: absolute;
-  right: 10px;
+  right: max(10px, calc(50% - 280px));
   bottom: calc(env(safe-area-inset-bottom) + 132px);
   z-index: 2;
   display: flex;
@@ -323,6 +323,8 @@ button:disabled {
 .upgrade-row {
   display: flex;
   gap: 6px;
+  max-width: 560px;
+  margin: 0 auto;
 }
 
 .upgrade-btn {

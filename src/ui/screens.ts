@@ -153,9 +153,8 @@ export class Screens {
     this.refreshers.get(id)!.push(r);
   }
 
-  private backButton(id: ScreenId, s: HTMLElement): void {
+  private backButton(s: HTMLElement): void {
     button('menu-btn secondary back-btn', s, t('back'), () => this.back());
-    void id;
   }
 
   /** Bouton à confirmer d'un second toucher. */
@@ -317,7 +316,7 @@ export class Screens {
       }
       toggleClass(warn, 'hidden', !(this.armed?.startsWith('world') ?? false));
     });
-    this.backButton('worlds', s);
+    this.backButton(s);
   }
 
   // ------------------------------------------------------------ Atelier, armurerie, capacités
@@ -349,7 +348,7 @@ export class Screens {
         setDisabled(buy.btn, maxed || meta.diamonds < price);
       });
     }
-    this.backButton('workshop', s);
+    this.backButton(s);
   }
 
   private buildArmory(): void {
@@ -404,7 +403,7 @@ export class Screens {
         toggleClass(row, 'equipped', equipped);
       });
     }
-    this.backButton('armory', s);
+    this.backButton(s);
   }
 
   private buildAbilities(): void {
@@ -447,7 +446,7 @@ export class Screens {
         toggleClass(row, 'owned', level > 0);
       });
     }
-    this.backButton('abilities', s);
+    this.backButton(s);
   }
 
   // ------------------------------------------------------------ Collection et succès
@@ -496,7 +495,7 @@ export class Screens {
         setText(tl.label, k ? tl.name : t('unknown'));
       }
     });
-    this.backButton('collection', s);
+    this.backButton(s);
   }
 
   private buildAchievements(): void {
@@ -525,7 +524,7 @@ export class Screens {
     this.on('achievements', () => {
       setText(count, t('achievementsCount', { n: this.app.state().meta.achievements.length, total: ACHIEVEMENTS.length }));
     });
-    this.backButton('achievements', s);
+    this.backButton(s);
   }
 
   // ------------------------------------------------------------ Paramètres
@@ -574,7 +573,7 @@ export class Screens {
     area.spellcheck = false;
     const ioHint = el('p', 'hint hidden', io);
     const row = el('div', 'row-2', io);
-    const exp = button('menu-btn', row, t('exportSave'), () => {
+    button('menu-btn', row, t('exportSave'), () => {
       area.value = this.app.exportCode();
       area.classList.remove('hidden');
       setText(ioHint, t('exportHint'));
@@ -596,7 +595,6 @@ export class Screens {
       ioHint.classList.remove('hidden');
       area.focus();
     });
-    void exp;
     this.on('settings', () => setText(imp, mode === 'import' ? t('importOk') : t('importSave')));
 
     const reset = button('menu-btn danger', s, t('resetSave'), () => {});
@@ -610,7 +608,7 @@ export class Screens {
       setText(about, t('about', { version: this.app.version() }));
       privacy.href = this.app.privacyUrl();
     });
-    this.backButton('settings', s);
+    this.backButton(s);
   }
 
   // ------------------------------------------------------------ Pause, défaite, bienvenue, victoire

@@ -73,9 +73,11 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
 - **Mondes** : reprendre au début d'un monde donne les pièces qu'on aurait gagnées jusque-là (estimation × gain de pièces
   de l'atelier) pour racheter les améliorations de partie.
 - **Équilibrage** (`npm run sim`, trois joueurs automatiques plus ou moins adroits, 20 s de menus entre parties) :
-  première partie jusqu'au niveau 8 à 10 ; niveau 50 vers 1 h 15 de jeu ; niveau 75 vers 4 à 5 h ; niveau 100 vers
-  25 à 30 h sans publicités (plus tôt avec « doubler les diamants »). Les PV des boss suivent un multiplicateur par palier
-  qui monte vite au début puis plus doucement, pour que la progression ne cale pas en fin de campagne.
+  première partie jusqu'au niveau 8 à 10 ; niveau 50 vers 1 h 15 de jeu continu (le joueur automatique enchaîne les
+  parties sans pause et dépense parfaitement : un humain mettra plus longtemps) ; niveau 75 vers 4 h ; niveau 100 vers
+  40 h sans publicité, ou vers 16 h en regardant « doubler les diamants » après chaque partie (`SIM_ADS=1 npm run sim`).
+  Les PV des boss suivent un multiplicateur par palier qui monte vite au début puis plus doucement, pour que la
+  progression ne cale pas en fin de campagne.
 - **Objectif du jour** : se remet à zéro à minuit (heure du téléphone) ; récompense automatique.
 - **Succès** : accordés automatiquement avec une notification.
 - **Hors ligne** : diamants = (2 + 0,35 × meilleur niveau) × 50 % par heure, au moins 5 min d'absence, plafond 2 h
