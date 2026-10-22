@@ -124,7 +124,7 @@ function handleEvents(): void {
         const r = BALANCE.enemies[e.kind].radius;
         effects.shards(enemyVertices({ kind: e.kind, radius: r, x: e.x, y: e.y }, 0), e, color, visual.shardsOnEnemyDestroy, 0.7);
         effects.floatText(e.x, e.y, '+' + formatNumber(e.coins), '#ffd84a', 0.9);
-        if (e.gem) effects.floatText(e.x, e.y - 0.05, '+1 ◆', '#ff6bd6', 1.3);
+        if (e.gem) effects.floatText(e.x, e.y - 0.05, t('levelClearGems', { gems: 1 }), '#ff6bd6', 1.3);
         break;
       }
       case 'bossHit':

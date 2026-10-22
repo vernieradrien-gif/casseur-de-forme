@@ -154,7 +154,8 @@ button {
 .ability-bar {
   position: absolute;
   right: 12px;
-  bottom: 140px;
+  bottom: 270px;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -170,6 +171,7 @@ button {
   background: #3ee6ff18;
   overflow: hidden;
   padding: 0;
+  isolation: isolate;
 }
 
 .ability-btn::after {
@@ -308,6 +310,7 @@ button {
   padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
   background: #07070fd9;
   overflow-y: auto;
+  z-index: 10;
 }
 
 .overlay.visible {
