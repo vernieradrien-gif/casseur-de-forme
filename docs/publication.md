@@ -5,7 +5,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 
 ## 0. Déjà prêt
 
-- [x] Projet Android (Capacitor) : identifiant `io.github.vernieradrien.casseurdeforme`, portrait, plein écran, icône
+- [x] Projet Android (Capacitor) : nom du package (à renseigner sur Google Play) `io.github.vernieradrien.prismablast`, portrait, plein écran, icône
   tracée en code, vibration, bouton retour, **cible Android 16 (API 36)**, exigée pour les nouvelles applications
   depuis le 31 août 2026.
 - [x] `versionCode` qui augmente à chaque construction (numéro de construction GitHub Actions).
@@ -23,8 +23,11 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 ## 1. À faire par toi (compte, clés, formulaires)
 
 ### 1.1 Créer l'application dans la Play Console
-- [ ] *Toutes les applications › Créer une application* : nom « Prisma Blast », langue par défaut français,
-  **Jeu**, **Gratuit**, accepter les déclarations.
+- [ ] *Toutes les applications › Créer une application* : nom « Prisma Blast », langue par défaut **anglais
+  (États-Unis)**, **Jeu**, **Gratuit**, accepter les déclarations. Nom du package (envoyé avec le premier AAB, définitif) :
+  `io.github.vernieradrien.prismablast`.
+- [ ] *Fiche Play Store › Gérer les traductions* : ajouter **français (France)**. Google montre la fiche française aux
+  téléphones en français et la fiche anglaise à tous les autres (le jeu suit déjà la langue du téléphone).
 - [ ] **Test fermé obligatoire ?** Si ton compte est un compte **personnel créé après le 13 novembre 2023**, Google
   demande un test fermé avec **au moins 12 testeurs pendant 14 jours d'affilée** avant d'ouvrir la production. La
   page d'aide de Google parle du test « de leur application » : compte sur ce test pour cette nouvelle appli aussi.
@@ -88,7 +91,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 ### 1.6 Sauvegarde Google (facultatif)
 - [ ] Play Console › l'application › *Croissance › Play Games Services › Configuration* : créer le projet Play Jeux.
 - [ ] *Propriétés* : activer **Jeux sauvegardés**.
-- [ ] *Identifiants* › Android : paquet `io.github.vernieradrien.casseurdeforme` + **SHA-1 de la clé de signature
+- [ ] *Identifiants* › Android : paquet `io.github.vernieradrien.prismablast` + **SHA-1 de la clé de signature
   d'application** (Play Console › *Intégrité de l'application*), et celui de la clé d'envoi pour tester.
 - [ ] Donner à Claude l'**ID du projet** Play Jeux (une douzaine de chiffres) : il l'ajoute dans
   `android/app/src/main/res/values/strings.xml` et l'option apparaît dans les paramètres.
