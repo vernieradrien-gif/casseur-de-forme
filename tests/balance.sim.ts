@@ -1,43 +1,99 @@
-// Simulation d'équilibrage sans rendu : `npm run sim`. Deux joueurs automatiques (immobile / esquive)
-// enchaînent 8 parties en dépensant tout à chaque fois ; affiche le niveau atteint par partie.
+// Simulation d'équilibrage sans rendu : `npm run sim`.
+// Des joueurs automatiques (adroit, moyen, maladroit) enchaînent les parties en dépensant tout
+// entre chaque partie ; on affiche le niveau atteint et le temps de jeu cumulé.
 import { test } from 'vitest';
-import { BALANCE, DIAMOND_UPGRADES, RUN_UPGRADES, cost } from '../src/game/formulas';
-import { buyDiamondUpgrade, buyRunUpgrade, restartRun, step, STEP, type GameEvent } from '../src/game/simulation';
-import { createState, type GameState } from '../src/game/state';
+import { doubleRunDiamonds, startRun } from '../src/game/actions';
+import { AutoPlayer, spendCoins, spendMeta } from '../src/game/autoplayer';
+import type { AutoPlayerOptions } from '../src/game/autoplayer';
+import { checkpointCoins, worldStart, worldsUnlocked } from '../src/game/formulas';
+import type { GameEvent } from '../src/game/events';
+import { STEP, step } from '../src/game/simulation';
+import { createState } from '../src/game/state';
 
-function buyCheapestRun(s: GameState) {
-  for (;;) {
-    let best = RUN_UPGRADES[0]; let bc = Infinity;
-    for (const id of RUN_UPGRADES) { const c = cost(BALANCE.runUpgrades[id], s.run.upgrades[id]); if (c < bc) { bc = c; best = id; } }
-    if (!buyRunUpgrade(s, best, 1)) return;
-  }
+/** Temps passé dans les menus entre deux parties (secondes). */
+const MENU_TIME = 20;
+const MAX_HOURS = Number(process.env.SIM_HOURS ?? 40);
+const MAX_RUN_SECONDS = 3 * 3600;
+
+const PLAYERS: Record<string, AutoPlayerOptions> = {
+  adroit: { reaction: 0.12, noise: 0.02, blindness: 0.08, seed: 3 },
+  moyen: { reaction: 0.16, noise: 0.03, blindness: 0.15, seed: 7 },
+  maladroit: { reaction: 0.24, noise: 0.05, blindness: 0.3, seed: 11 },
+};
+
+const only = process.env.SIM_PLAYER;
+
+for (const [name, opts] of Object.entries(PLAYERS)) {
+  if (only && only !== name) continue;
+  test(name, () => {
+    const s = createState(42);
+    const player = new AutoPlayer(opts);
+    const ev: GameEvent[] = [];
+    const milestones = [5, 10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 250];
+    const reached: string[] = [];
+    const lines: string[] = [];
+    let total = 0;
+    let runIdx = 0;
+    const first: number[] = [];
+    const gains: number[] = [];
+    const runLog: string[] = [];
+    let coinNote = '';
+    s.meta.stats.runs = 1;
+    while (total < MAX_HOURS * 3600 && s.meta.bestLevel <= 260) {
+      let rt = 0;
+      let lastBuy = 0;
+      const lv: Record<number, { w: number; b: number; hits: number }> = {};
+      while (s.run.phase !== 'gameOver' && rt < MAX_RUN_SECONDS) {
+        player.play(s, ev);
+        step(s, ev);
+        const cur = (lv[s.run.level] ??= { w: 0, b: 0, hits: 0 });
+        if (s.run.phase === 'boss') cur.b += STEP; else if (s.run.phase === 'waves') cur.w += STEP;
+        cur.hits += ev.filter((e) => e.type === 'cannonHit').length;
+        ev.length = 0;
+        rt += STEP;
+        if (rt - lastBuy > 1) {
+          spendCoins(s);
+          lastBuy = rt;
+        }
+      }
+      total += rt + MENU_TIME;
+      if (runIdx < 3) first.push(s.run.level);
+      for (const m of milestones) {
+        if (s.meta.bestLevel >= m && !reached.some((r) => r.startsWith(`niv ${m} `))) {
+          reached.push(`niv ${m} : ${(total / 3600).toFixed(1)} h (partie ${runIdx + 1})`);
+        }
+      }
+      if (runIdx < 12 || runIdx % 10 === 0) {
+        lines.push(
+          `${name} partie ${runIdx + 1} départ=${s.run.startLevel} niveau=${s.run.level} durée=${rt.toFixed(0)}s total=${(total / 3600).toFixed(2)}h ` +
+            `dia+${s.run.diamondsEarned} gemmes=${s.meta.gems} atelier=${JSON.stringify(s.meta.workshop)} cap=${JSON.stringify(s.meta.abilities)} armes=${JSON.stringify(s.meta.weapons)}`,
+        );
+      }
+      if (s.run.startLevel === 1 && s.run.level > 50 && !coinNote) {
+        coinNote = `pièces gagnées niveaux 1-50 ≈ ${s.run.coinsEarned.toExponential(2)} ; reprise au niveau 51 : ${checkpointCoins(51).toExponential(2)}`;
+      }
+      // SIM_ADS=1 : le joueur regarde la pub « doubler les diamants » après chaque partie.
+      if (process.env.SIM_ADS) doubleRunDiamonds(s);
+      gains.push(s.run.level - s.run.startLevel);
+      if (process.env.SIM_DIAG && (process.env.SIM_DIAG === 'all' || runIdx % 6 === 5)) lines.push(`détail partie ${runIdx + 1} : ` + Object.entries(lv).map(([l, v]) => `${l}:${v.w.toFixed(0)}+${v.b.toFixed(0)}s/${v.hits}`).join(' '));
+      runLog.push(`${s.run.startLevel}→${s.run.level}(${Math.round(rt / 60)}m)`);
+      spendMeta(s);
+      // Comme un joueur : reprend au monde le plus avancé, sauf s'il n'y progresse plus.
+      let world = worldsUnlocked(s.meta.bestLevel) - 1;
+      const recent = gains.slice(-3);
+      if (world > 0 && s.run.startLevel === worldStart(world) && recent.length === 3 && recent.every((g) => g < 2)) world--;
+      startRun(s, world);
+      runIdx++;
+    }
+    console.log(
+      [
+        `=== ${name} : 3 premières parties → niveaux ${first.join(', ')}`,
+        ...reached,
+        coinNote,
+        'parties : ' + runLog.join(' '),
+        `meilleur niveau ${s.meta.bestLevel} après ${(total / 3600).toFixed(1)} h et ${runIdx} parties ; succès ${s.meta.achievements.length}/30`,
+        ...lines,
+      ].join('\n'),
+    );
+  }, 3_600_000);
 }
-function buyCheapestMeta(s: GameState) {
-  for (;;) {
-    let best = DIAMOND_UPGRADES[0]; let bc = Infinity;
-    for (const id of DIAMOND_UPGRADES) { const c = cost(BALANCE.diamondUpgrades[id], s.meta.upgrades[id]); if (c < bc) { bc = c; best = id; } }
-    if (!buyDiamondUpgrade(s, best)) return;
-  }
-}
-function dodge(s: GameState) {
-  // Joueur simple : s'écarte des ennemis qui arrivent à sa hauteur.
-  const c = s.run.cannon; let push = 0;
-  for (const e of s.run.enemies) {
-    if (e.damage <= 0) continue;
-    const dy = BALANCE.world.cannonY - e.y; if (dy < 0 || dy > 0.45) continue;
-    const t = dy / Math.max(0.05, e.vy); const px = e.x + e.vx * t; const dx = c.x - px;
-    if (Math.abs(dx) < 0.12) push += (dx >= 0 ? 1 : -1) * (0.45 - dy);
-  }
-  s.input.moveX = push === 0 ? c.x * 0.98 : c.x + Math.sign(push) * 0.3;
-}
-for (const mode of ['idle', 'dodge']) test(mode, () => {
-  const s = createState(42); const ev: GameEvent[] = []; let t = 0; const lines: string[] = [];
-  for (let runIdx = 0; runIdx < 8; runIdx++) {
-    let rt = 0; let hits = 0;
-    while (s.run.phase !== 'gameOver' && rt < 1200) { if (mode === 'dodge') dodge(s); step(s, ev); hits += ev.filter(e => e.type === "cannonHit").length; ev.length = 0; buyCheapestRun(s); rt += STEP; }
-    t += rt;
-    lines.push(`${mode} run${runIdx} level=${s.run.level} hits=${hits} time=${rt.toFixed(0)}s total=${(t/60).toFixed(1)}min dia+${s.run.diamondsEarned} gems=${s.meta.gems} up=${JSON.stringify(s.run.upgrades)} meta=${JSON.stringify(s.meta.upgrades)}`);
-    buyCheapestMeta(s); restartRun(s);
-  }
-  console.log(lines.join('\n'));
-});

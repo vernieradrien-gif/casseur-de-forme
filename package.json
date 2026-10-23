@@ -1,7 +1,7 @@
 {
   "name": "casseur-de-forme",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -9,12 +9,22 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "SIM=1 vitest run --silent=false"
+    "sim": "vitest run --silent=false",
+    "e2e": "playwright test",
+    "icons": "node scripts/make-icons.mjs"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.2.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3"
   }
 }

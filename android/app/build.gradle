@@ -1,0 +1,72 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "io.github.vernieradrien.casseurdeforme"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "io.github.vernieradrien.casseurdeforme"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // Numéro de version : fourni par GitHub Actions (numéro de construction) pour permettre les mises à jour.
+        versionCode((System.getenv('VERSION_CODE') ?: '1').toInteger())
+        versionName "1.1." + (System.getenv('VERSION_CODE') ?: '0')
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Signature avec une clé de TEST commitée dans le dépôt (casseur-test.keystore) :
+    // pratique pour installer l'APK sur un téléphone, mais à NE PAS utiliser pour Google Play
+    // (voir docs/publication.md pour créer la clé privée de publication).
+    signingConfigs {
+        test {
+            storeFile file('casseur-test.keystore')
+            storePassword 'casseur-test'
+            keyAlias 'casseur'
+            keyPassword 'casseur-test'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.test
+        }
+        release {
+            signingConfig signingConfigs.test
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // Sauvegarde cloud avec le compte Google (Google Play Jeux).
+    implementation "com.google.android.gms:play-services-games-v2:22.1.0"
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

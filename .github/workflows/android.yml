@@ -1,0 +1,81 @@
+name: Construire l'APK Android
+
+# Construit l'APK (signé avec la clé de TEST du dépôt) et le publie dans la release
+# « android-latest » : https://github.com/vernieradrien-gif/casseur-de-forme/releases/download/android-latest/casseur-de-forme.apk
+on:
+  push:
+    branches: [main, 'ccr-*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    # Ubuntu 24.04 : le SDK Android est préinstallé (ANDROID_HOME).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: SDK Android
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+
+      - name: Tests et construction du jeu web
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Copie du jeu dans le projet Android
+        run: npx cap sync android
+
+      - name: Construction de l'APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --console=plain
+          cp app/build/outputs/apk/release/app-release.apk ../casseur-de-forme.apk
+
+      - name: Vérification de la signature
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs casseur-de-forme.apk
+          "$BT/aapt2" dump badging casseur-de-forme.apk | head -5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: casseur-de-forme-apk
+          path: casseur-de-forme.apk
+
+      - name: Publication dans la release android-latest
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="APK de test construit automatiquement depuis ${GITHUB_REF_NAME} (${GITHUB_SHA::7}), version 1.0.${{ github.run_number }}. Signé avec une clé de test : à installer en autorisant les sources inconnues. Ne pas publier sur Google Play."
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest casseur-de-forme.apk \
+            --title "Casseur de forme – APK Android (test)" \
+            --notes "$NOTES" \
+            --target "$GITHUB_SHA" \
+            --prerelease

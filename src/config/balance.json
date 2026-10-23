@@ -2,130 +2,433 @@
   "world": {
     "width": 1,
     "height": 1.6,
-    "bossY": 0.32,
+    "bossY": 0.3,
     "cannonY": 1.44,
-    "cannonMinX": -0.44,
-    "cannonMaxX": 0.44
+    "cannonMinX": -0.45,
+    "cannonMaxX": 0.45,
+    "cannonMinY": 0.1,
+    "cannonMaxY": 1.46
   },
   "levelsPerTier": 10,
-  "boss": {
-    "baseHp": 40,
-    "hpGrowth": 1.22,
-    "tierMultipliers": [
-      1
+  "levelsPerWorld": 50,
+  "campaignLevels": 250,
+  "level": {
+    "waves": [
+      {
+        "fromLevel": 1,
+        "count": 3
+      },
+      {
+        "fromLevel": 21,
+        "count": 4
+      },
+      {
+        "fromLevel": 51,
+        "count": 5
+      }
     ],
-    "radius": 0.16,
-    "rotationSpeed": 0.6,
-    "baseCoins": 10,
-    "coinGrowth": 1.15,
-    "nextLevelDelay": 1.6
+    "grandBossWaves": 2,
+    "firstWaveDelay": 1.2,
+    "waveGap": 0.8,
+    "waveMaxDuration": 9,
+    "bossIntroTime": 1.4,
+    "nextLevelDelay": 2,
+    "dyingDuration": 1.8,
+    "dyingTimeScale": 0.3,
+    "defeatDelay": 0.9,
+    "megaBossWaves": 1
   },
-  "bossShapes": [
+  "boss": {
+    "baseHp": 52,
+    "hpGrowth": 1.162,
+    "tierHpMultiplier": 1.15,
+    "tierHpMultipliers": [
+      1,
+      1.15,
+      1.3,
+      1.45,
+      1.6,
+      1.75,
+      1.9,
+      2.05,
+      2.2,
+      2.35
+    ],
+    "worldRamp": {
+      "amount": 6,
+      "power": 1.3,
+      "specialShare": 0.6,
+      "enemyHpShare": 0.5,
+      "damageShare": 0.5
+    },
+    "grandHpMultiplier": 1.4,
+    "grandRadiusMultiplier": 1.3,
+    "radius": 0.15,
+    "rotationSpeed": 0.6,
+    "moveSpeed": 0.14,
+    "moveLimit": 0.3,
+    "baseCoins": 12,
+    "coinGrowth": 1.15,
+    "grandCoinMultiplier": 3,
+    "goldenChance": 0.02,
+    "goldenCoinMultiplier": 10,
+    "enrageBelow": 0.5,
+    "enrageFactor": 1.5,
+    "furyTime": 30,
+    "fastFactor": 1.35,
+    "weakPointMultiplier": 3,
+    "weakPointRadius": 0.04,
+    "armorRefGrowth": 1.085,
+    "armorMinFraction": 0.2,
+    "waveShieldScale": 1.28,
+    "shieldRecharge": 6,
+    "regenDelay": 1.5,
+    "fragmentHpShare": 0.3,
+    "fragmentRadius": 0.6,
+    "ringGap": 0.035,
+    "minionInterval": 7,
+    "minionCount": 2,
+    "minionsFromLevel": 7,
+    "bullet": {
+      "damage": 2,
+      "damageGrowth": 1.09,
+      "speed": 0.5,
+      "radius": 0.014,
+      "interval": 2.4,
+      "intervalMin": 1,
+      "intervalPerLevel": 0.012,
+      "burstGap": 0.12,
+      "spiralIntervalFactor": 0.6,
+      "aimedSpread": 0.12
+    },
+    "ringShare": 0.1
+  },
+  "tiers": [
     {
-      "sides": 3
+      "shape": {
+        "sides": 3
+      },
+      "weakPoints": 1,
+      "attack": {
+        "type": "aimed",
+        "count": 1,
+        "spread": 0
+      }
     },
     {
-      "sides": 4
+      "shape": {
+        "sides": 4
+      },
+      "weakPoints": 2,
+      "fast": true,
+      "attack": {
+        "type": "aimed",
+        "count": 2,
+        "spread": 0.15
+      }
     },
     {
-      "sides": 5
+      "shape": {
+        "sides": 5
+      },
+      "weakPoints": 2,
+      "armor": 0.25,
+      "attack": {
+        "type": "fan",
+        "count": 3,
+        "spread": 0.5
+      }
     },
     {
-      "sides": 6
+      "shape": {
+        "sides": 6
+      },
+      "weakPoints": 3,
+      "regen": 0.02,
+      "attack": {
+        "type": "burst",
+        "count": 3,
+        "spread": 0
+      }
     },
     {
-      "sides": 8
+      "shape": {
+        "sides": 8
+      },
+      "weakPoints": 3,
+      "shield": 3,
+      "attack": {
+        "type": "ring",
+        "count": 8,
+        "spread": 0
+      }
     },
     {
-      "star": 5,
-      "inner": 0.5
+      "shape": {
+        "star": 5,
+        "inner": 0.5
+      },
+      "weakPoints": 5,
+      "fragments": 2,
+      "attack": {
+        "type": "fan",
+        "count": 5,
+        "spread": 0.9
+      }
     },
     {
-      "sides": 4,
-      "scaleX": 0.62
+      "shape": {
+        "sides": 4,
+        "scaleX": 0.62
+      },
+      "weakPoints": 2,
+      "armor": 0.55,
+      "attack": {
+        "type": "burst",
+        "count": 4,
+        "spread": 0.1
+      }
     },
     {
-      "star": 8,
-      "inner": 0.62
+      "shape": {
+        "star": 8,
+        "inner": 0.62
+      },
+      "weakPoints": 4,
+      "shield": 3,
+      "regen": 0.015,
+      "attack": {
+        "type": "ring",
+        "count": 12,
+        "spread": 0
+      }
     },
     {
-      "sides": 28
+      "shape": {
+        "sides": 28
+      },
+      "weakPoints": 3,
+      "rings": 3,
+      "attack": {
+        "type": "spiral",
+        "count": 2,
+        "spread": 0
+      }
     },
     {
-      "star": 6,
-      "inner": 0.78
+      "shape": {
+        "star": 6,
+        "inner": 0.78
+      },
+      "weakPoints": 3,
+      "fast": true,
+      "armor": 0.25,
+      "shield": 3,
+      "regen": 0.015,
+      "fragments": 2,
+      "attack": {
+        "type": "fan",
+        "count": 4,
+        "spread": 0.7
+      }
     }
   ],
   "waves": {
-    "firstDelay": 1.5,
-    "intervalBase": 4.5,
-    "intervalPerLevel": 0.1,
-    "intervalMin": 2,
-    "countBase": 4,
-    "countPerLevel": 0.4,
-    "countMax": 14,
-    "spawnSpacing": 0.3
+    "countBase": 5,
+    "countPerLevel": 0.18,
+    "countMax": 16,
+    "rowSize": 6,
+    "mixFromLevel": 8,
+    "mixChance": 0.4,
+    "formations": {
+      "line": {
+        "fromLevel": 1,
+        "weight": 3
+      },
+      "rain": {
+        "fromLevel": 1,
+        "weight": 3
+      },
+      "snake": {
+        "fromLevel": 2,
+        "weight": 2
+      },
+      "v": {
+        "fromLevel": 4,
+        "weight": 2
+      },
+      "fan": {
+        "fromLevel": 7,
+        "weight": 2
+      },
+      "sides": {
+        "fromLevel": 10,
+        "weight": 2
+      }
+    }
   },
   "enemies": {
     "grunt": {
-      "hp": 2,
-      "speed": 0.36,
+      "hp": 3,
+      "speed": 0.3,
       "damage": 2,
       "coins": 1,
       "radius": 0.028,
       "fromLevel": 1,
       "weight": 10,
-      "behavior": "straight"
+      "drift": 0.1,
+      "waveShare": 1
+    },
+    "weaver": {
+      "hp": 3,
+      "speed": 0.26,
+      "damage": 2,
+      "coins": 1.5,
+      "radius": 0.026,
+      "fromLevel": 2,
+      "weight": 6,
+      "drift": 0.05,
+      "waveShare": 1
+    },
+    "turret": {
+      "hp": 7,
+      "speed": 0.25,
+      "damage": 3,
+      "coins": 3,
+      "radius": 0.034,
+      "fromLevel": 5,
+      "weight": 3,
+      "drift": 0,
+      "waveShare": 0.35,
+      "fireInterval": 2,
+      "stopY": 0.42,
+      "leaveAfter": 20
     },
     "tank": {
-      "hp": 9,
-      "speed": 0.2,
+      "hp": 13,
+      "speed": 0.15,
       "damage": 5,
-      "coins": 4,
-      "radius": 0.046,
-      "fromLevel": 4,
+      "coins": 5,
+      "radius": 0.048,
+      "fromLevel": 6,
       "weight": 3,
-      "behavior": "straight"
+      "drift": 0.05,
+      "waveShare": 0.45
+    },
+    "strafer": {
+      "hp": 6,
+      "speed": 0.25,
+      "damage": 3,
+      "coins": 3,
+      "radius": 0.032,
+      "fromLevel": 9,
+      "weight": 3,
+      "drift": 0,
+      "waveShare": 0.4,
+      "fireInterval": 1.7,
+      "stopY": 0.5,
+      "strafeSpeed": 0.22,
+      "leaveAfter": 14
     },
     "hunter": {
-      "hp": 3,
-      "speed": 0.38,
+      "hp": 4,
+      "speed": 0.32,
       "damage": 3,
       "coins": 2,
       "radius": 0.03,
-      "fromLevel": 7,
+      "fromLevel": 12,
       "weight": 4,
-      "behavior": "homing",
-      "turnRate": 1.3
+      "drift": 0,
+      "waveShare": 0.7,
+      "turnRate": 1.4
+    },
+    "shooter": {
+      "hp": 7,
+      "speed": 0.22,
+      "damage": 3,
+      "coins": 3,
+      "radius": 0.034,
+      "fromLevel": 16,
+      "weight": 3,
+      "drift": 0,
+      "waveShare": 0.45,
+      "fireInterval": 1.4,
+      "shots": 3,
+      "stopY": 0.62
+    },
+    "splitter": {
+      "hp": 8,
+      "speed": 0.2,
+      "damage": 3,
+      "coins": 3,
+      "radius": 0.038,
+      "fromLevel": 22,
+      "weight": 3,
+      "drift": 0.06,
+      "waveShare": 0.5
+    },
+    "dasher": {
+      "hp": 5,
+      "speed": 0.24,
+      "damage": 4,
+      "coins": 3,
+      "radius": 0.03,
+      "fromLevel": 30,
+      "weight": 3,
+      "drift": 0,
+      "waveShare": 0.6,
+      "dashSpeed": 1.1,
+      "stopY": 0.55,
+      "aimTime": 0.8
+    },
+    "armored": {
+      "hp": 8,
+      "speed": 0.17,
+      "damage": 4,
+      "coins": 4,
+      "radius": 0.04,
+      "fromLevel": 40,
+      "weight": 2,
+      "drift": 0.04,
+      "waveShare": 0.5,
+      "shieldHits": 3
     },
     "rare": {
-      "hp": 4,
-      "speed": 0.24,
+      "hp": 5,
+      "speed": 0.22,
       "damage": 0,
       "coins": 8,
       "radius": 0.032,
       "fromLevel": 3,
       "weight": 0,
-      "behavior": "zigzag"
+      "drift": 0,
+      "waveShare": 0,
+      "fleeAfter": 3.5
     }
   },
-  "rareChance": 0.01,
+  "rareChance": 0.015,
   "enemyScaling": {
-    "hpGrowth": 1.2,
-    "damageGrowth": 1.12,
-    "coinGrowth": 1.13
+    "hpGrowth": 1.162,
+    "damageGrowth": 1.09,
+    "coinGrowth": 1.15
   },
   "cannon": {
     "baseHp": 12,
     "baseDamage": 1,
-    "shotsPerSecond": 3.5,
+    "shotsPerSecond": 2.5,
     "maxShotsPerSecond": 20,
-    "projectileSpeed": 2,
+    "projectileSpeed": 2.2,
     "projectileRadius": 0.012,
-    "moveSpeed": 2.2,
-    "turnSpeed": 14,
     "radius": 0.05,
-    "healOnLevelClear": 0.35
+    "moveSpeed": 3,
+    "healOnLevelClear": 0.3,
+    "hitInvulnerability": 0.25,
+    "continueHp": 0.5,
+    "continueInvulnerability": 2.5,
+    "turnSpeed": 14,
+    "bodyHitDamage": 0.35,
+    "bodyHitInvulnerability": 1.2,
+    "knockback": 0.2
   },
   "runUpgrades": {
     "damage": {
@@ -144,51 +447,371 @@
       "effectPerLevel": 0.12
     }
   },
-  "diamondUpgrades": {
+  "workshop": {
     "damage": {
-      "baseCost": 2,
-      "costGrowth": 1.45,
-      "effectPerLevel": 0.1
+      "baseCost": 3,
+      "costGrowth": 1.35,
+      "effectPerLevel": 0.14,
+      "maxLevel": 200
     },
     "fireRate": {
-      "baseCost": 3,
-      "costGrowth": 1.5,
-      "effectPerLevel": 0.04
+      "baseCost": 4,
+      "costGrowth": 1.4,
+      "effectPerLevel": 0.05,
+      "maxLevel": 200
     },
     "maxHp": {
-      "baseCost": 2,
-      "costGrowth": 1.45,
-      "effectPerLevel": 0.1
+      "baseCost": 3,
+      "costGrowth": 1.35,
+      "effectPerLevel": 0.14,
+      "maxLevel": 200
     },
     "coins": {
-      "baseCost": 3,
+      "baseCost": 5,
+      "costGrowth": 1.4,
+      "effectPerLevel": 0.1,
+      "maxLevel": 200
+    },
+    "startCoins": {
+      "baseCost": 4,
+      "costGrowth": 1.6,
+      "effectPerLevel": 20,
+      "maxLevel": 30
+    },
+    "repair": {
+      "baseCost": 4,
+      "costGrowth": 1.6,
+      "effectPerLevel": 0.05,
+      "maxLevel": 10
+    },
+    "offline": {
+      "baseCost": 10,
+      "costGrowth": 2,
+      "effectPerLevel": 1,
+      "maxLevel": 6
+    }
+  },
+  "weapons": {
+    "orbs": {
+      "gemCost": 8,
+      "baseCost": 5,
       "costGrowth": 1.5,
-      "effectPerLevel": 0.1
+      "maxLevel": 25,
+      "damageFactor": 1.5,
+      "count": 2,
+      "radius": 0.11,
+      "orbRadius": 0.02,
+      "speed": 3.2,
+      "hitCooldown": 0.35
+    },
+    "laser": {
+      "gemCost": 12,
+      "baseCost": 6,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 7,
+      "cooldown": 5,
+      "duration": 0.8,
+      "width": 0.045
+    },
+    "lightning": {
+      "gemCost": 16,
+      "baseCost": 7,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 4,
+      "cooldown": 2.6,
+      "chains": 2,
+      "range": 0.38
+    },
+    "levelEffect": 0.2,
+    "slotLevels": [
+      1,
+      30,
+      60
+    ]
+  },
+  "abilities": {
+    "autoAim": {
+      "gemCost": 5,
+      "upgradeCost": 4,
+      "maxLevel": 5,
+      "duration": 6,
+      "durationPerLevel": 1.5,
+      "cooldown": 40,
+      "cooldownPerLevel": 3
+    },
+    "shield": {
+      "gemCost": 6,
+      "upgradeCost": 4,
+      "maxLevel": 5,
+      "duration": 3.5,
+      "durationPerLevel": 0.75,
+      "cooldown": 30,
+      "cooldownPerLevel": 2
+    },
+    "shockwave": {
+      "gemCost": 12,
+      "upgradeCost": 6,
+      "maxLevel": 5,
+      "cooldown": 45,
+      "cooldownPerLevel": 4,
+      "bossDamage": 0.04,
+      "bossDamagePerLevel": 0.01
+    },
+    "multishot": {
+      "gemCost": 15,
+      "upgradeCost": 20,
+      "maxLevel": 2,
+      "spread": 0.03,
+      "angle": 0.07,
+      "damageShare": [
+        1,
+        0.75,
+        0.6
+      ]
+    },
+    "aimAngle": {
+      "gemCost": 6,
+      "upgradeCost": 5,
+      "maxLevel": 7,
+      "baseAngle": 20,
+      "anglePerLevel": 20
     }
   },
   "diamonds": {
     "perBoss": 1,
     "bonusEveryLevels": 5,
-    "firstClearBonus": 2
+    "firstClearBonus": 2,
+    "grandMultiplier": 3
   },
   "gems": {
     "rareEnemy": 1,
-    "tierFirstClear": 3
+    "grandFirstClear": 3,
+    "grandFirstClearPerTier": 1,
+    "campaignComplete": 30
   },
-  "abilities": {
-    "shield": {
-      "gemCost": 5,
-      "duration": 4,
-      "cooldown": 25
+  "offline": {
+    "baseHours": 2,
+    "minMinutes": 5,
+    "ratePerHour": 2,
+    "ratePerBestLevel": 0.35,
+    "efficiency": 0.5
+  },
+  "daily": {
+    "count": 3,
+    "allBonus": 5,
+    "pool": [
+      {
+        "id": "kills",
+        "target": 150,
+        "gems": 3
+      },
+      {
+        "id": "bosses",
+        "target": 5,
+        "gems": 3
+      },
+      {
+        "id": "weakHits",
+        "target": 60,
+        "gems": 2
+      },
+      {
+        "id": "rareStars",
+        "target": 1,
+        "gems": 3
+      },
+      {
+        "id": "abilityUses",
+        "target": 8,
+        "gems": 2
+      },
+      {
+        "id": "runs",
+        "target": 3,
+        "gems": 2
+      },
+      {
+        "id": "levels",
+        "target": 15,
+        "gems": 3
+      },
+      {
+        "id": "upgrades",
+        "target": 25,
+        "gems": 2
+      }
+    ]
+  },
+  "boost": {
+    "durationMinutes": 5,
+    "cooldownMinutes": 10,
+    "multiplier": 2
+  },
+  "checkpoint": {
+    "coinShare": 1
+  },
+  "ads": {
+    "interstitialMinGapMinutes": 4,
+    "interstitialMinSessionMinutes": 3
+  },
+  "cannons": {
+    "classic": {
+      "rate": 1,
+      "damage": 1,
+      "unlockStat": "",
+      "unlockValue": 0,
+      "gemCost": 0
     },
-    "doubleShot": {
-      "gemCost": 10,
-      "spread": 0.03
+    "burst": {
+      "rate": 1.15,
+      "damage": 1,
+      "burst": 3,
+      "burstGap": 0.06,
+      "unlockStat": "bestLevel",
+      "unlockValue": 15,
+      "gemCost": 60
     },
-    "shockwave": {
-      "gemCost": 15,
-      "cooldown": 40,
-      "bossDamageFraction": 0.05
+    "shotgun": {
+      "rate": 0.7,
+      "damage": 0.34,
+      "pellets": 5,
+      "spread": 0.55,
+      "unlockStat": "bossKills",
+      "unlockValue": 20,
+      "gemCost": 80
+    },
+    "beam": {
+      "rate": 1,
+      "damage": 0.95,
+      "width": 0.028,
+      "unlockStat": "bestLevel",
+      "unlockValue": 50,
+      "gemCost": 150
+    },
+    "missile": {
+      "rate": 0.5,
+      "damage": 2.3,
+      "splash": 0.08,
+      "speed": 1.2,
+      "turnRate": 5,
+      "unlockStat": "",
+      "unlockValue": 0,
+      "gemCost": 120
+    },
+    "plasma": {
+      "rate": 0.45,
+      "damage": 2.5,
+      "pierce": 4,
+      "radius": 0.028,
+      "speed": 1.5,
+      "unlockStat": "bestLevel",
+      "unlockValue": 101,
+      "gemCost": 250
     }
-  }
+  },
+  "special": {
+    "superEvery": 10,
+    "megaEvery": 50,
+    "super": {
+      "hpMultiplier": 0.55,
+      "span": 0.25,
+      "y": 0.3,
+      "coreHalf": 0.07,
+      "blockHalf": 0.03,
+      "rings": [
+        {
+          "dist": 0.145,
+          "slots": 12,
+          "gaps": 6,
+          "speed": 1.1
+        }
+      ],
+      "guns": 2,
+      "gunDist": 0.25,
+      "gunHalf": 0.045,
+      "gunHpShare": 0.18,
+      "gunInterval": 1.6,
+      "coreInterval": 3,
+      "gunCoreDamage": 0.2
+    },
+    "mega": {
+      "hpMultiplier": 0.8,
+      "span": 0.34,
+      "y": 0.33,
+      "coreHalf": 0.07,
+      "blockHalf": 0.03,
+      "rings": [
+        {
+          "dist": 0.13,
+          "slots": 10,
+          "gaps": 5,
+          "speed": 1.1
+        },
+        {
+          "dist": 0.22,
+          "slots": 16,
+          "gaps": 8,
+          "speed": -0.75
+        }
+      ],
+      "guns": 4,
+      "gunDist": 0.31,
+      "gunHalf": 0.045,
+      "gunHpShare": 0.1,
+      "gunInterval": 1.4,
+      "coreInterval": 2.6,
+      "gunCoreDamage": 0.12
+    }
+  },
+  "worlds": [
+    {
+      "id": "nebula",
+      "hazard": "nebula",
+      "interval": 5,
+      "radiusMin": 0.1,
+      "radiusMax": 0.18,
+      "speed": 0.05,
+      "bonus": 0.4
+    },
+    {
+      "id": "asteroids",
+      "hazard": "asteroids",
+      "interval": 2.2,
+      "radiusMin": 0.025,
+      "radiusMax": 0.055,
+      "speed": 0.18,
+      "hpFactor": 2.5,
+      "damageFactor": 1.5
+    },
+    {
+      "id": "supernova",
+      "hazard": "flares",
+      "interval": 8,
+      "warn": 1.2,
+      "burn": 0.6,
+      "width": 0.14,
+      "damage": 0.3
+    },
+    {
+      "id": "blackhole",
+      "hazard": "blackhole",
+      "pull": 0.16,
+      "bulletPull": 0.25,
+      "x": 0.3,
+      "y": 0.95,
+      "radiusMin": 0.045,
+      "damage": 0.2
+    },
+    {
+      "id": "ionstorm",
+      "hazard": "ion",
+      "interval": 3.5,
+      "warn": 1,
+      "radiusMin": 0.09,
+      "damage": 0.25,
+      "cooldownFactor": 1.25
+    }
+  ]
 }

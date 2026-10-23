@@ -3,13 +3,14 @@
 **Source de vérité : [docs/cahier-des-charges.md](docs/cahier-des-charges.md).** Ce fichier n'en est qu'un résumé ; en cas de doute, relire le cahier des charges.
 
 ## Projet
-Jeu de tir hybride (action + incrémental) portrait : une grande forme (boss) en haut lance des vagues d'ennemis sur un canon contrôlable en bas, qui a une barre de vie et tire seul. Pièces (partie, perdues à la défaite), diamants (stats de base), gemmes (capacités). Défaite = retour au niveau 1. Cible web (GitHub Pages, PWA) puis Android (Capacitor).
+Jeu de tir vertical hybride portrait (v4) : une grande forme en haut lance des vagues d'ennemis puis devient un boss (super boss en blocs tous les 10 niveaux) ; le canon suit le doigt partout et tire seul droit vers le haut (visée auto = capacité, cône limité). 5 mondes à thème, 6 types de canon. Pièces (partie, perdues à la défaite), diamants (atelier, armes), gemmes (capacités, armes). Défaite = retour au niveau 1 ou au début d'un monde (50 niveaux). Cible web (GitHub Pages, PWA) et Android (Capacitor, APK construit par GitHub Actions).
 
 ## Contraintes
 - Coût 0 € : aucun backend, hébergement statique (GitHub Pages).
 - Aucun asset graphique : tout est tracé en code (Canvas 2D).
 - Français d'abord, tous les textes dans `src/i18n/` (jamais de texte en dur dans le code).
-- Hybride : jouable sans toucher l'écran (tir et visée auto), le contrôle fait la différence ; portrait, tactile, 60 images/s, 300 particules max.
+- Tir automatique droit ; le joueur se déplace au glisser ; portrait, tactile, 60 images/s, 300 particules max.
+- Aucun fichier audio : musique et sons synthétisés en code (`src/audio/`).
 - Hors v1 : multijoueur, classement, comptes, achats intégrés.
 - Le propriétaire travaille depuis un téléphone : il ne lance aucune commande, Claude fait tout (fichiers, tests, commits, PR).
 
@@ -27,12 +28,17 @@ Jeu de tir hybride (action + incrémental) portrait : une grande forme (boss) en
 src/game      simulation, formules, grands nombres, géométrie
 src/render    rendu Canvas 2D, particules, nombres flottants
 src/ui        interface DOM (boutons, HUD)
-src/ads       interface publicitaire + version factice web
+src/ads       interface publicitaire (factice web, AdMob test sur Android)
+src/audio     musique et effets sonores synthétisés (Web Audio)
+public        manifeste PWA, service worker, icône SVG, politique de confidentialité
+e2e           tests Playwright
+scripts       génération des icônes PNG
 src/storage   sauvegarde versionnée
 src/config    équilibrage (JSON)
 src/i18n      textes
 tests/        tests Vitest
-docs/         cahier des charges
+docs/         cahier des charges, recherche, publication
+android/      projet Capacitor (généré, ajusté : icône, portrait, signature de test)
 ```
 
 ## Méthode
@@ -42,3 +48,6 @@ docs/         cahier des charges
 - Ne pas poser de questions sauf blocage réel ; noter les décisions prises dans le README.
 - Ne jamais supprimer un fichier existant sans demander.
 - Le déploiement GitHub Pages se fait par `.github/workflows/deploy.yml` à chaque push sur `main`.
+- L'APK Android est construit par `.github/workflows/android.yml` et publié dans la release `android-latest` ; il peut aussi être construit sur le PC (JDK 21 d'Android Studio, `npx cap sync android` puis `gradlew assembleRelease` dans `android/`).
+- Tests de bout en bout : `npm run e2e` (Playwright, format téléphone, `?autoplay` pour une partie automatique).
+- Équilibrage : `npm run sim` (joueur automatique) avant de changer `src/config/balance.json`.

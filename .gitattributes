@@ -1,0 +1,6 @@
+# Scripts shell exécutés sur Linux (GitHub Actions) : toujours en fins de ligne LF.
+android/gradlew text eol=lf
+*.sh text eol=lf
+*.keystore binary
+*.jar binary
+*.png binary

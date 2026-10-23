@@ -1,14 +1,113 @@
 {
   "maxParticles": 300,
-  "shardsOnBossDestroy": 48,
-  "shardsOnEnemyDestroy": 8,
+  "maxRings": 24,
+  "stars": 140,
+  "shardsOnBossDestroy": 70,
+  "shardsOnEnemyDestroy": 10,
   "sparksOnHit": 3,
   "floatingTextLife": 0.9,
-  "shakeOnBossDestroy": 8,
+  "shakeOnBossDestroy": 10,
   "shakeOnCannonHit": 6,
   "shakeDecay": 10,
   "flashOnDestroy": 0.25,
-  "tierColors": ["#3ee6ff", "#7cff6b", "#ffb347", "#ff6bd6", "#b18cff", "#ffe66b", "#ff6b6b", "#6bffe0", "#9ab8ff", "#ffffff"],
-  "enemyColors": { "grunt": "#ff8a5c", "tank": "#ff4d6d", "hunter": "#c86bff", "rare": "#ffd84a" },
-  "cannonColor": "#3ee6ff"
+  "bannerLife": 1.8,
+  "tierColors": [
+    "#3ee6ff",
+    "#7cff6b",
+    "#ffb347",
+    "#ff6bd6",
+    "#b18cff",
+    "#ffe66b",
+    "#ff6b6b",
+    "#6bffe0",
+    "#9ab8ff",
+    "#e8f4ff"
+  ],
+  "enemyColors": {
+    "grunt": "#ff8a5c",
+    "weaver": "#ffd25c",
+    "turret": "#ff9d3d",
+    "tank": "#ff4d6d",
+    "strafer": "#3dffb4",
+    "hunter": "#c86bff",
+    "shooter": "#5cc8ff",
+    "splitter": "#7cff9a",
+    "dasher": "#ff5ca8",
+    "armored": "#c3cfe0",
+    "rare": "#ffd84a"
+  },
+  "cannonColor": "#3ee6ff",
+  "goldColor": "#ffd84a",
+  "bulletColor": "#ff5ad1",
+  "weakColor": "#fff6a0",
+  "shieldColor": "#6be0ff",
+  "laserColor": "#ff6bd6",
+  "orbColor": "#a9c4ff",
+  "lightningColor": "#d6ecff",
+  "coinColor": "#ffd84a",
+  "diamondColor": "#7fe3ff",
+  "gemColor": "#ff6bd6",
+  "dangerColor": "#ff4d6d",
+  "worlds": {
+    "nebula": {
+      "sky": [
+        "#170b30",
+        "#0b0719",
+        "#07060f"
+      ],
+      "star": "225,205,255",
+      "accent": "#b18cff",
+      "glow": "#7a4dff"
+    },
+    "asteroids": {
+      "sky": [
+        "#1c140b",
+        "#0e0b08",
+        "#07070a"
+      ],
+      "star": "255,232,205",
+      "accent": "#ffb347",
+      "glow": "#a0703a"
+    },
+    "supernova": {
+      "sky": [
+        "#2c0d07",
+        "#14070a",
+        "#08060c"
+      ],
+      "star": "255,222,185",
+      "accent": "#ff7a3d",
+      "glow": "#ff5a1f"
+    },
+    "blackhole": {
+      "sky": [
+        "#06050f",
+        "#030308",
+        "#020205"
+      ],
+      "star": "205,212,255",
+      "accent": "#8a7bff",
+      "glow": "#4b3cff"
+    },
+    "ionstorm": {
+      "sky": [
+        "#031b1f",
+        "#06111b",
+        "#04070c"
+      ],
+      "star": "195,255,250",
+      "accent": "#3effd9",
+      "glow": "#19c9b0"
+    }
+  },
+  "cannonColors": {
+    "classic": "#3ee6ff",
+    "burst": "#7cff6b",
+    "shotgun": "#ffb347",
+    "beam": "#ff6bd6",
+    "missile": "#ff5a5a",
+    "plasma": "#b18cff"
+  },
+  "armorColor": "#8b93a7",
+  "gunColor": "#ff6b4a"
 }
