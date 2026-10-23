@@ -63,6 +63,8 @@ export class Effects {
   readonly rings: Ring[] = [];
   readonly texts: FloatingText[] = [];
   readonly bolts: Bolt[] = [];
+  /** Plafond de particules (abaissé quand le téléphone peine). */
+  maxParticles = visual.maxParticles;
   readonly banners: Banner[] = [];
   shake = 0;
   flash = 0;
@@ -80,7 +82,7 @@ export class Effects {
   }
 
   private add(p: Particle): void {
-    if (this.particles.length >= visual.maxParticles) {
+    if (this.particles.length >= this.maxParticles) {
       // Remplace la particule la plus ancienne (plafond de 300).
       this.particles.shift();
     }

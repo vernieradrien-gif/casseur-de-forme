@@ -1,4 +1,4 @@
-# CLAUDE.md — Casseur de forme
+# CLAUDE.md — Prisma Blast (anciennement « Casseur de forme »)
 
 **Source de vérité : [docs/cahier-des-charges.md](docs/cahier-des-charges.md).** Ce fichier n'en est qu'un résumé ; en cas de doute, relire le cahier des charges.
 

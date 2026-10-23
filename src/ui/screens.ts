@@ -20,7 +20,7 @@ import {
   worldsUnlocked,
 } from '../game/formulas';
 import { polygonVertices, starVertices } from '../game/geometry';
-import { cannonUnlockProgress, claimableAchievements, claimableDaily, dailyBonusReady, statValue } from '../game/progress';
+import { cannonUnlockProgress, claimableAchievements, claimableDaily, dailyBonusReady, gemAdsLeft, statValue } from '../game/progress';
 import type { GameState } from '../game/state';
 import { formatDuration, language, t } from '../i18n';
 import { drawIcon, enemyColor, enemyVertices, tierColor, tierVertices, worldPalette } from '../render/shapes';
@@ -59,6 +59,8 @@ export interface AppApi {
   continueAd(): void;
   doubleAd(): void;
   boostAd(): void;
+  /** Pub récompensée contre des gemmes (limitée par jour). */
+  gemAd(): void;
   boostRemaining(): number;
   boostWait(): number;
   offlineGain(): { seconds: number; diamonds: number };
@@ -305,6 +307,17 @@ export class Screens {
       setText(bMain, remaining > 0 ? t('menu.boostActive', { time: formatDuration(remaining) }) : wait > 0 ? t('menu.boostWait', { time: formatDuration(wait) }) : t('menu.boost'));
       setText(bSub, t('menu.boostDesc'));
       setDisabled(boost, remaining > 0 || wait > 0);
+    });
+
+    // Gemmes contre une pub (au plus 3 par jour).
+    const gemAd = button('menu-btn gem-ad-btn', s, undefined, () => this.app.gemAd());
+    const gMain = el('span', 'btn-main', gemAd);
+    const gSub = el('span', 'btn-sub', gemAd);
+    this.on('menu', () => {
+      const left = gemAdsLeft(this.app.state().meta);
+      setText(gMain, left > 0 ? t('menu.gemAd', { gems: BALANCE.gemAds.gems }) : t('menu.gemAdDone'));
+      setText(gSub, t('menu.gemAdLeft', { left, total: BALANCE.gemAds.perDay }));
+      setDisabled(gemAd, left <= 0);
     });
 
     const grid = el('div', 'menu-grid', s);

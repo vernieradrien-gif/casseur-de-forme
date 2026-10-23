@@ -1,5 +1,5 @@
 {
-  "title": "Casseur de forme",
+  "title": "Prisma Blast",
   "tagline": "Slide, shoot, shatter the shapes",
   "back": "Back",
   "close": "Close",
@@ -337,5 +337,9 @@
   "ach.cannonsUnlocked": "Unlock {goal} cannons",
   "ach.superBosses": "Defeat {goal} super bosses",
   "ach.megaBosses": "Defeat {goal} titan(s)",
-  "version": "Version {version}"
+  "version": "Version {version}",
+  "menu.gemAd": "+{gems} gems (ad)",
+  "menu.gemAdDone": "Today's gems collected",
+  "menu.gemAdLeft": "{left} / {total} today",
+  "toast.gemAd": "+{gems} gems!"
 }

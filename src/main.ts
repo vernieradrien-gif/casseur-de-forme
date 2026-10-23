@@ -27,7 +27,16 @@ import type { GameEvent } from './game/events';
 import { bossKindAt, offlineDiamonds, worldOf } from './game/formulas';
 import { polygonVertices } from './game/geometry';
 import { startLoop } from './game/loop';
-import { checkAchievements, checkWorldRewards, claimAchievement, claimDaily, claimDailyBonus, rollDaily } from './game/progress';
+import {
+  checkAchievements,
+  checkWorldRewards,
+  claimAchievement,
+  claimDaily,
+  claimDailyBonus,
+  claimGemAd,
+  gemAdsLeft,
+  rollDaily,
+} from './game/progress';
 import { AutoPlayer, spendCoins } from './game/autoplayer';
 import { STEP, step } from './game/simulation';
 import { W } from './game/state';
@@ -317,6 +326,19 @@ const screens = new Screens(app, {
       extra.boostReadyAt = Date.now() + BALANCE.boost.cooldownMinutes * 60_000;
       toasts.show(t('banner.boost'), 'gem');
       save();
+    }
+  },
+  async gemAd() {
+    rollDaily(state.meta, today());
+    if (gemAdsLeft(state.meta) <= 0) return;
+    if (await rewarded('gems')) {
+      const gems = claimGemAd(state);
+      if (gems > 0) {
+        toasts.show(t('toast.gemAd', { gems }), 'gem');
+        sfx.play('gem');
+        checkAchievements(state, events);
+        save();
+      }
     }
   },
   boostRemaining: () => state.meta.boostTime,
@@ -679,9 +701,11 @@ const perf = { frames: 0, work: 0, max: 0, current: 0 };
 const isSimulating = () => mode === 'game' && !hidden && screens.open === null && !adBusy;
 
 function updateMusic(): void {
+  // Chaque monde a son thème de vagues et son thème de boss.
+  const world = worldOf(state.run.level);
   if (mode === 'menu' || state.run.phase === 'gameOver') music.play('menu');
-  else if (state.run.phase === 'boss' || state.run.phase === 'bossIntro' || (state.run.phase === 'dying' && state.run.resumePhase === 'boss')) music.play('boss');
-  else music.play('game');
+  else if (state.run.phase === 'boss' || state.run.phase === 'bossIntro' || (state.run.phase === 'dying' && state.run.resumePhase === 'boss')) music.play(`boss${world}`);
+  else music.play(`wave${world}`);
 }
 
 // Mise à jour du jeu : récompenses déjà méritées (armes de fin de monde, canons, succès) annoncées au lancement.
@@ -703,6 +727,9 @@ startLoop(
   },
   (alpha, frameDt) => {
     const t0 = performance.now();
+    // Qualité adaptative : moins de pixels et de particules si le téléphone n'arrive plus à suivre.
+    renderer.adapt(frameDt, settings.powerSave ? 1 / 30 : 1 / 60);
+    effects.maxParticles = renderer.lowQuality ? Math.round(visual.maxParticles / 2) : visual.maxParticles;
     if (events.length) handleEvents();
     if (mode === 'game') {
       const running = isSimulating();

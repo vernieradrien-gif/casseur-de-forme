@@ -41,6 +41,14 @@ export class Renderer {
   private ox = 0;
   private oy = 0;
   private recoil = 0;
+  /** Qualité adaptative : la finesse du dessin baisse si le téléphone n'arrive plus à suivre. */
+  private maxDpr = 2;
+  private qualityDpr = 2;
+  private slowTime = 0;
+  private fastTime = 0;
+  private area: PlayArea = { top: 0, bottom: 0 };
+  /** Vrai quand la qualité est réduite (moins de particules). */
+  lowQuality = false;
   private readonly stars: Star[] = [];
   private starSpeed = 1;
   private clock = 0;
@@ -55,7 +63,9 @@ export class Renderer {
   }
 
   resize(area: PlayArea): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.area = area;
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(this.maxDpr, this.qualityDpr);
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.canvas.width = Math.round(this.width * this.dpr);
@@ -64,6 +74,31 @@ export class Renderer {
     this.scale = Math.min(this.width / W.width, playH / W.height);
     this.ox = this.width / 2;
     this.oy = area.top + (playH - W.height * this.scale) / 2;
+  }
+
+  /**
+   * À appeler à chaque image avec sa durée réelle (s) et la durée visée : si les images arrivent trop lentement
+   * pendant plus d'une seconde et demie, la résolution de dessin baisse d'un cran ; elle remonte quand tout redevient fluide.
+   */
+  adapt(frameDt: number, targetDt: number): void {
+    if (!(frameDt > 0) || frameDt > 0.25) return;
+    if (frameDt > targetDt * 1.5) {
+      this.slowTime += frameDt;
+      this.fastTime = 0;
+    } else if (frameDt < targetDt * 1.15) {
+      this.fastTime += frameDt;
+      this.slowTime = Math.max(0, this.slowTime - frameDt * 0.5);
+    }
+    if (this.slowTime > 1.5 && this.dpr > 1) {
+      this.qualityDpr = Math.max(1, this.dpr - 0.5);
+      this.slowTime = 0;
+      this.resize(this.area);
+    } else if (this.fastTime > 8 && this.dpr < this.maxDpr) {
+      this.qualityDpr = Math.min(this.maxDpr, this.dpr + 0.5);
+      this.fastTime = 0;
+      this.resize(this.area);
+    }
+    this.lowQuality = this.dpr < this.maxDpr || this.slowTime > 0.75;
   }
 
   /** Pixels CSS → coordonnées monde. */
@@ -962,12 +997,12 @@ export class Renderer {
     }
     if (c.invulnerable > 0 && !dying && Math.sin(this.clock * 40) > 0.3) ctx.globalAlpha = 0.45;
 
-    // Socle.
+    // Corps du canon : il contient la tourelle (le rond central ne dépasse pas).
     ctx.beginPath();
     ctx.moveTo(x - r * 1.5 * s, y + r * 0.95 * s);
     ctx.lineTo(x + r * 1.5 * s, y + r * 0.95 * s);
-    ctx.lineTo(x + r * 1.05 * s, y + r * 0.35 * s);
-    ctx.lineTo(x - r * 1.05 * s, y + r * 0.35 * s);
+    ctx.lineTo(x + r * 0.85 * s, y - r * 0.68 * s);
+    ctx.lineTo(x - r * 0.85 * s, y - r * 0.68 * s);
     ctx.closePath();
     ctx.fillStyle = '#10142a';
     ctx.fill();
@@ -1065,19 +1100,16 @@ export class Renderer {
     }
     ctx.restore();
 
-    // Tourelle.
+    // Tourelle : petit rond à l'intérieur du corps.
     ctx.beginPath();
-    ctx.arc(x, y, r * s, 0, Math.PI * 2);
+    ctx.arc(x, y, r * 0.55 * s, 0, Math.PI * 2);
     ctx.fillStyle = '#10142a';
     ctx.fill();
-    ctx.strokeStyle = color + '40';
-    ctx.lineWidth = 8;
-    ctx.stroke();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x, y, r * 0.38 * s, 0, Math.PI * 2);
+    ctx.arc(x, y, r * 0.22 * s, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.globalAlpha = 1;

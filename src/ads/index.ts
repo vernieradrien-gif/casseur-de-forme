@@ -12,7 +12,7 @@ export interface AdService {
   showConsent(): Promise<void>;
 }
 
-export type RewardPlacement = 'continue' | 'doubleDiamonds' | 'doubleOffline' | 'boost';
+export type RewardPlacement = 'continue' | 'doubleDiamonds' | 'doubleOffline' | 'boost' | 'gems';
 
 let service: AdService | null = null;
 

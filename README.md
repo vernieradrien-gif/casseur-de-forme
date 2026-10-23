@@ -1,4 +1,4 @@
-# Casseur de forme (nom provisoire)
+# Prisma Blast (anciennement « Casseur de forme »)
 
 Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des vagues d'ennemis, puis devient un boss qui se déplace et attaque. En bas, ton canon **tire tout seul droit vers le haut** : il **suit ton doigt** partout sur l'écran (attention à ne pas foncer dans le boss). Les pièces améliorent le canon pendant la partie ; les diamants et les gemmes le rendent plus fort pour toujours.
 
@@ -16,7 +16,16 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : version 5
+## État : version 6 (1.3.0)
+
+- **Nouveau nom : Prisma Blast**, et nouvelle icône (un prisme néon brisé par le rayon du canon). L'identifiant Android, la
+  sauvegarde, l'adresse du site et le lien de l'APK ne changent pas.
+- **10 musiques de jeu** : un thème de vagues et un thème de boss par monde, plus graves, avec deux mélodies qui alternent.
+- **Pubs contre des gemmes** : +7 gemmes par vidéo, 3 par jour au plus (21 gemmes), bouton sur le menu principal.
+- **Contre les ralentissements** : qualité d'affichage adaptative ; **contre les craquements du son** : audio plus robuste.
+- Rond central du canon réduit (il reste dans le corps du canon) ; même numéro de version dans l'APK et dans le jeu.
+
+### Version 5
 
 - **11 canons** : en plus des six premiers, Jumeaux, Ricochet, Gatling et Foudre s'obtiennent **seulement en jouant**
   (atteindre les mondes 2 à 5), et le **Prisme**, canon légendaire, en terminant les 5 mondes. Plusieurs canons ont un
@@ -84,6 +93,28 @@ Chaque push sur `main` publie le jeu sur GitHub Pages (`.github/workflows/deploy
 branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`.github/workflows/android.yml`).
 
 ## Décisions prises
+
+### Version 6
+- **Nom** : « Prisma Blast », court, compréhensible en français et en anglais, lié au canon légendaire Prisme et aux
+  formes néon ; aucun jeu de ce nom trouvé. « Shard Storm » (déjà pris) et « Néoclaste » (peu parlant) ont été écartés.
+  Les noms internes (paquet `io.github.vernieradrien.casseurdeforme`, clé de sauvegarde, dépôt, fichier APK) restent
+  inchangés pour ne rien casser.
+- **Icône** : décrite une seule fois dans `scripts/icon-design.mjs`, qui écrit `public/icon.svg` et l'icône adaptative
+  Android ; `npm run icons` régénère tout (PNG compris).
+- **Musique** : chaque monde a son thème de vagues et son thème de boss (le mode infini les reprend dans l'ordre). Les
+  mélodies sont composées par le code à partir des accords (notes de l'accord sur les temps forts, petits intervalles,
+  motif rythmique répété) avec une graine fixe : elles sont toujours les mêmes. Registre baissé d'environ une octave,
+  basse plus forte, sous-basse, aigus filtrés, charleston adouci. Le thème du menu ne change pas.
+- **Ralentissements** : mesuré en fin de partie chargée, le calcul du jeu reste d'environ 1 ms par image sur PC ; le
+  coût vient du dessin et, côté code, de la création des sons. D'où la qualité adaptative (résolution 2 → 1,5 → 1 et
+  particules divisées par deux quand les images ralentissent plus d'une seconde et demie, retour à la normale après
+  8 s fluides) et la limite de 12 effets sonores simultanés. **Craquements** : contexte audio en mode « lecture »
+  (tampons plus grands) et musique préparée 0,5 s à l'avance au lieu de 0,15 s.
+- **Version** : l'APK prend le numéro de `package.json` (affiché dans les paramètres) ; seul le `versionCode` vient du
+  numéro de construction.
+- **Pubs contre des gemmes** : compteur dans les objectifs du jour (remis à zéro à minuit avec eux).
+- **Test de fluidité local** : seuil abaissé à 40 images/s ; sur ce PC (rendu logiciel), la même version mesure de 41 à
+  58 images/s selon les jours (vérifié en mesurant l'ancienne version dans les mêmes conditions).
 
 ### Version 5
 - **Bonus passifs** : actifs seulement tant que le canon est choisi (le choix du canon devient un vrai compromis). En
@@ -187,7 +218,7 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
 - **Publicités** : sur le web, une fausse pub de 1,2 s (« Publicité (démo) ») accorde la récompense ; interstitiel au plus
   toutes les 4 min, après 3 min de session, seulement en revenant au menu après une défaite.
 - **Langue** : français si le téléphone est en français, anglais sinon ; modifiable dans les paramètres. Le titre reste
-  « Casseur de forme » dans les deux langues.
+  « Prisma Blast » dans les deux langues.
 - **Musique** : trois thèmes (la mineur / mi mineur harmonique) joués par un petit séquenceur Web Audio ; le son ne démarre
   qu'au premier toucher (règle des navigateurs).
 - **Performance** : rendu Canvas 2D sans flou (halos par double trait), 300 particules maximum ; moins de 1 ms de calcul par

@@ -75,7 +75,7 @@ jobs:
           NOTES="APK de test construit automatiquement depuis ${GITHUB_REF_NAME} (${GITHUB_SHA::7}), version 1.0.${{ github.run_number }}. Signé avec une clé de test : à installer en autorisant les sources inconnues. Ne pas publier sur Google Play."
           gh release delete android-latest --yes --cleanup-tag || true
           gh release create android-latest casseur-de-forme.apk \
-            --title "Casseur de forme – APK Android (test)" \
+            --title "Prisma Blast – APK Android (test)" \
             --notes "$NOTES" \
             --target "$GITHUB_SHA" \
             --prerelease

@@ -114,7 +114,7 @@ export function dailyObjectivesFor(date: string): DailyObjective[] {
 
 /** Change de jour : de nouveaux objectifs. `date` est fournie par l'interface. */
 export function rollDaily(meta: MetaState, date: string): void {
-  if (meta.daily.date !== date) meta.daily = { date, objectives: dailyObjectivesFor(date), bonusClaimed: false };
+  if (meta.daily.date !== date) meta.daily = { date, objectives: dailyObjectivesFor(date), bonusClaimed: false, gemAds: 0 };
 }
 
 /** Fait avancer les objectifs du jour d'un type donné. */
@@ -145,6 +145,20 @@ export function claimDaily(state: GameState, index: number): number {
   meta.gems += o.gems;
   meta.stats.dailyCompleted++;
   return o.gems;
+}
+
+/** Pubs « gemmes » encore disponibles aujourd'hui. */
+export function gemAdsLeft(meta: MetaState): number {
+  return Math.max(0, BALANCE.gemAds.perDay - meta.daily.gemAds);
+}
+
+/** Récompense d'une pub « gemmes » (au plus perDay par jour). Renvoie les gemmes gagnées. */
+export function claimGemAd(state: GameState): number {
+  const meta = state.meta;
+  if (gemAdsLeft(meta) <= 0) return 0;
+  meta.daily.gemAds++;
+  meta.gems += BALANCE.gemAds.gems;
+  return BALANCE.gemAds.gems;
 }
 
 /** Bonus quand tous les objectifs du jour ont été récupérés. */

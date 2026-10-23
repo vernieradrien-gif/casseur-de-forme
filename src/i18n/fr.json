@@ -1,5 +1,5 @@
 {
-  "title": "Casseur de forme",
+  "title": "Prisma Blast",
   "tagline": "Glisse, tire, brise les formes",
   "back": "Retour",
   "close": "Fermer",
@@ -337,5 +337,9 @@
   "ach.cannonsUnlocked": "Débloquer {goal} canons",
   "ach.superBosses": "Vaincre {goal} super boss",
   "ach.megaBosses": "Vaincre {goal} titan(s)",
-  "version": "Version {version}"
+  "version": "Version {version}",
+  "menu.gemAd": "+{gems} gemmes (pub)",
+  "menu.gemAdDone": "Gemmes du jour récupérées",
+  "menu.gemAdLeft": "{left} / {total} aujourd'hui",
+  "toast.gemAd": "+{gems} gemmes !"
 }

@@ -969,5 +969,9 @@
     "fromLevel": 51,
     "hp": 1.15,
     "damage": 1.088
+  },
+  "gemAds": {
+    "perDay": 3,
+    "gems": 7
   }
 }

@@ -1,4 +1,4 @@
-# Publier Casseur de forme sur Google Play — check-list
+# Publier Prisma Blast sur Google Play — check-list
 
 Le propriétaire a déjà un compte développeur Google Play (une application publiée). Cette liste dit **ce qui reste à
 faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `[x]` sont déjà faites.
@@ -23,7 +23,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 ## 1. À faire par toi (compte, clés, formulaires)
 
 ### 1.1 Créer l'application dans la Play Console
-- [ ] *Toutes les applications › Créer une application* : nom « Casseur de forme », langue par défaut français,
+- [ ] *Toutes les applications › Créer une application* : nom « Prisma Blast », langue par défaut français,
   **Jeu**, **Gratuit**, accepter les déclarations.
 - [ ] **Test fermé obligatoire ?** Si ton compte est un compte **personnel créé après le 13 novembre 2023**, Google
   demande un test fermé avec **au moins 12 testeurs pendant 14 jours d'affilée** avant d'ouvrir la production. La
@@ -93,6 +93,28 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [ ] Donner à Claude l'**ID du projet** Play Jeux (une douzaine de chiffres) : il l'ajoute dans
   `android/app/src/main/res/values/strings.xml` et l'option apparaît dans les paramètres.
 - [ ] *Testeurs* : ajouter tes comptes de test, puis **publier** la configuration Play Jeux avec l'application.
+
+### 1.6 bis Trouver 12 testeurs (test fermé)
+- **La règle** : au moins 12 testeurs **inscrits** au test fermé pendant **14 jours d'affilée**. Si le nombre retombe sous
+  12, le compteur repart de zéro : vise **15 à 20 testeurs** pour garder de la marge.
+- **Comment faire en pratique** :
+  1. Play Console › *Tests › Test fermé* : créer la piste, y envoyer l'AAB, puis dans *Testeurs* ajouter une **liste
+     d'e-mails** ou un **groupe Google** (le plus simple : créer un groupe sur groups.google.com et y inviter les gens).
+  2. Copier le **lien d'inscription** du test et l'envoyer : chaque testeur l'ouvre avec son compte Google, accepte, puis
+     installe le jeu depuis le Play Store. Il doit **rester inscrit** 14 jours ; ouvrir le jeu de temps en temps aide.
+  3. Recueillir les avis (un Formulaire Google suffit) : Google demande ensuite comment le test s'est passé et ce qui a
+     été corrigé, au moment de la demande d'accès à la production.
+- **Où trouver des testeurs** :
+  - **L'entourage** : famille, amis, collègues, club… Il faut un téléphone Android et un compte Google. C'est la
+    méthode la plus sûre.
+  - **Échanges entre développeurs** (« je teste ton appli, tu testes la mienne ») : sous-forums Reddit et serveurs
+    Discord de développeurs indépendants consacrés aux tests fermés Google Play. C'est gratuit mais demande de tester
+    les applis des autres en retour pendant 14 jours.
+  - **Réseaux sociaux** : un message « cherche testeurs pour mon jeu mobile » avec une capture et le lien d'inscription.
+  - **Services payants** (sites de petites annonces de freelances) : ils existent, mais Google attend de vrais testeurs
+    engagés et ces services ne garantissent pas l'accès à la production ; à éviter si possible.
+- **Les entreprises** ont des équipes de test, des communautés (Discord, bêta ouverte) et, surtout, des **comptes
+  « organisation »**, qui ne sont pas soumis à cette règle des 12 testeurs (il faut un numéro D-U-N-S d'entreprise).
 
 ### 1.7 Mise en ligne
 - [ ] Envoyer l'AAB dans le **test fermé** (ou le test interne d'abord), inviter les testeurs (liste d'e-mails ou

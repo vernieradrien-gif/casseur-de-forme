@@ -19,7 +19,8 @@ export class AudioEngine {
     if (!this.ctx) {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
-      const ctx = new Ctx({ latencyHint: 'interactive' });
+      // « playback » : tampons audio plus grands, pas de craquements quand le téléphone est très chargé.
+      const ctx = new Ctx({ latencyHint: 'playback' });
       this.ctx = ctx;
       this.master = ctx.createGain();
       const comp = ctx.createDynamicsCompressor();

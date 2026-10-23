@@ -6,7 +6,7 @@ import { BALANCE, CANNONS } from '../src/game/config';
 import { spawnEnemy } from '../src/game/enemies';
 import type { GameEvent } from '../src/game/events';
 import { abilityCooldown, cannonPassive, cannonStats, enemyStats, growLevel, healOnClear, weaponSlots, worldRamp } from '../src/game/formulas';
-import { checkAchievements, statValue } from '../src/game/progress';
+import { checkAchievements, claimGemAd, gemAdsLeft, rollDaily, statValue } from '../src/game/progress';
 import { STEP, step } from '../src/game/simulation';
 import { createState } from '../src/game/state';
 import type { Enemy, GameState } from '../src/game/state';
@@ -355,5 +355,24 @@ describe('équilibrage de fin de partie', () => {
     expect(enemyStats('grunt', from + 1).hp / enemyStats('grunt', from).hp).toBeCloseTo(
       BALANCE.lateGrowth.hp * Math.sqrt(worldRamp(from + 1) / worldRamp(from)),
     );
+  });
+});
+
+describe('pubs contre des gemmes', () => {
+  it('au plus 3 par jour, 7 gemmes chacune (21 par jour), remises à zéro le lendemain', () => {
+    const s = createState(50);
+    rollDaily(s.meta, '2026-10-24');
+    expect(gemAdsLeft(s.meta)).toBe(BALANCE.gemAds.perDay);
+    let total = 0;
+    for (let i = 0; i < 5; i++) total += claimGemAd(s);
+    expect(total).toBe(BALANCE.gemAds.perDay * BALANCE.gemAds.gems);
+    expect(total).toBe(21);
+    expect(s.meta.gems).toBe(21);
+    expect(gemAdsLeft(s.meta)).toBe(0);
+    rollDaily(s.meta, '2026-10-24');
+    expect(claimGemAd(s)).toBe(0);
+    rollDaily(s.meta, '2026-10-25');
+    expect(gemAdsLeft(s.meta)).toBe(3);
+    expect(claimGemAd(s)).toBe(7);
   });
 });

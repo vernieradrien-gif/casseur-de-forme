@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+// Même numéro de version que le jeu (package.json, affiché dans les paramètres).
+def appVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
+
 android {
     namespace = "io.github.vernieradrien.casseurdeforme"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -9,7 +12,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Numéro de version : fourni par GitHub Actions (numéro de construction) pour permettre les mises à jour.
         versionCode((System.getenv('VERSION_CODE') ?: '1').toInteger())
-        versionName "1.2." + (System.getenv('VERSION_CODE') ?: '0')
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
