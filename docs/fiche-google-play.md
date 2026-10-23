@@ -2,7 +2,7 @@
 
 Limites de Google Play : titre 30 caractères, description courte 80, description longue 4 000.
 
-## Français (langue par défaut)
+## Français (traduction)
 
 **Titre** : Prisma Blast
 
@@ -28,7 +28,7 @@ seulement en jouant, et un canon légendaire pour ceux qui terminent les 5 monde
 
 Les publicités sont facultatives : une vidéo n'apparaît que si tu choisis un bonus.
 
-## English
+## English (langue par défaut)
 
 **Title**: Prisma Blast
 

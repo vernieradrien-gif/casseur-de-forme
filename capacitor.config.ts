@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 // Application Android (Capacitor) : le jeu web construit dans dist/ est embarqué dans l'APK.
 const config: CapacitorConfig = {
-  appId: 'io.github.vernieradrien.casseurdeforme',
+  appId: 'io.github.vernieradrien.prismablast',
   appName: 'Prisma Blast',
   webDir: 'dist',
   backgroundColor: '#07070f',

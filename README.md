@@ -97,8 +97,10 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
 ### Version 6
 - **Nom** : « Prisma Blast », court, compréhensible en français et en anglais, lié au canon légendaire Prisme et aux
   formes néon ; aucun jeu de ce nom trouvé. « Shard Storm » (déjà pris) et « Néoclaste » (peu parlant) ont été écartés.
-  Les noms internes (paquet `io.github.vernieradrien.casseurdeforme`, clé de sauvegarde, dépôt, fichier APK) restent
-  inchangés pour ne rien casser.
+  Le nom du package Google Play devient `io.github.vernieradrien.prismablast` (choix du propriétaire, avant la
+  première publication : il ne pourra plus changer ensuite). Le paquet interne du code Java, la clé de sauvegarde, le
+  dépôt et le fichier APK gardent l'ancien nom. Sur un téléphone, la nouvelle appli s'installe à côté de l'ancienne :
+  la progression se transfère avec Paramètres › Exporter puis Importer la sauvegarde.
 - **Icône** : décrite une seule fois dans `scripts/icon-design.mjs`, qui écrit `public/icon.svg` et l'icône adaptative
   Android ; `npm run icons` régénère tout (PNG compris).
 - **Musique** : chaque monde a son thème de vagues et son thème de boss (le mode infini les reprend dans l'ordre). Les
