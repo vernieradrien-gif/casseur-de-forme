@@ -1,7 +1,8 @@
-# Cahier des charges : Casseur de forme (nom provisoire)
+# Cahier des charges : Prisma Blast (anciennement « Casseur de forme »)
 
 > Ce document est la **source de vérité** du projet. En cas de doute ou de contradiction, c'est lui qui fait foi.
 >
+> **Version 6.** Nouveau nom **Prisma Blast** et nouvelle icône, 5 thèmes de vagues et 5 thèmes de boss (un couple par monde, plus graves), pubs contre des gemmes (3 par jour), qualité d'affichage adaptative contre les ralentissements, son plus robuste.
 > **Version 5.** 11 canons (certains avec un bonus passif, certains seulement en jouant, un canon légendaire en fin de campagne), armes cachées offertes en fin de monde, succès « monde sans dégât », plus aucune pub automatique, consentement publicitaire revu. Version 4 : canon libre en 2D, super boss en blocs, 5 mondes à thème, objectifs du jour, sauvegarde Google. Recherche préalable : [recherche-design.md](recherche-design.md). Historique en fin de document.
 
 ---
@@ -184,13 +185,13 @@ Portrait, boutons d'au moins 56 dp.
 - **Menu** : la barre du monde se remplit selon le niveau max atteint dans ce monde.
 - Pause automatique en arrière-plan ; bouton retour Android géré.
 
-**Rendu** : fond sombre étoilé propre à chaque monde (nébuleuse, astéroïdes, supernova, trou noir, tempête ionique), formes néon (contour lumineux, remplissage translucide), palette par palier, 300 particules max, silhouettes distinctes (accessibilité).
+**Rendu** : fond sombre étoilé propre à chaque monde (nébuleuse, astéroïdes, supernova, trou noir, tempête ionique), formes néon (contour lumineux, remplissage translucide), palette par palier, 300 particules max, silhouettes distinctes (accessibilité). **Qualité adaptative** : si les images arrivent trop lentement pendant plus d'une seconde et demie, la résolution de dessin baisse d'un cran (2 → 1,5 → 1) et le plafond de particules est divisé par deux ; elle remonte quand tout redevient fluide. Le canon est un corps trapézoïdal avec un petit rond central qui ne dépasse pas.
 
 ## 7. Audio
-Musiques composées et synthétisées en code (Web Audio) : thème du menu (calme, avec nappes), thème de jeu **épique** (cuivres, percussions, sans les nappes du menu), thème de boss (intense) qui démarre **quand le bouclier du boss tombe**, fondu entre les thèmes. La musique et les sons sont **coupés pendant les publicités**. Effets : tir, impact, explosion, boss vaincu, canon touché, explosion du canon, gemme, clic, fin de niveau. Volumes réglables séparément.
+Musiques composées et synthétisées en code (Web Audio) : thème du menu (calme, avec nappes) ; pour **chaque monde, un thème de vagues et un thème de boss** qui lui sont propres (5 + 5, tonalité, tempo, batterie et timbre différents ; le mode infini les reprend dans l'ordre) ; le thème du boss démarre **quand son bouclier tombe**, fondu entre les thèmes. Registre **grave** (mélodies entre sol 2 et do 4, basse et sous-basse présentes, aigus filtrés). Chaque thème alterne **deux mélodies (A et B)**, avec une intro et, un tour sur quatre, un passage allégé : la musique varie au lieu de boucler à l'identique. La musique et les sons sont **coupés pendant les publicités**. Robustesse : contexte audio en mode « lecture » (tampons plus grands), notes préparées 0,5 s à l'avance, 12 effets sonores simultanés au plus. Effets : tir, impact, explosion, boss vaincu, canon touché, explosion du canon, gemme, clic, fin de niveau. Volumes réglables séparément.
 
 ## 8. Publicités
-**Seulement des pubs récompensées, toujours demandées par le joueur** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min). **Aucune pub automatique** (pas d'interstitiel), jamais de pub pendant un niveau. Consentement RGPD (Google UMP) sur Android **avant** tout démarrage du SDK publicitaire ; sans réponse de Google (hors ligne), aucune pub ; contenu des pubs limité à « PG ». Politique de confidentialité publiée sur GitHub Pages.
+**Seulement des pubs récompensées, toujours demandées par le joueur** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min) ; **+7 gemmes par pub, 3 pubs par jour au plus (21 gemmes)**, bouton sur le menu principal. **Aucune pub automatique** (pas d'interstitiel), jamais de pub pendant un niveau. Consentement RGPD (Google UMP) sur Android **avant** tout démarrage du SDK publicitaire ; sans réponse de Google (hors ligne), aucune pub ; contenu des pubs limité à « PG ». Politique de confidentialité publiée sur GitHub Pages.
 
 ## 9. Données
 Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie en cours (reprise au début du niveau), méta-progression, succès, collection, objectif quotidien, paramètres, horodatage. Sauvegarde toutes les 10 s, à chaque niveau, à chaque passage en arrière-plan. Export/import en code texte. Sauvegarde Google Play Jeux (Saved Games) en option sur Android. Script de simulation sans rendu pour l'équilibrage (joueur automatique).
@@ -202,7 +203,8 @@ Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie e
 4. **Android et pubs** *(fait)* : Capacitor, AdMob test + UMP, APK construit par GitHub Actions.
 5. **Version 4** *(fait)* : déplacement libre et contact, cône de visée, types de canon, tourelles et mitrailleurs, super boss et titans, 5 mondes à thème, plusieurs objectifs du jour, récompenses à récupérer, sauvegarde Google, musique épique, équilibrage revu.
 6. **Version 5** *(fait)* : 11 canons dont 5 obtenus en jouant (bonus passifs, canon légendaire), armes cachées de fin de monde, succès « monde sans dégât », plus de pub automatique, consentement revu, textes allégés.
-7. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
+7. **Version 6** *(fait)* : nom Prisma Blast et icône, 10 musiques de jeu, pubs contre des gemmes, qualité adaptative, son robuste, version identique partout (1.3.0).
+8. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
 
 ## 11. Critères d'acceptation v1
 - 250 niveaux jouables (5 mondes), puis mode infini ; le contrôle au doigt fait la différence.
@@ -220,5 +222,6 @@ Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie e
 - **v1** : jeu idle, la forme encaisse les tirs automatiques ; renaissance au niveau 30.
 - **v2** : la forme devient un boss qui lance des vagues ; canon contrôlable (3 modes) avec PV ; pièces, diamants, gemmes ; défaite = retour au niveau 1.
 - **v3** : contrôle unique au glisser avec tir droit ; visée auto = capacité ; niveaux vagues puis boss ; 8 ennemis ; armes ; mondes de 50 niveaux ; menu principal ; audio ; Android.
+- **v6** : nom **Prisma Blast** (anciennement « Casseur de forme ») et icône du prisme brisé ; 5 thèmes de vagues + 5 thèmes de boss, un couple par monde, plus graves, mélodies A/B ; pubs contre des gemmes (7 × 3 par jour) ; qualité d'affichage adaptative et son robuste contre les ralentissements et les craquements ; rond du canon contenu dans le corps ; numéro de version identique dans l'APK et dans le jeu.
 - **v5** : 5 nouveaux canons (Jumeaux, Ricochet, Gatling, Foudre, Prisme légendaire) et bonus passifs ; 4 armes cachées offertes en fin de monde et 4e emplacement ; 15 nouveaux succès dont « monde sans dégât » ; barre du monde selon le niveau max ; suppression de l'interstitiel ; consentement UMP avant le SDK ; suivi du doigt exact ; textes allégés.
 - **v4** (retours du propriétaire après test de l'APK) : canon libre en 2D et dégâts de contact ; cône de visée 20° → 160° ; 6 types de canon ; tourelles et mitrailleurs ; super boss en blocs (tous les 10 niveaux) et titans (tous les 50) ; 5 mondes à thème qui agissent sur le canon, campagne de 250 niveaux ; 3 objectifs du jour ; récompenses des succès à récupérer ; sauvegarde Google ; musique de jeu épique, changement au bouclier du boss, silence pendant les pubs ; départ plus lent (cadence initiale réduite, boss plus solides) et difficulté qui monte vers la fin de chaque monde.

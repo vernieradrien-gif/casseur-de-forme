@@ -67,6 +67,7 @@ describe('sauvegarde v4', () => {
       date: '2026-10-22',
       objectives: [{ id: 'kills', target: 150, gems: 3, progress: 12, claimed: false }],
       bonusClaimed: false,
+      gemAds: 2,
     };
     s.meta.cannons.burst = true;
     s.meta.cannon = 'burst';

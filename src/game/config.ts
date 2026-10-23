@@ -391,6 +391,8 @@ export interface Balance {
   special: { superEvery: number; megaEvery: number; super: SpecialBossDef; mega: SpecialBossDef };
   worlds: WorldDef[];
   boost: { durationMinutes: number; cooldownMinutes: number; multiplier: number };
+  /** Pubs récompensées contre des gemmes : au plus `perDay` par jour, `gems` chacune. */
+  gemAds: { perDay: number; gems: number };
   checkpoint: { coinShare: number };
   /**
    * Après `fromLevel`, les PV et les dégâts (boss, ennemis, tirs) augmentent moins vite d'un niveau à l'autre :

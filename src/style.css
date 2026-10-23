@@ -1243,3 +1243,8 @@ button:disabled {
   border-color: #f3d9ff88;
   background: linear-gradient(120deg, #ff6b6b14, #ffd93d14, #6bff9514, #6bd6ff14, #b18cff14);
 }
+
+.gem-ad-btn {
+  border-color: #ff6bd688;
+  min-height: 56px;
+}

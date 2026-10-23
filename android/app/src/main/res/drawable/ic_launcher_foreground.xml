@@ -1,70 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icône tracée en code (même dessin que public/icon.svg) : la forme néon, un tir et le canon. -->
+<!-- Icône de Prisma Blast (générée par scripts/icon-design.mjs, même dessin que public/icon.svg). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Halo puis contour de la forme (triangle). -->
     <path
-        android:fillColor="#223EE6FF"
-        android:pathData="M54,24.1 L72.5,56.3 L35.5,56.3 Z"
-        android:strokeColor="#403EE6FF"
+        android:pathData="M27,47 a27,27 0 1,0 54,0 a27,27 0 1,0 -54,0"
+        android:fillColor="#296B3CFF" />
+    <path
+        android:pathData="M35,47 a19,19 0 1,0 38,0 a19,19 0 1,0 -38,0"
+        android:fillColor="#1FB18CFF" />
+    <path
+        android:pathData="M50.6,63 h6.8 v45 h-6.8 z"
+        android:fillColor="#4D3EE6FF" />
+    <path
+        android:pathData="M52.4,63 h3.2 v45 h-3.2 z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M54,21 L79,63 L29,63 Z"
+        android:fillColor="#1F3EE6FF"
+        android:strokeColor="#593EE6FF"
+        android:strokeWidth="6"
         android:strokeLineJoin="round"
-        android:strokeWidth="5.5" />
+        android:strokeLineCap="round" />
     <path
+        android:pathData="M54,21 L79,63 L29,63 Z"
         android:fillColor="#00000000"
-        android:pathData="M54,24.1 L72.5,56.3 L35.5,56.3 Z"
         android:strokeColor="#FF3EE6FF"
+        android:strokeWidth="3"
         android:strokeLineJoin="round"
-        android:strokeWidth="2.2" />
+        android:strokeLineCap="round" />
     <path
+        android:pathData="M54,33 L69,58 L39,58 Z"
         android:fillColor="#00000000"
-        android:pathData="M54,35.2 L61.7,48.7 L46.3,48.7 Z"
-        android:strokeColor="#883EE6FF"
+        android:strokeColor="#FFFF6BD6"
+        android:strokeWidth="1.6"
         android:strokeLineJoin="round"
-        android:strokeWidth="1" />
-    <!-- Zone faible lumineuse. -->
+        android:strokeLineCap="round" />
     <path
-        android:fillColor="#55FFF6A0"
-        android:pathData="M69.5,56.3 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
-    <path
-        android:fillColor="#FFFFF6A0"
-        android:pathData="M70.74,56.3 a1.76,1.76 0 1,0 3.52,0 a1.76,1.76 0 1,0 -3.52,0" />
-    <!-- Éclats. -->
-    <path
-        android:fillColor="#FFFF6BD6"
-        android:pathData="M75.7,32.6 L79.2,35.8 L74.4,37.4 Z" />
-    <path
-        android:fillColor="#FFFFB347"
-        android:pathData="M30.7,37.3 L34.2,35 L33.6,40.1 Z" />
-    <path
-        android:fillColor="#FF7CFF6B"
-        android:pathData="M77.6,48 L80.2,51.2 L76,50.9 Z" />
-    <!-- Tir. -->
-    <path
-        android:fillColor="#553EE6FF"
-        android:pathData="M51.9,60.4 a2.1,2.1 0 0,1 4.2,0 v7.4 a2.1,2.1 0 0,1 -4.2,0 z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M52.7,60.5 a1.3,1.3 0 0,1 2.6,0 v7.2 a1.3,1.3 0 0,1 -2.6,0 z" />
-    <!-- Canon : fût, halo, tourelle, cœur. -->
-    <path
-        android:fillColor="#FF10142A"
-        android:pathData="M51.4,73.8 h5.2 v7.4 h-5.2 z"
-        android:strokeColor="#FF3EE6FF"
-        android:strokeWidth="1.3" />
-    <path
-        android:fillColor="#FF10142A"
-        android:pathData="M47.6,79.6 a6.4,6.4 0 1,0 12.8,0 a6.4,6.4 0 1,0 -12.8,0"
-        android:strokeColor="#403EE6FF"
-        android:strokeWidth="4" />
-    <path
+        android:pathData="M54,63 L51.5,53 L56.5,45 L52.5,36"
         android:fillColor="#00000000"
-        android:pathData="M47.6,79.6 a6.4,6.4 0 1,0 12.8,0 a6.4,6.4 0 1,0 -12.8,0"
-        android:strokeColor="#FF3EE6FF"
-        android:strokeWidth="1.6" />
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
     <path
-        android:fillColor="#FF3EE6FF"
-        android:pathData="M51.6,79.6 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0" />
+        android:pathData="M47,63 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0"
+        android:fillColor="#4DFFFFFF" />
+    <path
+        android:pathData="M50.4,63 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M30,35 L35,32 L34,39 Z"
+        android:fillColor="#FFFF5A5A" />
+    <path
+        android:pathData="M25,49 L31,47 L29,53 Z"
+        android:fillColor="#FFFFB347" />
+    <path
+        android:pathData="M77,47 L83,49 L78,53 Z"
+        android:fillColor="#FFFFE066" />
+    <path
+        android:pathData="M72,34 L77,32 L76,38 Z"
+        android:fillColor="#FF7CFF6B" />
+    <path
+        android:pathData="M62,26 L67,24 L66,29 Z"
+        android:fillColor="#FF3EE6FF" />
+    <path
+        android:pathData="M41,26 L46,24 L44,29 Z"
+        android:fillColor="#FFB18CFF" />
 </vector>

@@ -220,6 +220,7 @@ function readMeta(m: Raw): MetaState {
         return { id: o.id as DailyKind, target, gems: int(o.gems, 1, 0, 100), progress: Math.min(target, int(o.progress, 0)), claimed: o.claimed === true };
       }),
     bonusClaimed: daily.bonusClaimed === true,
+    gemAds: int(daily.gemAds, 0, 0, BALANCE.gemAds.perDay),
   };
   if (meta.daily.objectives.length === 0) meta.daily.date = '';
   meta.campaignComplete = m.campaignComplete === true;

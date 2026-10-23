@@ -4,7 +4,7 @@ Limites de Google Play : titre 30 caractères, description courte 80, descriptio
 
 ## Français (langue par défaut)
 
-**Titre** : Casseur de forme
+**Titre** : Prisma Blast
 
 **Description courte** :
 Glisse, tire et brise des formes géantes à travers 5 mondes néon.
@@ -30,7 +30,7 @@ Les publicités sont facultatives : une vidéo n'apparaît que si tu choisis un 
 
 ## English
 
-**Title**: Casseur de forme
+**Title**: Prisma Blast
 
 **Short description**:
 Slide, shoot and shatter giant shapes across 5 neon worlds.

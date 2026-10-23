@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Casseur de forme</string>
-    <string name="title_activity_main">Casseur de forme</string>
+    <string name="app_name">Prisma Blast</string>
+    <string name="title_activity_main">Prisma Blast</string>
     <string name="package_name">io.github.vernieradrien.casseurdeforme</string>
     <string name="custom_url_scheme">io.github.vernieradrien.casseurdeforme</string>
     <!-- Identifiant du projet Google Play Jeux (Play Console > Play Games Services > Configuration). Vide = sauvegarde cloud désactivée. -->

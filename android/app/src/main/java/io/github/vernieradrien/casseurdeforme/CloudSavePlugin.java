@@ -77,7 +77,7 @@ public class CloudSavePlugin extends Plugin {
     @PluginMethod
     public void save(PluginCall call) {
         String data = call.getString("data");
-        String description = call.getString("description", "Casseur de forme");
+        String description = call.getString("description", "Prisma Blast");
         if (data == null || !isConfigured(getContext())) {
             call.reject("not-configured");
             return;

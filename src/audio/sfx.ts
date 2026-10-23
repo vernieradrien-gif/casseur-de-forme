@@ -21,20 +21,36 @@ export type SfxId =
   | 'lightning'
   | 'achievement';
 
-/** Intervalle minimal entre deux sons identiques (évite la cacophonie). */
+/** Intervalle minimal entre deux sons identiques (évite la cacophonie et soulage le téléphone). */
 const THROTTLE: Partial<Record<SfxId, number>> = {
-  shot: 0.07,
-  hit: 0.045,
-  weak: 0.06,
-  blocked: 0.08,
-  kill: 0.05,
-  bossFire: 0.12,
-  cannonHit: 0.1,
+  shot: 0.09,
+  hit: 0.07,
+  weak: 0.08,
+  blocked: 0.1,
+  kill: 0.07,
+  bossFire: 0.14,
+  cannonHit: 0.12,
+  laser: 0.3,
+  lightning: 0.12,
 };
+
+/** Nombre maximal de voix d'effets sonores en même temps (les sons de trop sont ignorés). */
+const MAX_VOICES = 12;
 
 /** Effets sonores synthétisés à la volée. */
 export class Sfx {
   private readonly last = new Map<SfxId, number>();
+  private voices = 0;
+
+  /** Réserve une voix ; renvoie false si trop de sons jouent déjà. */
+  private take(source: AudioScheduledSourceNode): boolean {
+    if (this.voices >= MAX_VOICES) return false;
+    this.voices++;
+    source.onended = () => {
+      this.voices--;
+    };
+    return true;
+  }
 
   constructor(private readonly audio: AudioEngine) {}
 
@@ -117,8 +133,10 @@ export class Sfx {
   }
 
   private note(type: OscillatorType, midi: number, t: number, dur: number, gain: number): void {
+    if (this.voices >= MAX_VOICES) return;
     const ctx = this.audio.ctx!;
     const o = ctx.createOscillator();
+    if (!this.take(o)) return;
     o.type = type;
     o.frequency.value = midiToFreq(midi);
     const g = ctx.createGain();
@@ -129,8 +147,10 @@ export class Sfx {
   }
 
   private sweep(type: OscillatorType, from: number, to: number, t: number, dur: number, gain: number): void {
+    if (this.voices >= MAX_VOICES) return;
     const ctx = this.audio.ctx!;
     const o = ctx.createOscillator();
+    if (!this.take(o)) return;
     o.type = type;
     o.frequency.setValueAtTime(from, t);
     o.frequency.exponentialRampToValueAtTime(Math.max(20, to), t + dur);
@@ -142,8 +162,10 @@ export class Sfx {
   }
 
   private noise(t: number, dur: number, gain: number, type: BiquadFilterType, from: number, to: number): void {
+    if (this.voices >= MAX_VOICES) return;
     const ctx = this.audio.ctx!;
     const n = ctx.createBufferSource();
+    if (!this.take(n)) return;
     n.buffer = this.audio.noise;
     n.loop = dur > 0.9;
     const f = ctx.createBiquadFilter();

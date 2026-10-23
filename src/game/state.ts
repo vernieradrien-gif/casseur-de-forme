@@ -282,6 +282,8 @@ export interface DailyState {
   objectives: DailyObjective[];
   /** Bonus quand tous les objectifs du jour sont récupérés. */
   bonusClaimed: boolean;
+  /** Pubs « gemmes » déjà regardées aujourd'hui. */
+  gemAds: number;
 }
 
 export interface CollectionState {
@@ -360,7 +362,7 @@ export function createMeta(): MetaState {
     achievements: [],
     achievementsClaimed: [],
     collection: { bosses: [], golden: [], enemies: [], special: [] },
-    daily: { date: '', objectives: [], bonusClaimed: false },
+    daily: { date: '', objectives: [], bonusClaimed: false, gemAds: 0 },
     campaignComplete: false,
     flawless: [],
     boostTime: 0,
