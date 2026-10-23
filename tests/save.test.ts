@@ -52,7 +52,7 @@ function played(seconds = 40) {
   return s;
 }
 
-describe('sauvegarde v3', () => {
+describe('sauvegarde v4', () => {
   it('aller-retour JSON : partie reprise au début du niveau, méta, paramètres', () => {
     const s = played();
     s.meta.diamonds = 7;
@@ -62,8 +62,17 @@ describe('sauvegarde v3', () => {
     s.meta.equipped = ['orbs'];
     s.meta.achievements = ['kills1'];
     s.meta.collection.bosses = [0];
-    s.meta.daily = { date: '2026-10-22', kills: 12, done: false };
-    const settings = { ...defaultSettings(), music: 0.3, sfx: 0.4, vibration: false, powerSave: true, language: 'en' as const };
+    s.meta.achievementsClaimed = ['kills1'];
+    s.meta.daily = {
+      date: '2026-10-22',
+      objectives: [{ id: 'kills', target: 150, gems: 3, progress: 12, claimed: false }],
+      bonusClaimed: false,
+    };
+    s.meta.cannons.burst = true;
+    s.meta.cannon = 'burst';
+    s.meta.abilities.autoAim = 1;
+    s.meta.abilities.aimAngle = 2;
+    const settings = { ...defaultSettings(), music: 0.3, sfx: 0.4, vibration: false, powerSave: true, language: 'en' as const, cloudSync: true };
     const extra = { ...defaultExtra(), boostReadyAt: 123 };
     const data = JSON.parse(JSON.stringify(serialize(s, settings, extra, 1000)));
     expect(data.version).toBe(SAVE_VERSION);
@@ -92,9 +101,9 @@ describe('sauvegarde v3', () => {
     expect(hasRun).toBe(false);
   });
 
-  it('migrations v1 → v2 → v3', () => {
+  it('migrations v1 → v2 → v3 → v4', () => {
     const v1 = { version: 1, level: 14, maxLevel: 15, coins: 99, kills: 20, upgrades: { damage: 3 } };
-    expect(migrate(v1)?.version).toBe(3);
+    expect(migrate(v1)?.version).toBe(SAVE_VERSION);
     const a = deserialize(v1);
     expect(a.state.run.level).toBe(1);
     expect(a.state.meta.bestLevel).toBe(15);
@@ -121,7 +130,7 @@ describe('sauvegarde v3', () => {
     expect(m.gems).toBe(4);
     expect(m.bestLevel).toBe(12);
     expect(m.workshop).toEqual({ damage: 3, fireRate: 1, maxHp: 2, coins: 1, startCoins: 0, repair: 0, offline: 0 });
-    expect(m.abilities).toEqual({ autoAim: 0, shield: 1, shockwave: 0, multishot: 1 });
+    expect(m.abilities).toEqual({ autoAim: 0, shield: 1, shockwave: 0, multishot: 1, aimAngle: 0 });
     expect(m.stats.kills).toBe(321);
     expect(m.stats.runs).toBe(6);
     expect(b.state.run.level).toBe(7);
@@ -130,6 +139,32 @@ describe('sauvegarde v3', () => {
     expect(b.state.run.cannon.hp).toBe(5);
     expect(b.settings.vibration).toBe(false);
     expect(b.savedAt).toBe(5000);
+    expect(m.cannon).toBe('classic');
+  });
+
+  it('migration v3 → v4 : succès déjà payés, canon classique, nouveaux objectifs du jour', () => {
+    const v3 = {
+      version: 3,
+      meta: {
+        bestLevel: 9,
+        gems: 6,
+        achievements: ['kills1', 'level5'],
+        daily: { date: '2026-10-22', kills: 40, done: false },
+      },
+    };
+    const m = deserialize(v3).state.meta;
+    expect(m.achievementsClaimed).toEqual(['kills1', 'level5']);
+    expect(m.gems).toBe(6);
+    expect(m.cannon).toBe('classic');
+    expect(m.cannons.classic).toBe(true);
+    expect(m.cannons.burst).toBe(false);
+    expect(m.daily.date).toBe('');
+    expect(m.daily.objectives).toEqual([]);
+  });
+
+  it('canon choisi mais non débloqué → canon classique', () => {
+    const { state } = deserialize({ version: 4, meta: { cannon: 'beam', cannons: { beam: false } } });
+    expect(state.meta.cannon).toBe('classic');
   });
 
   it('données corrompues → valeurs par défaut', () => {
@@ -179,13 +214,15 @@ describe('sauvegarde v3', () => {
     const s = played(10);
     s.meta.diamonds = 77;
     const code = exportCode(s, defaultSettings(), defaultExtra(), 42);
-    expect(code.startsWith('CDF3.')).toBe(true);
+    expect(code.startsWith('CDF4.')).toBe(true);
     const back = importCode(code);
     expect(back?.state.meta.diamonds).toBe(77);
     expect(back?.savedAt).toBe(42);
     expect(importCode('n’importe quoi')).toBeNull();
     expect(importCode('CDF3.@@@')).toBeNull();
     expect(importCode('CDF3.' + btoa('{"version":99}'))).toBeNull();
+    // Les anciens codes (v3) restent acceptés.
+    expect(importCode('CDF3.' + btoa('{"version":3,"meta":{"diamonds":5}}'))?.state.meta.diamonds).toBe(5);
   });
 
   it('langue par défaut selon le navigateur', () => {

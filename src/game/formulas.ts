@@ -1,8 +1,11 @@
 import { geometricSum, grow, maxAffordable } from './bignum';
-import { BALANCE, ENEMY_KINDS, FORMATIONS } from './config';
+import { BALANCE, ENEMY_KINDS, FORMATIONS, WORLDS } from './config';
 import type {
   AbilityId,
   Balance,
+  BossKind,
+  CannonDef,
+  CannonId,
   CostDef,
   EnemyKind,
   FormationId,
@@ -10,6 +13,8 @@ import type {
   TierDef,
   WeaponId,
   WorkshopId,
+  WorldDef,
+  WorldId,
 } from './config';
 
 // ---------- Niveaux, paliers, mondes ----------
@@ -28,14 +33,23 @@ export function tierDef(level: number, cfg: Balance = BALANCE): TierDef {
   return cfg.tiers[tierIndex(level, cfg)];
 }
 
-/** Le dernier niveau de chaque palier est un grand boss. */
+/** Le dernier niveau de chaque palier est un grand boss (super boss, ou titan tous les 50 niveaux). */
 export function isGrandBoss(level: number, cfg: Balance = BALANCE): boolean {
-  return level % cfg.levelsPerTier === 0;
+  return level % cfg.special.superEvery === 0;
+}
+
+/** Type de boss du niveau : titan tous les 50 niveaux, super boss tous les 10, sinon forme classique. */
+export function bossKindAt(level: number, cfg: Balance = BALANCE): BossKind {
+  if (level % cfg.special.megaEvery === 0) return 'mega';
+  if (level % cfg.special.superEvery === 0) return 'super';
+  return 'normal';
 }
 
 /** Nombre de vagues avant la phase boss. */
 export function wavesForLevel(level: number, cfg: Balance = BALANCE): number {
-  if (isGrandBoss(level, cfg)) return cfg.level.grandBossWaves;
+  const kind = bossKindAt(level, cfg);
+  if (kind === 'mega') return cfg.level.megaBossWaves;
+  if (kind === 'super') return cfg.level.grandBossWaves;
   let count = cfg.level.waves[0].count;
   for (const w of cfg.level.waves) if (level >= w.fromLevel) count = w.count;
   return count;
@@ -55,6 +69,26 @@ export function worldsUnlocked(bestLevel: number, cfg: Balance = BALANCE): numbe
   return worldOf(Math.max(1, bestLevel), cfg) + 1;
 }
 
+/** Thème du monde (fond et danger) : les thèmes recommencent après le dernier. */
+export function worldTheme(level: number, cfg: Balance = BALANCE): WorldDef {
+  return cfg.worlds[worldOf(level, cfg) % cfg.worlds.length];
+}
+
+export function worldThemeId(world: number, cfg: Balance = BALANCE): WorldId {
+  return WORLDS[world % cfg.worlds.length];
+}
+
+/** Position dans le monde, de 0 (premier niveau) à 1 (dernier). */
+export function worldProgress(level: number, cfg: Balance = BALANCE): number {
+  return ((level - 1) % cfg.levelsPerWorld) / (cfg.levelsPerWorld - 1);
+}
+
+/** La difficulté accélère vers la fin de chaque monde, puis souffle au début du suivant. */
+export function worldRamp(level: number, cfg: Balance = BALANCE): number {
+  const r = cfg.boss.worldRamp;
+  return 1 + r.amount * Math.pow(worldProgress(level, cfg), r.power);
+}
+
 // ---------- Boss ----------
 
 /** Multiplicateur de PV du palier (tableau, puis croissance régulière en mode infini). */
@@ -67,12 +101,16 @@ export function tierHpMultiplier(level: number, cfg: Balance = BALANCE): number 
 
 export function bossHp(level: number, cfg: Balance = BALANCE): number {
   const b = cfg.boss;
-  const grand = isGrandBoss(level, cfg) ? b.grandHpMultiplier : 1;
-  return grow(b.baseHp, b.hpGrowth, level - 1) * tierHpMultiplier(level, cfg) * grand;
+  const kind = bossKindAt(level, cfg);
+  const special = kind === 'mega' ? cfg.special.mega.hpMultiplier : kind === 'super' ? cfg.special.super.hpMultiplier : 1;
+  // Les super boss suivent une montée plus douce (ils sont déjà un pic de difficulté).
+  const ramp = Math.pow(worldRamp(level, cfg), kind === 'normal' ? 1 : b.worldRamp.specialShare);
+  return grow(b.baseHp, b.hpGrowth, level - 1) * tierHpMultiplier(level, cfg) * ramp * special;
 }
 
 export function bossRadius(level: number, cfg: Balance = BALANCE): number {
-  return cfg.boss.radius * (isGrandBoss(level, cfg) ? cfg.boss.grandRadiusMultiplier : 1);
+  const kind = bossKindAt(level, cfg);
+  return kind === 'normal' ? cfg.boss.radius : cfg.special[kind].span;
 }
 
 export function bossCoins(level: number, golden: boolean, cfg: Balance = BALANCE): number {
@@ -96,7 +134,7 @@ export function grandBossGems(level: number, cfg: Balance = BALANCE): number {
 
 export function bossBulletDamage(level: number, cfg: Balance = BALANCE): number {
   const b = cfg.boss.bullet;
-  return grow(b.damage, b.damageGrowth, level - 1);
+  return grow(b.damage, b.damageGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare);
 }
 
 export function bossFireInterval(level: number, cfg: Balance = BALANCE): number {
@@ -133,8 +171,8 @@ export function enemyStats(kind: EnemyKind, level: number, cfg: Balance = BALANC
   const e = cfg.enemies[kind];
   const s = cfg.enemyScaling;
   return {
-    hp: grow(e.hp, s.hpGrowth, level - 1),
-    damage: grow(e.damage, s.damageGrowth, level - 1),
+    hp: grow(e.hp, s.hpGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.enemyHpShare),
+    damage: grow(e.damage, s.damageGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare),
     coins: grow(e.coins, s.coinGrowth, level - 1),
     speed: e.speed,
     radius: e.radius,
@@ -253,6 +291,21 @@ export function weaponUpgradeCost(id: WeaponId, level: number, cfg: Balance = BA
   return cost(cfg.weapons[id], level - 1);
 }
 
+/** Demi-angle (radians) du cône de visée automatique : 20° de base, +20° par niveau, 160° au plus. */
+export function aimHalfAngle(level: number, cfg: Balance = BALANCE): number {
+  const d = cfg.abilities.aimAngle;
+  const deg = Math.min(160, (d.baseAngle ?? 20) + (d.anglePerLevel ?? 20) * level);
+  return ((deg / 2) * Math.PI) / 180;
+}
+
+export function aimAngleDegrees(level: number, cfg: Balance = BALANCE): number {
+  return Math.round((aimHalfAngle(level, cfg) * 360) / Math.PI);
+}
+
+export function cannonDef(id: CannonId, cfg: Balance = BALANCE): CannonDef {
+  return cfg.cannons[id];
+}
+
 /** Durée d'une capacité active au niveau donné (niveau 1 = juste débloquée). */
 export function abilityDuration(id: AbilityId, level: number, cfg: Balance = BALANCE): number {
   const d = cfg.abilities[id];
@@ -272,6 +325,7 @@ export function shockwaveBossDamage(level: number, cfg: Balance = BALANCE): numb
 /** Prix en gemmes du prochain niveau (0 → déblocage). */
 export function abilityPrice(id: AbilityId, level: number, cfg: Balance = BALANCE): number {
   const d = cfg.abilities[id];
+  if (id === 'aimAngle') return d.gemCost + d.upgradeCost * level;
   return level === 0 ? d.gemCost : d.upgradeCost * level;
 }
 

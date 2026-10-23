@@ -1,4 +1,4 @@
-import type { ActiveAbilityId, EnemyKind } from './config';
+import type { ActiveAbilityId, BossKind, CannonId, DailyKind, EnemyKind } from './config';
 import type { Vec } from './geometry';
 
 /**
@@ -23,7 +23,10 @@ export type GameEvent =
   | { type: 'bossEnraged'; x: number; y: number }
   | { type: 'bossSplit'; x: number; y: number; radius: number; tier: number }
   | { type: 'bossFire'; x: number; y: number }
-  | { type: 'bossKilled'; x: number; y: number; radius: number; tier: number; golden: boolean; rotation: number; level: number }
+  | { type: 'bossKilled'; x: number; y: number; radius: number; tier: number; golden: boolean; rotation: number; level: number; kind: BossKind }
+  | { type: 'partDestroyed'; x: number; y: number; radius: number }
+  | { type: 'cannonCrash'; x: number; y: number }
+  | { type: 'missileBoom'; x: number; y: number; radius: number }
   | { type: 'levelClear'; level: number; coins: number; diamonds: number; gems: number; golden: boolean }
   | { type: 'cannonHit'; damage: number; x: number; y: number }
   | { type: 'cannonBlocked'; x: number; y: number }
@@ -36,5 +39,9 @@ export type GameEvent =
   | { type: 'gameOver'; level: number }
   | { type: 'continued' }
   | { type: 'achievement'; id: string; gems: number }
-  | { type: 'dailyComplete'; gems: number }
+  | { type: 'dailyComplete'; id: DailyKind; gems: number }
+  | { type: 'cannonUnlocked'; id: CannonId }
+  | { type: 'rockKilled'; x: number; y: number; radius: number; coins: number }
+  | { type: 'hazardWarn'; kind: 'flare' | 'strike'; x: number; y: number }
+  | { type: 'hazardStrike'; kind: 'flare' | 'strike'; x: number; y: number }
   | { type: 'campaignComplete'; gems: number };

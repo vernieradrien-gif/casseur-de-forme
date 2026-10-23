@@ -1,5 +1,5 @@
-import { ABILITIES, ENEMY_KINDS, RUN_UPGRADES, STATS, WEAPONS, WORKSHOP } from '../game/config';
-import type { EnemyKind, WeaponId } from '../game/config';
+import { ABILITIES, BALANCE, CANNONS, ENEMY_KINDS, RUN_UPGRADES, STATS, WEAPONS, WORKSHOP } from '../game/config';
+import type { BossKind, CannonId, DailyKind, EnemyKind, WeaponId } from '../game/config';
 import { cannonStats, weaponSlots } from '../game/formulas';
 import { createMeta, createRun, createState } from '../game/state';
 import type { GameState, MetaState } from '../game/state';
@@ -9,8 +9,10 @@ import type { GameState, MetaState } from '../game/state';
  * La partie en cours est reprise au début du niveau où elle s'était arrêtée.
  */
 export const SAVE_KEY = 'casseur-de-forme.save';
-export const SAVE_VERSION = 3;
-const EXPORT_PREFIX = 'CDF3.';
+export const SAVE_VERSION = 4;
+const EXPORT_PREFIX = 'CDF4.';
+/** Codes d'export des versions précédentes, toujours acceptés à l'import. */
+const OLD_PREFIXES = ['CDF3.'];
 
 export type Language = 'fr' | 'en';
 export const LANGUAGES: Language[] = ['fr', 'en'];
@@ -23,6 +25,8 @@ export interface Settings {
   /** Économie d'énergie : rendu à 30 images/s. */
   powerSave: boolean;
   language: Language;
+  /** Synchronisation avec Google Play Jeux (Android). */
+  cloudSync: boolean;
 }
 
 /** Informations hors simulation (horloge réelle). */
@@ -42,7 +46,7 @@ export function defaultLanguage(nav: string | undefined = typeof navigator !== '
 }
 
 export function defaultSettings(): Settings {
-  return { music: 0.6, sfx: 0.8, vibration: true, powerSave: false, language: defaultLanguage() };
+  return { music: 0.6, sfx: 0.8, vibration: true, powerSave: false, language: defaultLanguage(), cloudSync: false };
 }
 
 export function defaultExtra(): Extra {
@@ -156,6 +160,12 @@ const MIGRATIONS: Record<number, (d: Raw) => Raw> = {
       settings: { vibration: obj(d.settings).vibration },
     };
   },
+  // v3 → v4 : les succès déjà débloqués ont déjà donné leurs gemmes (ils comptent comme récupérés) ;
+  // nouveaux objectifs du jour ; canon classique ; angle de visée de base.
+  3: (d) => {
+    const m = obj(d.meta);
+    return { ...d, version: 4, meta: { ...m, achievementsClaimed: arr(m.achievements), daily: {}, cannons: { classic: true }, cannon: 'classic' } };
+  },
 };
 
 export function migrate(raw: unknown): Raw | null {
@@ -185,20 +195,35 @@ function readMeta(m: Raw): MetaState {
   meta.equipped = [...new Set(eq)].slice(0, weaponSlots(meta.bestLevel));
   const st = obj(m.stats);
   for (const id of STATS) meta.stats[id] = int(st[id], 0);
-  meta.achievements = [...new Set(arr(m.achievements).filter((x): x is string => typeof x === 'string'))];
+  const ids = (v: unknown) => [...new Set(arr(v).filter((x): x is string => typeof x === 'string'))];
+  meta.achievements = ids(m.achievements);
+  meta.achievementsClaimed = ids(m.achievementsClaimed).filter((id) => meta.achievements.includes(id));
+  const cn = obj(m.cannons);
+  for (const id of CANNONS) meta.cannons[id] = id === 'classic' || cn[id] === true;
+  meta.cannon = CANNONS.includes(m.cannon as CannonId) && meta.cannons[m.cannon as CannonId] ? (m.cannon as CannonId) : 'classic';
   const col = obj(m.collection);
   const tiers = (v: unknown) => [...new Set(arr(v).filter((x): x is number => Number.isInteger(x) && (x as number) >= 0 && (x as number) < 10))];
   meta.collection = {
     bosses: tiers(col.bosses),
     golden: tiers(col.golden),
     enemies: [...new Set(arr(col.enemies).filter((x): x is EnemyKind => ENEMY_KINDS.includes(x as EnemyKind)))],
+    special: [...new Set(arr(col.special).filter((x): x is BossKind => x === 'super' || x === 'mega'))],
   };
   const daily = obj(m.daily);
+  const kinds = BALANCE.daily.pool.map((p) => p.id);
   meta.daily = {
     date: typeof daily.date === 'string' ? daily.date : '',
-    kills: int(daily.kills, 0),
-    done: daily.done === true,
+    objectives: arr(daily.objectives)
+      .map(obj)
+      .filter((o) => kinds.includes(o.id as string))
+      .slice(0, BALANCE.daily.count)
+      .map((o) => {
+        const target = int(o.target, 1, 1);
+        return { id: o.id as DailyKind, target, gems: int(o.gems, 1, 0, 100), progress: Math.min(target, int(o.progress, 0)), claimed: o.claimed === true };
+      }),
+    bonusClaimed: daily.bonusClaimed === true,
   };
+  if (meta.daily.objectives.length === 0) meta.daily.date = '';
   meta.campaignComplete = m.campaignComplete === true;
   meta.boostTime = num(m.boostTime, 0, 0, 3600);
   return meta;
@@ -243,6 +268,7 @@ export function deserialize(raw: unknown): Loaded {
   if (typeof s.vibration === 'boolean') settings.vibration = s.vibration;
   if (typeof s.powerSave === 'boolean') settings.powerSave = s.powerSave;
   if (LANGUAGES.includes(s.language as Language)) settings.language = s.language as Language;
+  if (typeof s.cloudSync === 'boolean') settings.cloudSync = s.cloudSync;
 
   const extra: Extra = {
     boostReadyAt: num(e.boostReadyAt, 0),
@@ -300,8 +326,9 @@ export function exportCode(state: GameState, settings: Settings, extra: Extra, n
 export function importCode(code: string): Loaded | null {
   try {
     const text = code.trim();
-    if (!text.startsWith(EXPORT_PREFIX)) return null;
-    const raw: unknown = JSON.parse(fromBase64(text.slice(EXPORT_PREFIX.length)));
+    const prefix = [EXPORT_PREFIX, ...OLD_PREFIXES].find((p) => text.startsWith(p));
+    if (!prefix) return null;
+    const raw: unknown = JSON.parse(fromBase64(text.slice(prefix.length)));
     if (!migrate(raw)) return null;
     return deserialize(raw);
   } catch {

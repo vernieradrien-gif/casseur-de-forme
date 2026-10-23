@@ -1,4 +1,5 @@
-import { AdMob, AdmobConsentStatus } from '@capacitor-community/admob';
+import { AdMob, AdmobConsentStatus, InterstitialAdPluginEvents, RewardAdPluginEvents } from '@capacitor-community/admob';
+import type { PluginListenerHandle } from '@capacitor/core';
 import type { AdService } from './index';
 
 /**
@@ -11,6 +12,9 @@ export const ADMOB_TEST_IDS = {
   rewarded: 'ca-app-pub-3940256099942544/5224354917',
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
 };
+
+/** Sécurité : une pub qui ne se ferme jamais ne bloque pas le jeu. */
+const AD_TIMEOUT_MS = 120_000;
 
 export class AdMobService implements AdService {
   private canRequestAds = false;
@@ -30,13 +34,35 @@ export class AdMobService implements AdService {
     }
   }
 
+  /** Résout seulement quand la pub est FERMÉE (le son du jeu ne revient pas pendant la pub). */
   async showRewarded(): Promise<boolean> {
     if (this.busy || !this.canRequestAds) return false;
     this.busy = true;
     try {
       await AdMob.prepareRewardVideoAd({ adId: ADMOB_TEST_IDS.rewarded, isTesting: true, immersiveMode: true });
-      const reward = await AdMob.showRewardVideoAd();
-      return reward !== undefined && reward !== null;
+      return await new Promise<boolean>((resolve) => {
+        let rewarded = false;
+        let finished = false;
+        const handles: PluginListenerHandle[] = [];
+        const done = () => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+          for (const h of handles) void h.remove();
+          resolve(rewarded);
+        };
+        const timer = setTimeout(done, AD_TIMEOUT_MS);
+        void Promise.all([
+          AdMob.addListener(RewardAdPluginEvents.Rewarded, () => (rewarded = true)),
+          AdMob.addListener(RewardAdPluginEvents.Dismissed, done),
+          AdMob.addListener(RewardAdPluginEvents.FailedToShow, done),
+        ]).then((hs) => {
+          handles.push(...hs);
+          AdMob.showRewardVideoAd()
+            .then(() => (rewarded = true))
+            .catch(done);
+        });
+      });
     } catch {
       return false;
     } finally {
@@ -49,7 +75,25 @@ export class AdMobService implements AdService {
     this.busy = true;
     try {
       await AdMob.prepareInterstitial({ adId: ADMOB_TEST_IDS.interstitial, isTesting: true, immersiveMode: true });
-      await AdMob.showInterstitial();
+      await new Promise<void>((resolve) => {
+        let finished = false;
+        const handles: PluginListenerHandle[] = [];
+        const done = () => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+          for (const h of handles) void h.remove();
+          resolve();
+        };
+        const timer = setTimeout(done, AD_TIMEOUT_MS);
+        void Promise.all([
+          AdMob.addListener(InterstitialAdPluginEvents.Dismissed, done),
+          AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, done),
+        ]).then((hs) => {
+          handles.push(...hs);
+          AdMob.showInterstitial().catch(done);
+        });
+      });
     } catch {
       // Pas de pub disponible : on continue sans.
     } finally {

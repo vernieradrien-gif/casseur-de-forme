@@ -635,14 +635,21 @@ button:disabled {
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
 .tile {
+  position: relative;
   min-height: 74px;
-  font-size: 13px;
+  padding: 8px 4px;
+  font-size: 12px;
   gap: 6px;
+}
+
+.tile-label {
+  line-height: 1.15;
+  text-align: center;
 }
 
 .tile-glyph {
@@ -1029,5 +1036,198 @@ button:disabled {
   .control-hint,
   .ability-btn.ready {
     animation: none;
+  }
+}
+
+/* ---------- v4 : mondes, canons, objectifs du jour, récompenses à récupérer ---------- */
+
+.glyph-cannons {
+  background: linear-gradient(var(--accent), var(--accent)) 9px 0 / 6px 14px no-repeat, radial-gradient(circle at 50% 70%, var(--accent) 0 9px, transparent 10px);
+}
+
+.glyph-daily {
+  border: 3px solid var(--ok);
+  border-radius: 6px;
+  background: linear-gradient(var(--ok), var(--ok)) 0 0 / 100% 5px no-repeat;
+  position: relative;
+}
+
+.glyph-daily::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 7px;
+  width: 6px;
+  height: 9px;
+  border: solid var(--ok);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--gem);
+  color: #1a0014;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 20px;
+  box-shadow: 0 0 10px #ff6bd688;
+  animation: ready 1.4s ease-in-out infinite;
+}
+
+.world-card {
+  --world: var(--accent);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--world);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--world) 22%, transparent), var(--panel) 70%);
+  text-align: left;
+}
+
+.world-card:active {
+  transform: scale(0.99);
+}
+
+.world-card-name {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.world-card-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.world-progress .progress-fill,
+.world-row .progress-fill {
+  background: var(--world);
+}
+
+.world-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.world-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--world);
+  opacity: 0.6;
+}
+
+.world-dot.done {
+  background: var(--world);
+  opacity: 1;
+}
+
+.world-dot.current {
+  opacity: 1;
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 10px var(--world);
+}
+
+.world-row {
+  --world: var(--accent);
+  --sky: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--world);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sky) 70%, var(--panel)), var(--panel));
+}
+
+.world-row.locked {
+  opacity: 0.55;
+}
+
+.world-row.done {
+  border-color: #4cff8a55;
+  border-left-color: var(--world);
+}
+
+.world-row.endless {
+  border-style: dashed;
+  border-left-style: solid;
+  border-left-color: var(--gem);
+}
+
+.world-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--world);
+  color: #07070f;
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  align-self: center;
+}
+
+.world-row .item-head {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.world-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.world-play {
+  min-height: 44px;
+}
+
+.item-buy.selected {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: #ffd84a1c;
+}
+
+.item-buy.ready {
+  border-color: var(--gem);
+  background: #ff6bd626;
+  box-shadow: 0 0 14px #ff6bd655;
+  animation: ready 1.4s ease-in-out infinite;
+}
+
+.ach-claim {
+  min-width: 112px;
+}
+
+.cannon-unlock {
+  color: var(--accent);
+}
+
+.cannon-item .progress {
+  margin-top: 4px;
+}
+
+.hint.left {
+  text-align: left;
+}
+
+@media (max-width: 340px) {
+  .menu-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

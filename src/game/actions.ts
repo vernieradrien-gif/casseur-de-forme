@@ -1,7 +1,7 @@
 import { damageBoss } from './boss';
 import { isFighting } from './cannon';
 import { BALANCE, WEAPONS } from './config';
-import type { AbilityId, ActiveAbilityId, RunUpgradeId, WeaponId, WorkshopId } from './config';
+import type { AbilityId, ActiveAbilityId, CannonId, RunUpgradeId, WeaponId, WorkshopId } from './config';
 import { killEnemy } from './enemies';
 import type { GameEvent } from './events';
 import {
@@ -17,10 +17,11 @@ import {
   weaponSlots,
   weaponUpgradeCost,
   worldStart,
+  worldTheme,
   worldsUnlocked,
 } from './formulas';
-import { checkAchievements } from './progress';
-import { W, createRun } from './state';
+import { addDaily, checkAchievements } from './progress';
+import { createRun } from './state';
 import type { GameState } from './state';
 
 /** Recalcule les PV max du canon ; un gain de PV max soigne d'autant. */
@@ -33,7 +34,7 @@ export function refreshMaxHp(state: GameState): void {
 }
 
 /** Achète jusqu'à `count` niveaux avec les pièces (Infinity = max). Renvoie le nombre acheté. */
-export function buyRunUpgrade(state: GameState, id: RunUpgradeId, count: number): number {
+export function buyRunUpgrade(state: GameState, id: RunUpgradeId, count: number, events: GameEvent[] = []): number {
   const run = state.run;
   if (run.phase === 'gameOver' || run.phase === 'dying') return 0;
   const def = BALANCE.runUpgrades[id];
@@ -43,6 +44,7 @@ export function buyRunUpgrade(state: GameState, id: RunUpgradeId, count: number)
   run.coins = Math.max(0, run.coins - bulkCost(def, owned, n));
   run.upgrades[id] = owned + n;
   refreshMaxHp(state);
+  addDaily(state, 'upgrades', n, events);
   return n;
 }
 
@@ -68,6 +70,8 @@ export function buyAbility(state: GameState, id: AbilityId, events: GameEvent[] 
   const meta = state.meta;
   const level = meta.abilities[id];
   if (level >= BALANCE.abilities[id].maxLevel) return false;
+  // L'angle de visée ne s'améliore qu'une fois la visée auto débloquée.
+  if (id === 'aimAngle' && meta.abilities.autoAim === 0) return false;
   const price = abilityPrice(id, level);
   if (meta.gems < price) return false;
   meta.gems -= price;
@@ -123,7 +127,8 @@ export function useAbility(state: GameState, id: ActiveAbilityId, events: GameEv
   const run = state.run;
   const c = run.cannon;
   const level = state.meta.abilities[id];
-  c.cooldowns[id] = abilityCooldown(id, level);
+  // Tempête ionique : les capacités mettent plus longtemps à se recharger.
+  c.cooldowns[id] = abilityCooldown(id, level) * (worldTheme(run.level).cooldownFactor ?? 1);
   if (id === 'autoAim') {
     c.autoAimTime = abilityDuration(id, level);
   } else if (id === 'shield') {
@@ -138,6 +143,7 @@ export function useAbility(state: GameState, id: ActiveAbilityId, events: GameEv
     }
   }
   state.meta.stats.abilityUses++;
+  addDaily(state, 'abilityUses', 1, events);
   events.push({ type: 'ability', id });
   return true;
 }
@@ -155,7 +161,7 @@ export function continueRun(state: GameState, events: GameEvent[]): boolean {
   c.invulnerable = cfg.continueInvulnerability;
   run.bullets.length = 0;
   // Les ennemis proches du canon disparaissent pour laisser respirer.
-  for (const e of run.enemies) if (e.y > W.cannonY - 0.6) e.hp = -1;
+  for (const e of run.enemies) if (e.y > c.y - 0.6) e.hp = -1;
   events.push({ type: 'continued' });
   return true;
 }
@@ -178,13 +184,35 @@ export function startingCoins(state: GameState, startLevel: number): number {
 }
 
 /** Nouvelle partie au début du monde `world` (déjà atteint). La progression permanente est conservée. */
-export function startRun(state: GameState, world = 0): void {
+export function startRun(state: GameState, world = 0, events: GameEvent[] = []): void {
   const w = Math.max(0, Math.min(world, worldsUnlocked(state.meta.bestLevel) - 1));
   const level = worldStart(w);
   state.run = createRun(state.meta, level);
   state.run.coins = startingCoins(state, level);
   state.input.moveX = null;
+  state.input.moveY = null;
   state.meta.stats.runs++;
+  addDaily(state, 'runs', 1, events);
+}
+
+/** Achète un canon avec des gemmes (certains se débloquent aussi par un exploit). */
+export function buyCannon(state: GameState, id: CannonId): boolean {
+  const meta = state.meta;
+  const def = BALANCE.cannons[id];
+  if (meta.cannons[id] || def.gemCost <= 0 || meta.gems < def.gemCost) return false;
+  meta.gems -= def.gemCost;
+  meta.cannons[id] = true;
+  meta.cannon = id;
+  return true;
+}
+
+/** Choisit le canon utilisé (pour les prochains tirs). */
+export function selectCannon(state: GameState, id: CannonId): boolean {
+  if (!state.meta.cannons[id]) return false;
+  state.meta.cannon = id;
+  state.run.cannon.fireTimer = 0;
+  state.run.cannon.burstLeft = 0;
+  return true;
 }
 
 /** Active le boost ×2 dégâts et pièces (pub récompensée). */

@@ -1,11 +1,11 @@
 # Casseur de forme (nom provisoire)
 
-Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des vagues d'ennemis, puis devient un boss qui se déplace et attaque. En bas, ton canon **tire tout seul droit vers le haut** : tu le **déplaces en glissant le doigt**. Les pièces améliorent le canon pendant la partie ; les diamants et les gemmes le rendent plus fort pour toujours.
+Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des vagues d'ennemis, puis devient un boss qui se déplace et attaque. En bas, ton canon **tire tout seul droit vers le haut** : il **suit ton doigt** partout sur l'écran (attention à ne pas foncer dans le boss). Les pièces améliorent le canon pendant la partie ; les diamants et les gemmes le rendent plus fort pour toujours.
 
 - **Jouer sur le web (téléphone ou PC)** : https://vernieradrien-gif.github.io/casseur-de-forme/
   (ajouter `?reset` à l'adresse efface la sauvegarde, `?autoplay` lance une démonstration automatique)
 - **APK Android (test)** : https://github.com/vernieradrien-gif/casseur-de-forme/releases/download/android-latest/casseur-de-forme.apk
-- Cahier des charges (source de vérité, version 3) : [docs/cahier-des-charges.md](docs/cahier-des-charges.md) ·
+- Cahier des charges (source de vérité, version 4) : [docs/cahier-des-charges.md](docs/cahier-des-charges.md) ·
   recherche : [docs/recherche-design.md](docs/recherche-design.md) · publication : [docs/publication.md](docs/publication.md)
 
 ## Installer l'APK sur Android
@@ -16,7 +16,22 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : jalons 3 et 4 (jeu complet v3 + Android)
+## État : version 4 (retours après le test de l'APK)
+
+- **Canon libre** : il suit le doigt de haut en bas et de gauche à droite ; toucher le boss ou son bouclier = gros dégâts.
+- **Visée auto dans un cône** : 20° au départ, élargi par la capacité « Angle de visée » jusqu'à 160°.
+- **6 canons** (écran Canons) : Classique, Rafale, Pompe, Rayon, Missiles, Plasma ; débloqués par un exploit ou en gemmes.
+- **Nouveaux ennemis** : Tourelle (tire sans bouger) et Mitrailleur (tire en allant de gauche à droite).
+- **Super boss en blocs** tous les 10 niveaux et **Titan** tous les 50 : seuls le cœur et les canons prennent des dégâts.
+- **5 mondes** visibles dès le départ (« Monde 1 / 5 », carte des mondes) : Nébuleuse, Champ d'astéroïdes, Supernova,
+  Trou noir, Tempête ionique ; chacun a son fond et un effet sur le canon. Campagne de 250 niveaux, puis mode infini.
+- **3 objectifs du jour** + bonus ; **récompenses des succès et objectifs à récupérer** en les touchant (pastilles sur le menu).
+- **Sauvegarde Google** (Android, facultative) : la progression suit le compte Google Play Jeux d'un téléphone à l'autre
+  (à activer côté Google Play : voir [docs/publication.md](docs/publication.md) § 3 bis).
+- **Musique** : thème de jeu épique sans les nappes du menu, thème de boss dès que le bouclier tombe, silence pendant les pubs.
+- **Équilibrage revu** : départ plus lent, améliorations rapides au début, difficulté qui monte vers la fin de chaque monde.
+
+### Socle (version 3)
 
 - **Niveaux en deux temps** : la forme, protégée par un bouclier, lance 3 vagues (4 dès le niveau 21, 5 dès le 51) en
   formations lisibles (ligne, V, serpent, pluie, côtés, éventail) ; puis elle devient un boss qui se déplace, tire
@@ -52,6 +67,43 @@ Chaque push sur `main` publie le jeu sur GitHub Pages (`.github/workflows/deploy
 branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`.github/workflows/android.yml`).
 
 ## Décisions prises
+
+### Version 4
+- **Déplacement** : le canon peut monter jusqu'en haut de l'écran (y ≥ 0,1) pour suivre vraiment le doigt. Le contact avec le
+  boss ou son bouclier de vagues retire 35 % des PV max, repousse le canon et le rend invulnérable 1,2 s (sinon un doigt
+  posé sur le boss viderait la barre en une fraction de seconde).
+- **Cône de visée** : la visée auto ne choisit que des cibles dans le cône (20° + 20° par niveau d'« Angle de visée »,
+  160° au plus) ; l'« Angle de visée » coûte des gemmes et n'apparaît qu'une fois la visée auto débloquée.
+- **Canons** : Rafale (niveau 15 ou 60 gemmes), Pompe (20 boss ou 80), Rayon (niveau 50 ou 150), Missiles (120 gemmes
+  seulement), Plasma (niveau 101 ou 250). Chacun a ses multiplicateurs pour rester comparable au Classique ; le Multi-tir
+  s'applique à tous (plombs en plus pour la Pompe).
+- **Super boss** : PV × 0,55 (le cœur seul), anneau de 12 blocs dont 6 trous qui tourne, 2 canons ; détruire un canon retire
+  20 % des PV du cœur (sans cela le joueur restait bloqué derrière l'anneau). **Titan** : PV × 0,8, deux anneaux, 4 canons.
+  Pendant les vagues, ils sont protégés par le même bouclier que les autres boss.
+- **Mondes** : la campagne passe de 100 à **250 niveaux** pour que les 5 mondes visibles sur la carte en fassent partie ;
+  au-delà, mode infini (les mondes recommencent, plus durs). Nébuleuse : cadence +40 % dans un nuage ; Astéroïdes :
+  rochers (2,5 × PV d'un Éclat, rapportent des pièces) ; Supernova : éruption annoncée 1,2 s avant ; Trou noir : attraction
+  et tirs déviés ; Tempête ionique : frappes annoncées 1 s avant, recharges × 1,25.
+- **Montée dans un monde** : × (1 + 6 × p^1,3), p = position dans le monde (0 au début, 1 au niveau 50) sur les PV des boss
+  (puissance 0,6 pour les super boss), et en racine carrée sur les PV et dégâts des ennemis et les tirs du boss.
+- **Équilibrage** (`npm run sim`, joueurs automatiques) : parties 1 à 3 jusqu'aux niveaux 5 à 8 selon l'adresse, puis
+  un ou deux niveaux de plus à chaque partie ; le premier super boss (niveau 10) résiste quelques parties ; pour le joueur
+  « moyen » : niveau 10 vers 35 min, 20 vers 1 h 10, 50 vers 2 h 45, 75 vers 4 h 30, 89 après 12 h 40 (le joueur
+  automatique enchaîne sans pause et dépense parfaitement). Cadence initiale 2,5 tirs/s ; atelier moins cher (3 diamants) et
+  plus fort (+14 % par niveau) pour sentir chaque amélioration dès les premières parties ; les renforts lancés par le boss
+  n'arrivent qu'au niveau 7 (au niveau 4, ils créaient un mur dès la deuxième partie).
+- **Performance** : le fond de chaque monde (dégradé et grandes lueurs) est dessiné une seule fois dans une image à
+  demi-résolution ; le repeindre à chaque image faisait tomber le jeu à 21 images/s sans carte graphique (60 maintenant).
+- **Objectifs du jour** : 3 tirés au hasard (mais identiques pour tout le monde le même jour) parmi 8 ; récompense à
+  récupérer ; bonus de 5 gemmes quand les 3 sont récupérés. Les anciennes récompenses de succès déjà données restent acquises.
+- **Sauvegarde Google** : Google Play Jeux v2, « Jeux sauvegardés » (un seul emplacement). Au démarrage, si la
+  synchronisation est activée, le jeu garde la sauvegarde la plus avancée (meilleur niveau, puis atelier et succès) ; envoi
+  automatique à la fin d'un niveau (au plus toutes les 2 min), à la défaite et au passage en arrière-plan. Tant que
+  l'identifiant du projet Play Jeux n'est pas renseigné, l'option est affichée mais inactive.
+- **Sauvegarde v4** : migration v3 → v4 (succès déjà payés marqués comme récupérés, canon Classique, nouveaux objectifs) ;
+  code d'export `CDF4.…` (les codes `CDF3.…` restent acceptés).
+- **Musique** : thème de jeu « Épopée » (ré mineur, 124 bpm, cuivres et toms, sans nappes) ; thème de boss (146 bpm)
+  lancé dès que le bouclier tombe avec un fondu rapide ; le son est coupé pendant une pub et reprend à sa fermeture.
 
 ### Jalons 3 et 4 (version 3)
 - **Contrôle** : glisser relatif (×1,4) n'importe où sur l'écran ; flèches du clavier sur ordinateur. Tir automatique droit.

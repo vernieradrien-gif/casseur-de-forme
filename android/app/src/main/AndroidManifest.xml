@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -35,6 +36,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Google Play Jeux (sauvegarde cloud) : identifiant du projet à renseigner dans strings.xml.
+             L'initialisation automatique est retirée : le jeu ne l'initialise que si le projet est configuré. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+        <provider
+            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            android:authorities="${applicationId}.playgamesinitprovider"
+            tools:node="remove" />
 
         <!-- AdMob : identifiant d'application de TEST fourni par Google (à remplacer avant publication). -->
         <meta-data

@@ -1,5 +1,6 @@
 package io.github.vernieradrien.casseurdeforme;
 
+import android.os.Bundle;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -11,6 +12,14 @@ import com.getcapacitor.BridgeActivity;
  * Le bouton retour est géré par le jeu (plugin @capacitor/app).
  */
 public class MainActivity extends BridgeActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        // Sauvegarde Google Play Jeux (plugin maison, déclaré avant le démarrage du pont Capacitor).
+        registerPlugin(CloudSavePlugin.class);
+        super.onCreate(savedInstanceState);
+        CloudSavePlugin.initIfConfigured(this);
+    }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {

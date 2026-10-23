@@ -16,13 +16,28 @@ import { createBoss, damageBoss, weakPointPositions } from '../src/game/boss';
 import { BALANCE } from '../src/game/config';
 import { spawnEnemy } from '../src/game/enemies';
 import type { GameEvent } from '../src/game/events';
-import { bossCoins, cannonStats, worldStart } from '../src/game/formulas';
-import { checkAchievements, rollDaily } from '../src/game/progress';
+import { aimHalfAngle, bossCoins, cannonStats, worldStart } from '../src/game/formulas';
+import {
+  checkAchievements,
+  claimAchievement,
+  claimDaily,
+  claimDailyBonus,
+  claimableAchievements,
+  claimableDaily,
+  dailyBonusReady,
+  dailyObjectivesFor,
+  rollDaily,
+} from '../src/game/progress';
 import { STEP, step } from '../src/game/simulation';
 import { createState } from '../src/game/state';
-import type { Enemy, GameState } from '../src/game/state';
+import type { Enemy, GameState, Projectile } from '../src/game/state';
 
 const W = BALANCE.world;
+
+/** Tir simple du canon (projectile classique). */
+function bullet(x: number, y: number, vx: number, vy: number, damage: number): Projectile {
+  return { kind: 'bullet', x, y, vx, vy, damage, radius: BALANCE.cannon.projectileRadius, pierce: 0, hit: [], splash: 0, life: 3 };
+}
 
 function run(state: GameState, seconds: number, each?: (s: GameState, ev: GameEvent[]) => void): GameEvent[] {
   const events: GameEvent[] = [];
@@ -99,8 +114,10 @@ describe('niveau en deux temps : vagues puis boss', () => {
   });
 
   it('le nouveau type d’ennemi est présenté seul dans la première vague de son niveau', () => {
-    const s = at(3, 5);
+    const s = at(2, 5);
     expect(s.run.waves.queue.filter((q) => q.kind !== 'rare').every((q) => q.kind === 'weaver')).toBe(true);
+    const t = at(5, 5);
+    expect(t.run.waves.queue.filter((q) => q.kind !== 'rare').every((q) => q.kind === 'turret')).toBe(true);
   });
 
   it('phase boss : la forme se déplace, tire et s’énerve sous 50 % de PV', () => {
@@ -155,14 +172,16 @@ describe('niveau en deux temps : vagues puis boss', () => {
     expect(s.meta.bestLevel).toBe(2);
   });
 
-  it('grand boss : plus grand, plus de PV, gemmes au premier passage seulement', () => {
+  it('super boss (tous les 10 niveaux) : plus grand, en blocs, gemmes au premier passage', () => {
     const s = bossPhase(10, 9);
     const boss = s.run.bosses[0];
     expect(boss.grand).toBe(true);
+    expect(boss.kind).toBe('super');
+    expect(boss.parts.length).toBeGreaterThan(3);
     expect(boss.radius).toBeGreaterThan(BALANCE.boss.radius);
     const gems = s.meta.gems;
     boss.hp = 0.01;
-    damageBoss(s, boss, 1, boss.x, boss.y, []);
+    damageBoss(s, boss, 1, boss.x, boss.y, [], { pierce: true });
     run(s, STEP);
     expect(s.meta.gems).toBeGreaterThanOrEqual(gems + BALANCE.gems.grandFirstClear);
   });
@@ -195,7 +214,7 @@ describe('niveau en deux temps : vagues puis boss', () => {
     quiet(s2);
     const b2 = s2.run.bosses[0];
     const wp = weakPointPositions(b2)[0];
-    s2.run.projectiles.push({ x: wp.x, y: wp.y + 0.005, vx: 0, vy: -0.01, damage: 1 });
+    s2.run.projectiles.push(bullet(wp.x, wp.y + 0.005, 0, -0.01, 1));
     const ev2 = run(s2, STEP);
     expect(ev2.some((e) => e.type === 'bossHit' && e.weak && e.damage === 3)).toBe(true);
   });
@@ -330,7 +349,7 @@ describe('ennemis', () => {
     const s = quietLevel(22, 23);
     const d = enemy(s, 'splitter', 0, 0.5);
     d.hp = 0.1;
-    s.run.projectiles.push({ x: 0, y: 0.52, vx: 0, vy: -1, damage: 1 });
+    s.run.projectiles.push(bullet(0, 0.52, 0, -1, 1));
     run(s, STEP);
     expect(s.run.enemies.filter((e) => e.kind === 'grunt')).toHaveLength(2);
   });
@@ -351,11 +370,11 @@ describe('ennemis', () => {
     a.vy = 0;
     const hp = a.hp;
     for (let i = 0; i < BALANCE.enemies.armored.shieldHits!; i++) {
-      s.run.projectiles.push({ x: 0, y: 0.53, vx: 0, vy: -1, damage: 1 });
+      s.run.projectiles.push(bullet(0, 0.53, 0, -1, 1));
       run(s, STEP);
     }
     expect(a.hp).toBe(hp);
-    s.run.projectiles.push({ x: 0, y: a.y + 0.03, vx: 0, vy: -1, damage: 1 });
+    s.run.projectiles.push(bullet(0, a.y + 0.03, 0, -1, 1));
     run(s, STEP);
     expect(a.hp).toBeLessThan(hp);
   });
@@ -367,7 +386,7 @@ describe('ennemis', () => {
     expect(r.vy).toBeLessThan(0);
     const gems = s.meta.gems;
     r.hp = 0.1;
-    s.run.projectiles.push({ x: r.x, y: r.y + 0.01, vx: 0, vy: -0.1, damage: 1 });
+    s.run.projectiles.push(bullet(r.x, r.y + 0.01, 0, -0.1, 1));
     run(s, STEP);
     expect(s.meta.gems).toBe(gems + 1);
     expect(s.meta.stats.rareStars).toBe(1);
@@ -425,15 +444,32 @@ describe('capacités', () => {
     s.run.waves.queue = [];
     s.meta.gems = 100;
     expect(buyAbility(s, 'autoAim')).toBe(true);
-    const e = enemy(s, 'grunt', 0.35, 0.7);
-    e.vy = 0;
-    e.vx = 0;
-    e.hp = 1e9;
+    const c = s.run.cannon;
+    // Un ennemi hors du cône de départ (20°, soit 10° de chaque côté) est ignoré…
+    const far = enemy(s, 'grunt', c.x + 0.35, 0.7);
+    far.vy = 0;
+    far.vx = 0;
+    far.hp = 1e9;
     const ev: GameEvent[] = [];
     expect(useAbility(s, 'autoAim', ev)).toBe(true);
     expect(useAbility(s, 'autoAim', ev)).toBe(false);
     run(s, 0.5);
-    expect(s.run.cannon.angle).toBeGreaterThan(-Math.PI / 2 + 0.2);
+    expect(s.run.cannon.angle).toBeCloseTo(-Math.PI / 2, 5);
+    // … mais un ennemi dans le cône est visé.
+    const e = enemy(s, 'grunt', c.x + 0.1, 0.7);
+    e.vy = 0;
+    e.vx = 0;
+    e.hp = 1e9;
+    run(s, 0.5);
+    const target = Math.atan2(e.y - c.y, e.x - c.x);
+    expect(s.run.cannon.angle).toBeCloseTo(target, 2);
+    expect(s.run.cannon.angle + Math.PI / 2).toBeLessThanOrEqual(aimHalfAngle(0) + 1e-9);
+    // Avec la capacité « Angle de visée », le cône s'élargit (160° au plus).
+    e.hp = 0;
+    s.meta.abilities.aimAngle = 2;
+    run(s, 0.5);
+    expect(s.run.cannon.angle).toBeCloseTo(Math.atan2(far.y - c.y, far.x - c.x), 2);
+    expect(aimHalfAngle(99)).toBeCloseTo(((160 / 2) * Math.PI) / 180);
     run(s, BALANCE.abilities.autoAim.duration! + 1);
     expect(s.run.cannon.autoAimTime).toBe(0);
     expect(s.run.cannon.angle).toBeCloseTo(-Math.PI / 2, 2);
@@ -570,32 +606,56 @@ describe('progression', () => {
     expect(s.meta.workshop.offline).toBe(BALANCE.workshop.offline.maxLevel);
   });
 
-  it('succès : débloqués automatiquement, ils donnent des gemmes', () => {
+  it('succès : débloqués automatiquement, la récompense se récupère à la main', () => {
     const s = createState(62);
     s.meta.stats.kills = 100;
     const ev: GameEvent[] = [];
     checkAchievements(s, ev);
     expect(s.meta.achievements).toContain('kills1');
-    expect(s.meta.gems).toBe(2);
     expect(ev[0].type).toBe('achievement');
+    expect(s.meta.gems).toBe(0);
+    expect(claimableAchievements(s.meta)).toEqual(['kills1']);
+    expect(claimAchievement(s, 'kills1')).toBe(2);
+    expect(s.meta.gems).toBe(2);
+    expect(claimAchievement(s, 'kills1')).toBe(0);
+    expect(claimAchievement(s, 'kills2')).toBe(0);
     checkAchievements(s, ev);
     expect(s.meta.gems).toBe(2);
+    expect(claimableAchievements(s.meta)).toEqual([]);
   });
 
-  it('objectif quotidien : détruire 150 ennemis donne des gemmes, une fois par jour', () => {
+  it('objectifs du jour : plusieurs, les mêmes pour un jour donné, récupérés à la main', () => {
+    const a = dailyObjectivesFor('2026-10-22');
+    expect(a).toHaveLength(BALANCE.daily.count);
+    expect(new Set(a.map((o) => o.id)).size).toBe(a.length);
+    expect(dailyObjectivesFor('2026-10-22')).toEqual(a);
     const s = at(1, 63);
     rollDaily(s.meta, '2026-10-22');
-    s.meta.daily.kills = BALANCE.daily.kills - 1;
+    // Force un objectif « détruire des ennemis » presque terminé.
+    s.meta.daily.objectives[0] = { id: 'kills', target: 150, gems: 3, progress: 149, claimed: false };
     const e = enemy(s, 'grunt', 0, 0.5);
     e.hp = 0.01;
-    s.run.projectiles.push({ x: 0, y: 0.52, vx: 0, vy: -1, damage: 1 });
+    s.run.projectiles.push(bullet(0, 0.52, 0, -1, 1));
     const all = run(s, STEP);
     expect(all.some((x) => x.type === 'dailyComplete')).toBe(true);
-    expect(s.meta.daily.done).toBe(true);
+    expect(s.meta.daily.objectives[0].progress).toBe(150);
+    const gems = s.meta.gems;
+    expect(claimableDaily(s.meta)).toBe(1);
+    expect(claimDaily(s, 0)).toBe(3);
+    expect(claimDaily(s, 0)).toBe(0);
+    expect(s.meta.gems).toBe(gems + 3);
+    // Le bonus arrive quand tous les objectifs du jour sont récupérés.
+    expect(dailyBonusReady(s.meta)).toBe(false);
+    for (const o of s.meta.daily.objectives) o.progress = o.target;
+    for (let i = 1; i < s.meta.daily.objectives.length; i++) claimDaily(s, i);
+    expect(dailyBonusReady(s.meta)).toBe(true);
+    expect(claimDailyBonus(s)).toBe(BALANCE.daily.allBonus);
+    expect(claimDailyBonus(s)).toBe(0);
     rollDaily(s.meta, '2026-10-22');
-    expect(s.meta.daily.done).toBe(true);
+    expect(s.meta.daily.bonusClaimed).toBe(true);
     rollDaily(s.meta, '2026-10-23');
-    expect(s.meta.daily).toEqual({ date: '2026-10-23', kills: 0, done: false });
+    expect(s.meta.daily.bonusClaimed).toBe(false);
+    expect(s.meta.daily.objectives.every((o) => o.progress === 0 && !o.claimed)).toBe(true);
   });
 
   it('collection : types d’ennemis rencontrés', () => {
@@ -689,8 +749,8 @@ describe('défaite, seconde chance et mondes', () => {
     expect(s.run.coins).toBeGreaterThan(1000);
   });
 
-  it('mode infini après le niveau 100 : récompense de fin de campagne', () => {
-    const s = bossPhase(100, 74);
+  it('mode infini après la campagne (5 mondes) : récompense de fin de campagne', () => {
+    const s = bossPhase(BALANCE.campaignLevels, 74);
     quiet(s);
     const last = s.run.bosses[0];
     last.fragments = 0;
@@ -699,8 +759,7 @@ describe('défaite, seconde chance et mondes', () => {
     const all = run(s, BALANCE.level.nextLevelDelay + 0.2);
     expect(all.some((e) => e.type === 'campaignComplete')).toBe(true);
     expect(s.meta.campaignComplete).toBe(true);
-    expect(s.run.level).toBe(101);
-    expect(s.run.bosses[0].tier).toBe(0);
+    expect(s.run.level).toBe(BALANCE.campaignLevels + 1);
     expect(s.run.bosses[0].maxHp).toBeGreaterThan(createBoss(at(1), 1, false).maxHp * 1000);
   });
 });

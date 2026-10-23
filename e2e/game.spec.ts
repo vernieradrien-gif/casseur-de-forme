@@ -7,7 +7,7 @@ interface Debug {
     run: {
       level: number;
       phase: string;
-      cannon: { x: number; hp: number; maxHp: number; invulnerable: number };
+      cannon: { x: number; y: number; hp: number; maxHp: number; invulnerable: number };
       bullets: unknown[];
     };
     meta: { bestLevel: number };
@@ -61,7 +61,7 @@ async function killCannon(page: Page): Promise<void> {
     const c = g.state.run.cannon;
     c.hp = 0.001;
     c.invulnerable = 0;
-    (g.state.run.bullets as object[]).push({ x: c.x, y: 1.44, vx: 0, vy: 0, damage: 1, radius: 0.03 });
+    (g.state.run.bullets as object[]).push({ x: c.x, y: c.y, vx: 0, vy: 0, damage: 1, radius: 0.03 });
   });
   await page.waitForFunction(() => (window as unknown as { __game: Debug }).__game.screen() === 'gameOver', null, { timeout: 15_000 });
 }
@@ -73,19 +73,22 @@ test('menus : tous les écrans s’ouvrent, sans erreur', async ({ page }) => {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${SHOTS}/01-menu.png` });
 
-  const screens: [string, string][] = [
-    ['Atelier', 'Atelier'],
+  const screens: [string | RegExp, string][] = [
+    [/^Monde 1 \/ 5/, 'Carte des mondes'],
+    ['Canons', 'Canons'],
     ['Armurerie', 'Armurerie'],
     ['Capacités', 'Capacités'],
-    ['Collection', 'Collection'],
+    ['Atelier', 'Atelier'],
     ['Succès', 'Succès'],
+    ['Objectifs du jour', 'Objectifs du jour'],
+    ['Collection', 'Collection'],
     ['Paramètres', 'Paramètres'],
   ];
   for (const [i, [label, title]] of screens.entries()) {
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await page.getByRole('button', typeof label === 'string' ? { name: label, exact: true } : { name: label }).click();
     await expect(page.locator('.screen.visible .screen-title')).toHaveText(title);
     await page.waitForTimeout(300);
-    await page.screenshot({ path: `${SHOTS}/0${i + 2}-${label.toLowerCase()}.png` });
+    await page.screenshot({ path: `${SHOTS}/${String(i + 2).padStart(2, '0')}-${title.toLowerCase().replace(/ /g, '-')}.png` });
     await page.locator('.screen.visible .back-btn').click();
     await expect(page.getByRole('heading', { name: 'Casseur de forme' })).toBeVisible();
   }
@@ -143,7 +146,7 @@ test('partie : vagues, boss, 60 images/s, défaite, rejouer, menu', async ({ pag
     const c = g.state.run.cannon;
     c.hp = 0.001;
     c.invulnerable = 0;
-    (g.state.run.bullets as object[]).push({ x: c.x, y: 1.44, vx: 0, vy: 0, damage: 1, radius: 0.03 });
+    (g.state.run.bullets as object[]).push({ x: c.x, y: c.y, vx: 0, vy: 0, damage: 1, radius: 0.03 });
   });
   await page.waitForTimeout(700);
   await page.screenshot({ path: `${SHOTS}/12-explosion.png` });
@@ -162,6 +165,27 @@ test('partie : vagues, boss, 60 images/s, défaite, rejouer, menu', async ({ pag
   await page.getByRole('button', { name: 'Menu principal' }).click();
   await expect(page.getByRole('heading', { name: 'Casseur de forme' })).toBeVisible();
   expect(await debug(page, (g) => g.mode())).toBe('menu');
+  expect(errors).toEqual([]);
+});
+
+test('contrôle : le canon suit le doigt vers le haut et sur les côtés', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('./?reset');
+  await page.getByRole('button', { name: /Jouer/ }).click();
+  await page.waitForTimeout(800);
+  const before = await debug(page, (g) => ({ x: g.state.run.cannon.x, y: g.state.run.cannon.y }));
+  const size = page.viewportSize()!;
+  const x = size.width / 2;
+  const y = size.height * 0.55;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 60, y - 160, { steps: 12 });
+  await page.waitForTimeout(600);
+  const after = await debug(page, (g) => ({ x: g.state.run.cannon.x, y: g.state.run.cannon.y }));
+  await page.mouse.up();
+  await page.screenshot({ path: `${SHOTS}/15-deplacement.png` });
+  expect(after.y).toBeLessThan(before.y - 0.2);
+  expect(after.x).toBeGreaterThan(before.x + 0.05);
   expect(errors).toEqual([]);
 });
 

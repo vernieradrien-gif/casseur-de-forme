@@ -7,14 +7,29 @@ import type { ShapeDef } from './geometry';
  * L'affectation `BALANCE: Balance = balanceJson` fait vérifier le JSON par TypeScript.
  */
 
-export type EnemyKind = 'grunt' | 'weaver' | 'tank' | 'hunter' | 'shooter' | 'splitter' | 'dasher' | 'armored' | 'rare';
+export type EnemyKind =
+  | 'grunt'
+  | 'weaver'
+  | 'turret'
+  | 'tank'
+  | 'strafer'
+  | 'hunter'
+  | 'shooter'
+  | 'splitter'
+  | 'dasher'
+  | 'armored'
+  | 'rare';
 export type FormationId = 'line' | 'rain' | 'snake' | 'v' | 'fan' | 'sides';
 export type RunUpgradeId = 'damage' | 'fireRate' | 'maxHp';
 export type WorkshopId = 'damage' | 'fireRate' | 'maxHp' | 'coins' | 'startCoins' | 'repair' | 'offline';
 export type WeaponId = 'orbs' | 'laser' | 'lightning';
-export type AbilityId = 'autoAim' | 'shield' | 'shockwave' | 'multishot';
-/** Capacités déclenchées par un bouton (Multi-tir est passif). */
-export type ActiveAbilityId = Exclude<AbilityId, 'multishot'>;
+export type AbilityId = 'autoAim' | 'aimAngle' | 'shield' | 'shockwave' | 'multishot';
+/** Capacités déclenchées par un bouton (Multi-tir et l'angle de visée sont passifs). */
+export type ActiveAbilityId = Exclude<AbilityId, 'multishot' | 'aimAngle'>;
+export type CannonId = 'classic' | 'burst' | 'shotgun' | 'beam' | 'missile' | 'plasma';
+export type WorldId = 'nebula' | 'asteroids' | 'supernova' | 'blackhole' | 'ionstorm';
+export type DailyKind = 'kills' | 'bosses' | 'weakHits' | 'rareStars' | 'abilityUses' | 'runs' | 'levels' | 'upgrades';
+export type BossKind = 'normal' | 'super' | 'mega';
 export type StatId =
   | 'kills'
   | 'bossKills'
@@ -23,7 +38,10 @@ export type StatId =
   | 'runs'
   | 'abilityUses'
   | 'noHitBosses'
-  | 'dailyCompleted';
+  | 'dailyCompleted'
+  | 'weakHits'
+  | 'superBosses'
+  | 'megaBosses';
 export type AchievementStat = StatId | 'bestLevel' | 'weaponsUnlocked' | 'workshopLevels';
 
 export interface CostDef {
@@ -74,6 +92,9 @@ export interface EnemyDef {
   aimTime?: number;
   shieldHits?: number;
   fleeAfter?: number;
+  /** Tourelle, mitrailleur : temps avant de repartir. */
+  leaveAfter?: number;
+  strafeSpeed?: number;
 }
 
 export interface WeaponDef extends CostDef {
@@ -105,16 +126,106 @@ export interface AbilityDef {
   spread?: number;
   angle?: number;
   damageShare?: number[];
+  /** Angle de visée (degrés) : de base, puis par niveau. */
+  baseAngle?: number;
+  anglePerLevel?: number;
+}
+
+/** Type de canon (tir principal). */
+export interface CannonDef {
+  /** Multiplicateurs de cadence et de dégâts par tir. */
+  rate: number;
+  damage: number;
+  burst?: number;
+  burstGap?: number;
+  pellets?: number;
+  spread?: number;
+  width?: number;
+  splash?: number;
+  speed?: number;
+  turnRate?: number;
+  pierce?: number;
+  radius?: number;
+  /** Déblocage gratuit quand la statistique atteint la valeur (vide : achat seulement). */
+  unlockStat: string;
+  unlockValue: number;
+  /** Prix en gemmes (0 : gratuit). */
+  gemCost: number;
+}
+
+export interface RingDef {
+  dist: number;
+  slots: number;
+  gaps: number;
+  speed: number;
+}
+
+/** Super boss (tous les 10 niveaux) et titan (tous les 50) : assemblages de blocs. */
+export interface SpecialBossDef {
+  hpMultiplier: number;
+  span: number;
+  y: number;
+  coreHalf: number;
+  blockHalf: number;
+  rings: RingDef[];
+  guns: number;
+  gunDist: number;
+  gunHalf: number;
+  gunHpShare: number;
+  /** Part des PV du cœur perdue quand un canon du boss est détruit. */
+  gunCoreDamage: number;
+  gunInterval: number;
+  coreInterval: number;
+}
+
+/** Monde (fond et danger propre). */
+export interface WorldDef {
+  /** WorldId */
+  id: string;
+  hazard: string;
+  interval?: number;
+  radiusMin?: number;
+  radiusMax?: number;
+  speed?: number;
+  bonus?: number;
+  hpFactor?: number;
+  damageFactor?: number;
+  warn?: number;
+  burn?: number;
+  width?: number;
+  damage?: number;
+  pull?: number;
+  bulletPull?: number;
+  x?: number;
+  y?: number;
+  cooldownFactor?: number;
+}
+
+export interface DailyDef {
+  /** DailyKind */
+  id: string;
+  target: number;
+  gems: number;
 }
 
 export interface Balance {
-  world: { width: number; height: number; bossY: number; cannonY: number; cannonMinX: number; cannonMaxX: number };
+  world: {
+    width: number;
+    height: number;
+    bossY: number;
+    cannonY: number;
+    cannonMinX: number;
+    cannonMaxX: number;
+    cannonMinY: number;
+    cannonMaxY: number;
+  };
   levelsPerTier: number;
   levelsPerWorld: number;
   campaignLevels: number;
   level: {
     waves: { fromLevel: number; count: number }[];
     grandBossWaves: number;
+    megaBossWaves: number;
     firstWaveDelay: number;
     waveGap: number;
     waveMaxDuration: number;
@@ -131,6 +242,12 @@ export interface Balance {
     tierHpMultiplier: number;
     /** Multiplicateur de PV de chaque palier (forte montée au début, plus douce ensuite). */
     tierHpMultipliers: number[];
+    /**
+     * Montée de difficulté vers la fin de chaque monde : × (1 + amount × position^power).
+     * Exposants appliqués : PV des super boss (specialShare), PV des ennemis (enemyHpShare),
+     * dégâts des ennemis et des tirs du boss (damageShare).
+     */
+    worldRamp: { amount: number; power: number; specialShare: number; enemyHpShare: number; damageShare: number };
     grandHpMultiplier: number;
     grandRadiusMultiplier: number;
     radius: number;
@@ -202,6 +319,10 @@ export interface Balance {
     continueHp: number;
     continueInvulnerability: number;
     turnSpeed: number;
+    /** Contact avec le boss ou son bouclier : part des PV max perdue, invulnérabilité, recul. */
+    bodyHitDamage: number;
+    bodyHitInvulnerability: number;
+    knockback: number;
   };
   runUpgrades: Record<RunUpgradeId, UpgradeDef>;
   workshop: Record<WorkshopId, UpgradeDef>;
@@ -210,7 +331,10 @@ export interface Balance {
   diamonds: { perBoss: number; bonusEveryLevels: number; firstClearBonus: number; grandMultiplier: number };
   gems: { rareEnemy: number; grandFirstClear: number; grandFirstClearPerTier: number; campaignComplete: number };
   offline: { baseHours: number; minMinutes: number; ratePerHour: number; ratePerBestLevel: number; efficiency: number };
-  daily: { kills: number; gems: number };
+  daily: { count: number; allBonus: number; pool: DailyDef[] };
+  cannons: Record<CannonId, CannonDef>;
+  special: { superEvery: number; megaEvery: number; super: SpecialBossDef; mega: SpecialBossDef };
+  worlds: WorldDef[];
   boost: { durationMinutes: number; cooldownMinutes: number; multiplier: number };
   checkpoint: { coinShare: number };
   ads: { interstitialMinGapMinutes: number; interstitialMinSessionMinutes: number };
@@ -226,11 +350,37 @@ export interface AchievementDef {
 export const BALANCE: Balance = balanceJson;
 export const ACHIEVEMENTS: AchievementDef[] = achievementsJson as AchievementDef[];
 
-export const ENEMY_KINDS: EnemyKind[] = ['grunt', 'weaver', 'tank', 'hunter', 'shooter', 'splitter', 'dasher', 'armored', 'rare'];
+export const ENEMY_KINDS: EnemyKind[] = [
+  'grunt',
+  'weaver',
+  'turret',
+  'tank',
+  'strafer',
+  'hunter',
+  'shooter',
+  'splitter',
+  'dasher',
+  'armored',
+  'rare',
+];
 export const FORMATIONS: FormationId[] = ['line', 'rain', 'snake', 'v', 'fan', 'sides'];
 export const RUN_UPGRADES: RunUpgradeId[] = ['damage', 'fireRate', 'maxHp'];
 export const WORKSHOP: WorkshopId[] = ['damage', 'fireRate', 'maxHp', 'coins', 'startCoins', 'repair', 'offline'];
 export const WEAPONS: WeaponId[] = ['orbs', 'laser', 'lightning'];
-export const ABILITIES: AbilityId[] = ['autoAim', 'shield', 'shockwave', 'multishot'];
+export const ABILITIES: AbilityId[] = ['autoAim', 'aimAngle', 'shield', 'shockwave', 'multishot'];
+export const CANNONS: CannonId[] = ['classic', 'burst', 'shotgun', 'beam', 'missile', 'plasma'];
+export const WORLDS: WorldId[] = ['nebula', 'asteroids', 'supernova', 'blackhole', 'ionstorm'];
 export const ACTIVE_ABILITIES: ActiveAbilityId[] = ['autoAim', 'shield', 'shockwave'];
-export const STATS: StatId[] = ['kills', 'bossKills', 'goldenBosses', 'rareStars', 'runs', 'abilityUses', 'noHitBosses', 'dailyCompleted'];
+export const STATS: StatId[] = [
+  'kills',
+  'bossKills',
+  'goldenBosses',
+  'rareStars',
+  'runs',
+  'abilityUses',
+  'noHitBosses',
+  'dailyCompleted',
+  'weakHits',
+  'superBosses',
+  'megaBosses',
+];

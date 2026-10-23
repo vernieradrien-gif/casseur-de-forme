@@ -1,5 +1,6 @@
 import visual from '../config/visual.json';
 import { BALANCE } from '../game/config';
+import { worldThemeId } from '../game/formulas';
 import type { EnemyKind } from '../game/config';
 import { polygonVertices, shapeVertices, starVertices } from '../game/geometry';
 import type { Vec } from '../game/geometry';
@@ -8,6 +9,11 @@ import type { Vec } from '../game/geometry';
 export function tierColor(tier: number): string {
   const colors = visual.tierColors;
   return colors[((tier % colors.length) + colors.length) % colors.length];
+}
+
+/** Couleurs du monde (fond, étoiles, accents). */
+export function worldPalette(world: number): { sky: string[]; star: string; accent: string; glow: string } {
+  return visual.worlds[worldThemeId(world)];
 }
 
 export function enemyColor(kind: EnemyKind): string {
@@ -25,6 +31,21 @@ export function enemyVertices(kind: EnemyKind, radius: number, x: number, y: num
       return shapeVertices({ sides: 4, scaleX: 0.45 }, radius, point, x, y);
     case 'tank':
       return polygonVertices(4, radius, Math.PI / 4, x, y);
+    case 'turret': {
+      // Tourelle : socle carré à pans coupés.
+      return polygonVertices(8, radius, Math.PI / 8, x, y).map((p, i) => (i % 2 === 0 ? p : { x: x + (p.x - x) * 0.72, y: y + (p.y - y) * 0.72 }));
+    }
+    case 'strafer': {
+      // Mitrailleur : aile large, pointe vers le bas.
+      const pts: Vec[] = [
+        { x: -1.2, y: -0.45 },
+        { x: 1.2, y: -0.45 },
+        { x: 0.55, y: 0.25 },
+        { x: 0, y: 0.95 },
+        { x: -0.55, y: 0.25 },
+      ];
+      return transform(pts, radius, 0, x, y);
+    }
     case 'hunter': {
       // Flèche (chevron) pointée vers l'avant.
       const pts: Vec[] = [

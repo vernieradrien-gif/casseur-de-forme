@@ -1,25 +1,29 @@
 import { startingCoins, workshopMaxed } from '../game/actions';
 import { formatNumber } from '../game/bignum';
-import { ABILITIES, ACHIEVEMENTS, BALANCE, ENEMY_KINDS, WEAPONS, WORKSHOP } from '../game/config';
-import type { AbilityId, WeaponId, WorkshopId } from '../game/config';
+import visual from '../config/visual.json';
+import { ABILITIES, ACHIEVEMENTS, BALANCE, CANNONS, ENEMY_KINDS, WEAPONS, WORKSHOP } from '../game/config';
+import type { AbilityId, CannonId, WeaponId, WorkshopId } from '../game/config';
 import {
   abilityCooldown,
   abilityDuration,
   abilityPrice,
+  aimAngleDegrees,
   cost,
   shockwaveBossDamage,
   weaponPower,
   weaponSlots,
   weaponUpgradeCost,
   workshopEffect,
+  worldOf,
   worldStart,
+  worldThemeId,
   worldsUnlocked,
 } from '../game/formulas';
 import { polygonVertices } from '../game/geometry';
-import { statValue } from '../game/progress';
+import { cannonUnlockProgress, claimableAchievements, claimableDaily, dailyBonusReady, statValue } from '../game/progress';
 import type { GameState } from '../game/state';
-import { formatDuration, t } from '../i18n';
-import { drawIcon, enemyColor, enemyVertices, tierColor, tierVertices } from '../render/shapes';
+import { formatDuration, language, t } from '../i18n';
+import { drawIcon, enemyColor, enemyVertices, tierColor, tierVertices, worldPalette } from '../render/shapes';
 import type { Extra, Language, Settings } from '../storage/save';
 import { LANGUAGES } from '../storage/save';
 import { button, currencyIcon, el, setDisabled, setText, slider, toggleClass } from './dom';
@@ -28,6 +32,8 @@ import type { Currency } from './dom';
 export type ScreenId =
   | 'menu'
   | 'worlds'
+  | 'cannons'
+  | 'daily'
   | 'workshop'
   | 'armory'
   | 'abilities'
@@ -61,6 +67,14 @@ export interface AppApi {
   buyAbility(id: AbilityId): void;
   buyWeapon(id: WeaponId): void;
   toggleEquip(id: WeaponId): void;
+  buyCannon(id: CannonId): void;
+  selectCannon(id: CannonId): void;
+  claimAchievement(id: string): void;
+  claimDaily(index: number): void;
+  claimDailyBonus(): void;
+  cloudStatus(): CloudStatus;
+  cloudEnable(): void;
+  cloudSyncNow(): void;
   changeSettings(change: Partial<Settings>): void;
   exportCode(): string;
   importCode(code: string): boolean;
@@ -72,6 +86,15 @@ export interface AppApi {
 }
 
 type Refresh = () => void;
+
+/** État de la sauvegarde Google pour l'écran des paramètres. */
+export interface CloudStatus {
+  available: boolean;
+  native: boolean;
+  enabled: boolean;
+  lastSync: number;
+  busy: boolean;
+}
 
 /** Écrans superposés au jeu ; une pile permet de revenir à l'écran précédent. */
 export class Screens {
@@ -85,6 +108,8 @@ export class Screens {
     this.root = el('div', 'overlay', parent);
     this.buildMenu();
     this.buildWorlds();
+    this.buildCannons();
+    this.buildDaily();
     this.buildWorkshop();
     this.buildArmory();
     this.buildAbilities();
@@ -208,8 +233,32 @@ export class Screens {
     const head = el('div', 'menu-head', s);
     el('h1', 'game-title', head, t('title'));
     el('p', 'tagline', head, t('tagline'));
-    const best = el('p', 'menu-best', head);
     this.wallet('menu', s, ['diamond', 'gem']);
+
+    // Monde en cours : le joueur voit tout de suite combien de mondes il peut traverser.
+    const worldCard = button('world-card', s, undefined, () => this.push('worlds'));
+    const wName = el('span', 'world-card-name', worldCard);
+    const wBar = el('span', 'progress world-progress', worldCard);
+    const wFill = el('span', 'progress-fill', wBar);
+    const wSub = el('span', 'world-card-sub', worldCard);
+    const dots = el('span', 'world-dots', worldCard);
+    const dotEls = Array.from({ length: BALANCE.worlds.length }, () => el('span', 'world-dot', dots));
+    this.on('menu', () => {
+      const meta = this.app.state().meta;
+      const world = Math.min(worldOf(meta.bestLevel), BALANCE.worlds.length - 1);
+      const from = worldStart(world);
+      const to = from + BALANCE.levelsPerWorld - 1;
+      const best = Math.min(meta.bestLevel, to);
+      setText(wName, t('menu.worldCard', { n: world + 1, total: BALANCE.worlds.length, name: t(`world.${worldThemeId(world)}.name`) }));
+      setText(wSub, t('menu.worldProgress', { level: best, to }));
+      wFill.style.width = `${Math.round(((best - from) / (to - from + 1)) * 100)}%`;
+      worldCard.style.setProperty('--world', worldPalette(world).accent);
+      dotEls.forEach((d, i) => {
+        toggleClass(d, 'done', meta.bestLevel > worldStart(i) + BALANCE.levelsPerWorld - 1);
+        toggleClass(d, 'current', i === world);
+        d.style.setProperty('--world', worldPalette(i).accent);
+      });
+    });
 
     const main = el('div', 'menu-col', s);
     const play = button('menu-btn primary big', main, undefined, () => {
@@ -219,30 +268,31 @@ export class Screens {
     });
     const playLabel = el('span', 'btn-main', play);
     const playSub = el('span', 'btn-sub', play);
-    const other = button('menu-btn', main, t('menu.chooseWorld'), () => this.push('worlds'));
+    const other = button('menu-btn', main, t('menu.newRun'), () => this.push('worlds'));
     this.on('menu', () => {
       const st = this.app.state();
       const has = this.app.hasRun();
-      setText(best, t('menu.best', { level: st.meta.bestLevel }));
       setText(playLabel, has ? t('menu.continue') : t('menu.play'));
-      setText(playSub, has ? t('menu.continueLevel', { level: st.run.level }) : '');
-      setText(other, has ? t('menu.newRun') : t('menu.chooseWorld'));
-      toggleClass(other, 'hidden', !has && worldsUnlocked(st.meta.bestLevel) <= 1);
+      setText(playSub, has ? t('menu.continueLevel', { level: st.run.level }) : t('menu.best', { level: st.meta.bestLevel }));
+      toggleClass(other, 'hidden', !has);
     });
 
-    // Objectif du jour.
-    const daily = el('div', 'daily-card', s);
-    const dTitle = el('div', 'daily-title', daily);
-    const dBar = el('div', 'progress', daily);
-    const dFill = el('div', 'progress-fill', dBar);
-    const dText = el('div', 'daily-text', daily);
+    // Objectifs du jour.
+    const daily = button('daily-card', s, undefined, () => this.push('daily'));
+    const dTitle = el('span', 'daily-title', daily);
+    const dBar = el('span', 'progress', daily);
+    const dFill = el('span', 'progress-fill', dBar);
+    const dText = el('span', 'daily-text', daily);
     this.on('menu', () => {
-      const d = this.app.state().meta.daily;
-      const goal = BALANCE.daily.kills;
-      setText(dTitle, t('menu.daily', { goal }));
-      dFill.style.width = `${Math.min(100, (d.kills / goal) * 100)}%`;
-      setText(dText, d.done ? t('menu.dailyDone') : t('menu.dailyProgress', { n: Math.min(d.kills, goal), goal, gems: BALANCE.daily.gems }));
-      toggleClass(daily, 'done', d.done);
+      const meta = this.app.state().meta;
+      const objs = meta.daily.objectives;
+      const done = objs.filter((o) => o.progress >= o.target).length;
+      setText(dTitle, t('menu.dailyShort', { done, total: objs.length }));
+      const ratio = objs.length ? objs.reduce((s2, o) => s2 + Math.min(1, o.progress / o.target), 0) / objs.length : 0;
+      dFill.style.width = `${Math.round(ratio * 100)}%`;
+      const claim = claimableDaily(meta) > 0;
+      setText(dText, claim ? t('menu.claimReady') : objs.map((o) => t(`daily.${o.id}`, { target: o.target })).join(' · '));
+      toggleClass(daily, 'done', claim);
     });
 
     // Boost (pub récompensée).
@@ -259,29 +309,51 @@ export class Screens {
 
     const grid = el('div', 'menu-grid', s);
     const nav: [ScreenId, string][] = [
-      ['workshop', t('workshop')],
+      ['cannons', t('cannons')],
       ['armory', t('armory')],
       ['abilities', t('abilitiesTitle')],
-      ['collection', t('collection')],
+      ['workshop', t('workshop')],
       ['achievements', t('achievements')],
+      ['daily', t('dailyTitle')],
+      ['collection', t('collection')],
       ['settings', t('settings')],
     ];
     for (const [id, label] of nav) {
       const b = button(`menu-btn tile tile-${id}`, grid, undefined, () => this.push(id));
       el('span', `tile-glyph glyph-${id}`, b);
       el('span', 'tile-label', b, label);
+      if (id === 'achievements' || id === 'daily') {
+        const badge = el('span', 'badge hidden', b);
+        this.on('menu', () => {
+          const meta = this.app.state().meta;
+          const n = id === 'achievements' ? claimableAchievements(meta).length : claimableDaily(meta);
+          setText(badge, String(n));
+          toggleClass(badge, 'hidden', n === 0);
+        });
+      }
     }
   }
 
+  /** Carte des mondes : tous les mondes de la campagne, leur thème et leur particularité. */
   private buildWorlds(): void {
-    const s = this.screen('worlds', t('menu.chooseWorld'));
+    const s = this.screen('worlds', t('worlds.title'));
+    el('p', 'hint', s, t('worlds.campaign', { level: BALANCE.campaignLevels }));
     const list = el('div', 'item-list', s);
-    const rows: { world: number; btn: HTMLButtonElement; range: HTMLElement; sub: HTMLElement; name: HTMLElement }[] = [];
-    const maxWorlds = 6;
-    for (let w = 0; w < maxWorlds; w++) {
-      const btn = button('choice world-choice', list, undefined, () => {
-        const unlocked = worldsUnlocked(this.app.state().meta.bestLevel);
-        if (w >= unlocked) return;
+    const rows: { world: number; card: HTMLElement; state: HTMLElement; bar: HTMLElement; play: HTMLButtonElement }[] = [];
+    BALANCE.worlds.forEach((def, w) => {
+      const card = el('div', 'world-row', list);
+      card.style.setProperty('--world', worldPalette(w).accent);
+      card.style.setProperty('--sky', worldPalette(w).sky[0]);
+      const head = el('div', 'item-head', card);
+      el('span', 'world-num', head, String(w + 1));
+      el('span', 'item-name', head, t(`world.${def.id}.name`));
+      el('span', 'item-level', head, t('worlds.levels', { from: worldStart(w), to: worldStart(w) + BALANCE.levelsPerWorld - 1 }));
+      el('div', 'item-desc', card, t(`world.${def.id}.desc`));
+      const barBox = el('div', 'progress', card);
+      const bar = el('div', 'progress-fill', barBox);
+      const foot = el('div', 'world-foot', card);
+      const state = el('span', 'item-desc', foot);
+      const play = button('item-buy world-play', foot, t('worlds.play'), () => {
         if (this.app.hasRun() && this.armed !== `world${w}`) {
           this.armed = `world${w}`;
           this.update();
@@ -290,31 +362,124 @@ export class Screens {
         this.armed = null;
         this.app.newRun(w);
       });
-      const name = el('span', 'choice-name', btn);
-      const range = el('span', 'choice-desc', btn);
-      const sub = el('span', 'choice-desc', btn);
-      rows.push({ world: w, btn, range, sub, name });
-    }
+      rows.push({ world: w, card, state, bar, play });
+    });
+    const endless = el('div', 'world-row endless', list);
+    el('div', 'item-name', endless, `∞ ${t('worlds.endless')}`);
+    el('div', 'item-desc', endless, t('worlds.endlessDesc'));
     const warn = el('p', 'hint warn', s, t('menu.abandonConfirm'));
     this.on('worlds', () => {
       const st = this.app.state();
-      const unlocked = worldsUnlocked(st.meta.bestLevel);
+      const best = st.meta.bestLevel;
+      const unlocked = worldsUnlocked(best);
       for (const r of rows) {
         const from = worldStart(r.world);
-        const visible = r.world <= unlocked;
-        toggleClass(r.btn, 'hidden', !visible);
-        if (!visible) continue;
+        const to = from + BALANCE.levelsPerWorld - 1;
         const locked = r.world >= unlocked;
-        setText(r.name, t('menu.world', { n: r.world + 1 }));
-        setText(r.range, t('menu.worldRange', { from, to: from + BALANCE.levelsPerWorld - 1 }));
-        setText(
-          r.sub,
-          locked ? t('menu.worldLocked', { level: from }) : r.world > 0 ? t('menu.worldCoins', { coins: formatNumber(startingCoins(st, from)) }) : '',
-        );
-        setDisabled(r.btn, locked);
-        toggleClass(r.btn, 'selected', this.armed === `world${r.world}`);
+        const done = best > to;
+        toggleClass(r.card, 'locked', locked);
+        toggleClass(r.card, 'done', done);
+        r.bar.style.width = `${locked ? 0 : done ? 100 : Math.round(((best - from) / (to - from + 1)) * 100)}%`;
+        setText(r.state, locked ? t('worlds.locked', { level: from }) : done ? t('worlds.done') : t('worlds.current', { level: best }));
+        toggleClass(r.play, 'hidden', locked);
+        const coins = r.world > 0 ? ` · ${formatNumber(startingCoins(st, from))}` : '';
+        setText(r.play, this.armed === `world${r.world}` ? t('worlds.confirm') : t('worlds.play') + coins);
+        toggleClass(r.play, 'selected', this.armed === `world${r.world}`);
       }
       toggleClass(warn, 'hidden', !(this.armed?.startsWith('world') ?? false));
+    });
+    this.backButton(s);
+  }
+
+  /** Canons : chacun son tir ; débloqués par un exploit ou achetés avec des gemmes. */
+  private buildCannons(): void {
+    const s = this.screen('cannons', t('cannons'));
+    el('p', 'hint', s, t('cannonsHint'));
+    this.wallet('cannons', s, ['gem']);
+    const list = el('div', 'item-list', s);
+    for (const id of CANNONS) {
+      const def = BALANCE.cannons[id];
+      const row = el('div', 'item cannon-item', list);
+      const icon = el('canvas', 'item-icon', row);
+      const info = el('div', 'item-info', row);
+      el('div', 'item-name', info, t(`cannon.${id}.name`));
+      el('div', 'item-desc', info, t(`cannon.${id}.desc`));
+      el('div', 'item-desc', info, t('cannon.stats', { rate: factor(def.rate), damage: factor(def.damage) }));
+      const unlock = el('div', 'item-desc cannon-unlock', info);
+      const bar = el('div', 'progress hidden', info);
+      const fill = el('div', 'progress-fill', bar);
+      const actions = el('div', 'item-actions', row);
+      const buy = this.priceButton(actions, () => this.app.buyCannon(id));
+      const pick = button('item-toggle', actions, undefined, () => this.app.selectCannon(id));
+      let drawn = false;
+      this.on('cannons', () => {
+        if (!drawn) {
+          drawn = true;
+          drawIcon(icon, (size) => cannonIcon(id, size), visual.cannonColors[id]);
+        }
+        const meta = this.app.state().meta;
+        const owned = meta.cannons[id];
+        const prog = cannonUnlockProgress(meta, id);
+        setText(unlock, owned ? '' : prog ? t(`cannon.unlock.${def.unlockStat}`, { goal: prog.goal }) : t('cannon.gemsOnly'));
+        toggleClass(bar, 'hidden', owned || !prog);
+        if (prog) fill.style.width = `${Math.round((prog.value / prog.goal) * 100)}%`;
+        toggleClass(buy.btn, 'hidden', owned || def.gemCost <= 0);
+        buy.icon('gem');
+        setText(buy.label, `${t('buy')} · ${formatNumber(def.gemCost)}`);
+        setDisabled(buy.btn, meta.gems < def.gemCost);
+        toggleClass(pick, 'hidden', !owned);
+        const chosen = meta.cannon === id;
+        setText(pick, chosen ? t('selected') : t('select'));
+        toggleClass(pick, 'selected', chosen);
+        toggleClass(row, 'equipped', chosen);
+      });
+    }
+    this.backButton(s);
+  }
+
+  /** Objectifs du jour : à récupérer en touchant « Récupérer ». */
+  private buildDaily(): void {
+    const s = this.screen('daily', t('dailyTitle'));
+    el('p', 'hint', s, t('dailyHint'));
+    this.wallet('daily', s, ['gem']);
+    const list = el('div', 'item-list', s);
+    for (let i = 0; i < BALANCE.daily.count; i++) {
+      const row = el('div', 'item', list);
+      const info = el('div', 'item-info', row);
+      const name = el('div', 'item-name', info);
+      const bar = el('div', 'progress', info);
+      const fill = el('div', 'progress-fill', bar);
+      const prog = el('div', 'item-desc', info);
+      const claim = button('item-buy', row, undefined, () => this.app.claimDaily(i));
+      currencyIcon('gem', claim);
+      const label = el('span', '', claim);
+      this.on('daily', () => {
+        const o = this.app.state().meta.daily.objectives[i];
+        toggleClass(row, 'hidden', !o);
+        if (!o) return;
+        setText(name, t(`daily.${o.id}`, { target: o.target }));
+        fill.style.width = `${Math.round((o.progress / o.target) * 100)}%`;
+        setText(prog, t('ach.progress', { value: o.progress, goal: o.target }));
+        const ready = o.progress >= o.target && !o.claimed;
+        setText(label, o.claimed ? t('claimed') : `${ready ? t('claim') + ' ' : ''}+${o.gems}`);
+        setDisabled(claim, !ready);
+        toggleClass(claim, 'ready', ready);
+        toggleClass(row, 'done', o.claimed);
+      });
+    }
+    const bonusRow = el('div', 'item', list);
+    const bInfo = el('div', 'item-info', bonusRow);
+    el('div', 'item-name', bInfo, t('daily.bonus'));
+    const bonus = button('item-buy', bonusRow, undefined, () => this.app.claimDailyBonus());
+    currencyIcon('gem', bonus);
+    const bLabel = el('span', '', bonus);
+    this.on('daily', () => {
+      const meta = this.app.state().meta;
+      const ready = dailyBonusReady(meta);
+      setText(bLabel, meta.daily.bonusClaimed ? t('claimed') : `${ready ? t('claim') + ' ' : ''}+${BALANCE.daily.allBonus}`);
+      setDisabled(bonus, !ready);
+      toggleClass(bonus, 'ready', ready);
+      toggleClass(bonusRow, 'done', meta.daily.bonusClaimed);
     });
     this.backButton(s);
   }
@@ -426,6 +591,17 @@ export class Screens {
         const level = meta.abilities[id];
         const shown = Math.max(1, level);
         const maxed = level >= def.maxLevel;
+        if (id === 'aimAngle') {
+          const locked = meta.abilities.autoAim === 0;
+          setText(lvl, `${aimAngleDegrees(level)}°`);
+          setText(desc, locked ? t('ability.aimAngle.locked') : t('ability.aimAngle.desc', { angle: aimAngleDegrees(Math.min(def.maxLevel, level + 1)) }));
+          const price = abilityPrice(id, level);
+          buy.icon(maxed ? null : 'gem');
+          setText(buy.label, maxed ? t('maxed') : `${t('upgrade')} · ${formatNumber(price)}`);
+          setDisabled(buy.btn, maxed || locked || meta.gems < price);
+          toggleClass(row, 'owned', level > 0);
+          return;
+        }
         setText(lvl, level > 0 ? t('levelShort', { level }) : '');
         if (id === 'multishot') {
           setText(desc, level === 0 ? t('ability.multishot.desc') : level === 1 ? t('ability.multishot.desc1') + ' ' + t('ability.multishot.desc') : t('ability.multishot.desc2'));
@@ -462,6 +638,7 @@ export class Screens {
     const meta = () => this.app.state().meta;
     const bosses = section(t('collectionBosses'), () => t('collectionCount', { n: meta().collection.bosses.length, total: BALANCE.tiers.length }));
     const golden = section(t('collectionGolden'), () => t('collectionCount', { n: meta().collection.golden.length, total: BALANCE.tiers.length }));
+    const special = section(`${t('boss.super')} · ${t('boss.mega')}`, () => t('collectionCount', { n: meta().collection.special.length, total: 2 }));
     const enemies = section(t('collectionEnemies'), () => t('collectionCount', { n: meta().collection.enemies.length, total: ENEMY_KINDS.length }));
     const tiles: { canvas: HTMLCanvasElement; label: HTMLElement; state: string; draw: (known: boolean) => void; known: () => boolean; name: string }[] = [];
     const tile = (grid: HTMLElement, name: string, known: () => boolean, draw: (c: HTMLCanvasElement, known: boolean) => void) => {
@@ -478,6 +655,11 @@ export class Screens {
     for (let i = 0; i < BALANCE.tiers.length; i++) {
       tile(golden, t(`boss.${i}`), () => meta().collection.golden.includes(i), (c, k) =>
         drawIcon(c, (size) => tierVertices(i, size * 0.38, 0, size / 2, size / 2), '#ffd84a', !k),
+      );
+    }
+    for (const kind of ['super', 'mega'] as const) {
+      tile(special, t(`boss.${kind}`), () => meta().collection.special.includes(kind), (c, k) =>
+        drawIcon(c, (size) => polygonVertices(kind === 'mega' ? 8 : 4, size * 0.4, Math.PI / 4, size / 2, size / 2), kind === 'mega' ? '#ff6b4a' : '#8b93a7', !k),
       );
     }
     for (const kind of ENEMY_KINDS) {
@@ -509,12 +691,17 @@ export class Screens {
       const bar = el('div', 'progress', info);
       const fill = el('div', 'progress-fill', bar);
       const prog = el('div', 'item-desc', info);
-      const reward = el('span', 'ach-reward money-gem', row);
+      const reward = button('item-buy ach-claim', row, undefined, () => this.app.claimAchievement(a.id));
       currencyIcon('gem', reward);
-      el('span', '', reward, `+${a.gems}`);
+      const rLabel = el('span', '', reward);
       this.on('achievements', () => {
         const meta = this.app.state().meta;
         const done = meta.achievements.includes(a.id);
+        const claimed = meta.achievementsClaimed.includes(a.id);
+        const ready = done && !claimed;
+        setText(rLabel, ready ? t('ach.claim', { gems: a.gems }) : claimed ? `✓ +${a.gems}` : `+${a.gems}`);
+        setDisabled(reward, !ready);
+        toggleClass(reward, 'ready', ready);
         const v = Math.min(a.goal, statValue(meta, a.stat));
         fill.style.width = `${(done ? 1 : v / a.goal) * 100}%`;
         setText(prog, t('ach.progress', { value: formatNumber(done ? a.goal : v), goal: formatNumber(a.goal) }));
@@ -556,6 +743,25 @@ export class Screens {
     this.on('settings', () => {
       music.set(this.app.settings().music);
       sfx.set(this.app.settings().sfx);
+    });
+
+    el('h3', 'section-title', s, t('cloud'));
+    el('p', 'hint left', s, t('cloud.desc'));
+    const cloudBtn = button('menu-btn', s, undefined, () => {
+      const st = this.app.cloudStatus();
+      if (st.enabled) this.app.cloudSyncNow();
+      else this.app.cloudEnable();
+    });
+    const cloudInfo = el('p', 'hint', s);
+    this.on('settings', () => {
+      const st = this.app.cloudStatus();
+      toggleClass(cloudBtn, 'hidden', !st.available);
+      setText(cloudBtn, st.busy ? '…' : st.enabled ? t('cloud.syncNow') : t('cloud.enable'));
+      setDisabled(cloudBtn, st.busy);
+      setText(
+        cloudInfo,
+        !st.native ? t('cloud.unavailable') : !st.available ? t('cloud.notConfigured') : st.lastSync > 0 ? t('cloud.synced', { time: new Date(st.lastSync).toLocaleTimeString() }) : st.enabled ? t('cloud.on') : '',
+      );
     });
 
     el('h3', 'section-title', s, t('adsConsent'));
@@ -667,12 +873,45 @@ export class Screens {
 
   private buildVictory(): void {
     const s = this.screen('victory', t('victory'));
-    el('p', 'line', s, t('victoryText'));
+    el('p', 'line', s, t('victoryText', { worlds: BALANCE.worlds.length, levels: BALANCE.campaignLevels }));
     const reward = el('p', 'big-line money-gem', s);
     currencyIcon('gem', reward);
     el('span', '', reward, t('victoryReward', { gems: BALANCE.gems.campaignComplete }));
     button('menu-btn primary', s, t('keepPlaying'), () => this.back() || this.reset(null));
   }
+}
+
+/** Silhouette d'un canon (écran Canons). */
+/** Silhouette de chaque canon (un seul polygone, en fractions de la taille). */
+function cannonIcon(id: CannonId, size: number): { x: number; y: number }[] {
+  const base: [number, number][] = [
+    [0.18, 0.55],
+    [0.28, 0.88],
+    [-0.28, 0.88],
+    [-0.18, 0.55],
+  ];
+  const shapes: Record<CannonId, [number, number][]> = {
+    classic: [[-0.07, 0.1], [0.07, 0.1], [0.07, 0.55], ...base, [-0.07, 0.55]],
+    burst: [[-0.2, 0.18], [-0.12, 0.18], [-0.12, 0.38], [-0.04, 0.38], [-0.04, 0.08], [0.04, 0.08], [0.04, 0.38], [0.12, 0.38], [0.12, 0.18], [0.2, 0.18], [0.2, 0.55], ...base.slice(1, 3), [-0.2, 0.55]],
+    shotgun: [[-0.3, 0.1], [0.3, 0.1], [0.08, 0.5], ...base, [-0.08, 0.5]],
+    beam: [[0, 0.03], [0.1, 0.13], [0.04, 0.2], [0.04, 0.55], ...base, [-0.04, 0.55], [-0.04, 0.2], [-0.1, 0.13]],
+    missile: [[0, 0.04], [0.08, 0.16], [0.08, 0.42], [0.15, 0.55], ...base.slice(1, 3), [-0.15, 0.55], [-0.08, 0.42], [-0.08, 0.16]],
+    plasma: [
+      ...Array.from({ length: 13 }, (_, i): [number, number] => {
+        const a = Math.PI / 2 + 0.4 + ((Math.PI * 2 - 0.8) * i) / 12;
+        return [Math.cos(a) * 0.15, 0.25 + Math.sin(a) * 0.15];
+      }),
+      [0.06, 0.55],
+      ...base,
+      [-0.06, 0.55],
+    ],
+  };
+  return shapes[id].map(([x, y]) => ({ x: size / 2 + x * size, y: y * size }));
+}
+
+/** Coefficient lisible : « 1,15 », « 0,7 », « 1 ». */
+function factor(v: number): string {
+  return v.toLocaleString(language(), { maximumFractionDigits: 2 });
 }
 
 function weaponIcon(id: WeaponId, size: number): { x: number; y: number }[] {

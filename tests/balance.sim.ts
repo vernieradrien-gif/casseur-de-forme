@@ -29,7 +29,7 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
     const s = createState(42);
     const player = new AutoPlayer(opts);
     const ev: GameEvent[] = [];
-    const milestones = [5, 10, 20, 30, 50, 75, 100, 125];
+    const milestones = [5, 10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 250];
     const reached: string[] = [];
     const lines: string[] = [];
     let total = 0;
@@ -39,7 +39,7 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
     const runLog: string[] = [];
     let coinNote = '';
     s.meta.stats.runs = 1;
-    while (total < MAX_HOURS * 3600 && s.meta.bestLevel <= 130) {
+    while (total < MAX_HOURS * 3600 && s.meta.bestLevel <= 260) {
       let rt = 0;
       let lastBuy = 0;
       const lv: Record<number, { w: number; b: number; hits: number }> = {};
@@ -75,7 +75,7 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
       // SIM_ADS=1 : le joueur regarde la pub « doubler les diamants » après chaque partie.
       if (process.env.SIM_ADS) doubleRunDiamonds(s);
       gains.push(s.run.level - s.run.startLevel);
-      if (process.env.SIM_DIAG && runIdx % 6 === 5) lines.push(`détail partie ${runIdx + 1} : ` + Object.entries(lv).map(([l, v]) => `${l}:${v.w.toFixed(0)}+${v.b.toFixed(0)}s/${v.hits}`).join(' '));
+      if (process.env.SIM_DIAG && (process.env.SIM_DIAG === 'all' || runIdx % 6 === 5)) lines.push(`détail partie ${runIdx + 1} : ` + Object.entries(lv).map(([l, v]) => `${l}:${v.w.toFixed(0)}+${v.b.toFixed(0)}s/${v.hits}`).join(' '));
       runLog.push(`${s.run.startLevel}→${s.run.level}(${Math.round(rt / 60)}m)`);
       spendMeta(s);
       // Comme un joueur : reprend au monde le plus avancé, sauf s'il n'y progresse plus.
@@ -95,5 +95,5 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
         ...lines,
       ].join('\n'),
     );
-  }, 600_000);
+  }, 3_600_000);
 }

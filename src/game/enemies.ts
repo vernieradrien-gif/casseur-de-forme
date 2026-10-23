@@ -3,7 +3,7 @@ import { BALANCE } from './config';
 import type { GameEvent } from './events';
 import { cannonStats, enemyStats } from './formulas';
 import { angleDelta, clamp } from './math';
-import { addKill, discoverEnemy } from './progress';
+import { addDaily, addKill, discoverEnemy } from './progress';
 import { nextRandom } from './rng';
 import { W } from './state';
 import type { Enemy, GameState, Spawn } from './state';
@@ -51,6 +51,12 @@ export function spawnEnemy(state: GameState, level: number, s: Omit<Spawn, 't'>,
     flash: 0,
     orbCd: 0,
   };
+  if (s.kind === 'turret' || s.kind === 'strafer') {
+    // Hauteur où l'ennemi s'arrête pour tirer (variée pour ne pas aligner les tireurs).
+    e.ty = (def.stopY ?? 0.45) + (nextRandom(state) - 0.5) * 0.24;
+    e.amp = 0;
+    e.vx = 0;
+  }
   run.enemies.push(e);
   discoverEnemy(state.meta, s.kind);
   return e;
@@ -71,6 +77,7 @@ export function killEnemy(state: GameState, e: Enemy, events: GameEvent[]): void
     meta.gems += BALANCE.gems.rareEnemy;
     run.gemsEarned += BALANCE.gems.rareEnemy;
     meta.stats.rareStars++;
+    addDaily(state, 'rareStars', 1, events);
   }
   events.push({ type: 'enemyKilled', x: e.x, y: e.y, kind: e.kind, coins, gem, radius: e.radius });
   if (e.kind === 'splitter' && isFighting(run.phase)) {
@@ -109,7 +116,7 @@ export function damageEnemy(
 function fireAt(state: GameState, x: number, y: number, damage: number, speed: number, events: GameEvent[]): void {
   const c = state.run.cannon;
   const dx = c.x - x;
-  const dy = W.cannonY - y;
+  const dy = c.y - y;
   const d = Math.hypot(dx, dy) || 1;
   state.run.bullets.push({ x, y, vx: (dx / d) * speed, vy: (dy / d) * speed, damage, radius: BALANCE.boss.bullet.radius });
   events.push({ type: 'enemyShot', x, y });
@@ -131,8 +138,8 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
 
     switch (e.kind) {
       case 'hunter':
-        if (e.y < W.cannonY - 0.12) {
-          const want = Math.atan2(W.cannonY - e.y, c.x - e.x);
+        if (e.y < c.y - 0.12) {
+          const want = Math.atan2(c.y - e.y, c.x - e.x);
           const cur = Math.atan2(e.vy, e.vx);
           const turn = (def.turnRate ?? 1) * dt;
           const a = cur + clamp(angleDelta(cur, want), -turn, turn);
@@ -168,7 +175,7 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
           e.vy = 0;
           e.amp = 0;
           e.tx = c.x;
-          e.ty = W.cannonY;
+          e.ty = c.y;
         } else if (e.mode === 1) {
           e.timer -= dt;
           // Suit le canon pendant la première moitié de la visée, puis verrouille la cible.
@@ -181,6 +188,32 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
             const s = def.dashSpeed ?? 1;
             e.vx = (dx / d) * s;
             e.vy = (dy / d) * s;
+          }
+        }
+        break;
+      case 'turret':
+      case 'strafer':
+        // Tourelle : s'arrête et tire sans bouger. Mitrailleur : s'arrête puis tire en allant de gauche à droite.
+        if (e.mode === 0 && e.y >= e.ty) {
+          e.mode = 1;
+          e.timer = 0.6;
+          e.vy = 0;
+          e.amp = 0;
+          e.vx = e.kind === 'strafer' ? (def.strafeSpeed ?? 0.2) * (e.x > 0 ? -1 : 1) : 0;
+        } else if (e.mode === 1) {
+          if (e.kind === 'strafer' && Math.abs(e.x) > HALF - e.radius - 0.02) {
+            e.x = clamp(e.x, -HALF + e.radius + 0.02, HALF - e.radius - 0.02);
+            e.vx = -e.vx;
+          }
+          e.timer -= dt;
+          if (e.timer <= 0 && fighting) {
+            fireAt(state, e.x, e.y + e.radius, e.damage, BALANCE.boss.bullet.speed * 1.05, events);
+            e.timer = def.fireInterval ?? 1.8;
+          }
+          if (e.age > (def.leaveAfter ?? 20)) {
+            e.mode = 2;
+            e.vx = 0;
+            e.vy = e.speed * 1.4;
           }
         }
         break;
@@ -202,7 +235,7 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
     }
 
     // Collision avec le canon : l'ennemi s'écrase.
-    if (fighting && e.damage > 0 && Math.hypot(e.x - c.x, e.y - W.cannonY) < e.radius + cannonR) {
+    if (fighting && e.damage > 0 && Math.hypot(e.x - c.x, e.y - c.y) < e.radius + cannonR) {
       e.hp = -1;
       events.push({ type: 'enemyCrash', x: e.x, y: e.y, kind: e.kind, radius: e.radius });
       hitCannon(state, e.damage, e.x, e.y, events);

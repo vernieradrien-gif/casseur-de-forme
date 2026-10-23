@@ -6,7 +6,6 @@ import { damageEnemy } from './enemies';
 import type { GameEvent } from './events';
 import { cannonStats, weaponPower } from './formulas';
 import type { Vec } from './geometry';
-import { W } from './state';
 import type { Enemy, GameState } from './state';
 
 const WP = BALANCE.weapons;
@@ -29,7 +28,7 @@ export function orbPositions(state: GameState): Vec[] {
   const out: Vec[] = [];
   for (let i = 0; i < n; i++) {
     const a = run.weapons.orbAngle + (i * Math.PI * 2) / n;
-    out.push({ x: run.cannon.x + Math.cos(a) * (def.radius ?? 0.1), y: W.cannonY + Math.sin(a) * (def.radius ?? 0.1) });
+    out.push({ x: run.cannon.x + Math.cos(a) * (def.radius ?? 0.1), y: run.cannon.y + Math.sin(a) * (def.radius ?? 0.1) });
   }
   return out;
 }
@@ -75,7 +74,7 @@ function updateLaser(state: GameState, dt: number, events: GameEvent[]): void {
   const half = (def.width ?? 0.04) / 2;
   const dmg = weaponDamage(state, 'laser') * dt;
   for (const e of run.enemies) {
-    if (e.hp > 0 && e.y < W.cannonY && Math.abs(e.x - x) < half + e.radius) damageEnemy(state, e, dmg, events, true, true);
+    if (e.hp > 0 && e.y < run.cannon.y && Math.abs(e.x - x) < half + e.radius) damageEnemy(state, e, dmg, events, true, true);
   }
   for (const boss of run.bosses) {
     if (boss.hp > 0 && Math.abs(boss.x - x) < half + boss.radius * 0.8) {
@@ -97,7 +96,7 @@ function updateLightning(state: GameState, dt: number, events: GameEvent[]): voi
   w.lightningTimer -= dt;
   if (w.lightningTimer > 0) return;
   const c = run.cannon;
-  const origin: Vec = { x: c.x, y: W.cannonY - BALANCE.cannon.radius };
+  const origin: Vec = { x: c.x, y: run.cannon.y - BALANCE.cannon.radius };
   const range = def.range ?? 0.4;
   const hit = new Set<Enemy>();
   const points: Vec[] = [origin];

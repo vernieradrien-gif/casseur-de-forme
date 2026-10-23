@@ -1,8 +1,10 @@
 import visual from '../config/visual.json';
 import { formatNumber } from '../game/bignum';
-import { bossHealthRatio, bossVertices, outerRingRadius, waveShieldRadius, weakPointPositions } from '../game/boss';
+import { bossHealthRatio, bossVertices, isComposite, outerRingRadius, partAngle, partPosition, waveShieldRadius, weakPointPositions } from '../game/boss';
 import { autoAimTarget } from '../game/cannon';
 import { BALANCE } from '../game/config';
+import { aimHalfAngle, worldOf, worldThemeId } from '../game/formulas';
+import { polygonVertices } from '../game/geometry';
 import type { Vec } from '../game/geometry';
 import { STEP } from '../game/simulation';
 import { W } from '../game/state';
@@ -11,7 +13,7 @@ import { waveProgress } from '../game/waves';
 import { activeWeapons, orbPositions } from '../game/weapons';
 import { t } from '../i18n';
 import type { Effects } from './effects';
-import { enemyColor, enemyVertices, tierColor, tierVertices } from './shapes';
+import { enemyColor, enemyVertices, tierColor, tierVertices, worldPalette } from './shapes';
 
 /** Zone de jeu disponible dans le canvas (pixels CSS), entre la barre du haut et le panneau du bas. */
 export interface PlayArea {
@@ -83,27 +85,21 @@ export class Renderer {
 
   // ------------------------------------------------------------ Fond
 
-  private background(dt: number, speed: number): void {
+  /** Fond du monde : dégradé, étoiles teintées et décor propre au thème. */
+  private background(dt: number, speed: number, world: number): void {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    if (!this.sky || this.skyHeight !== this.height) {
-      // Dégradé du fond calculé une seule fois par taille d'écran.
-      const g = ctx.createLinearGradient(0, 0, 0, this.height);
-      g.addColorStop(0, '#0a0718');
-      g.addColorStop(0.55, '#07070f');
-      g.addColorStop(1, '#050a14');
-      this.sky = g;
-      this.skyHeight = this.height;
-    }
-    ctx.fillStyle = this.sky;
-    ctx.fillRect(0, 0, this.width, this.height);
+    const theme = worldPalette(world);
+    // Fond fixe (dégradé + lueurs du monde) précalculé : une seule copie d'image par image affichée.
+    ctx.drawImage(this.backdrop(world), 0, 0, this.width, this.height);
+    this.drawDecor(world, dt);
     this.starSpeed += (speed - this.starSpeed) * Math.min(1, dt * 2);
     // Étoiles regroupées par luminosité (peu de changements de couleur par image).
     for (let layer = 0; layer < STAR_LAYERS; layer++) {
       const twinkle = 0.85 + 0.15 * Math.sin(this.clock * 2 + layer * 1.7);
-      ctx.fillStyle = `rgba(200,220,255,${((0.3 + (0.6 * (layer + 1)) / STAR_LAYERS) * twinkle).toFixed(2)})`;
+      ctx.fillStyle = `rgba(${theme.star},${((0.3 + (0.6 * (layer + 1)) / STAR_LAYERS) * twinkle).toFixed(2)})`;
       for (const s of this.stars) {
         if (Math.floor(s.z * STAR_LAYERS * 0.999) !== layer) continue;
         s.y += s.z * s.z * 0.05 * this.starSpeed * dt;
@@ -117,15 +113,132 @@ export class Renderer {
     }
   }
 
-  private sky: CanvasGradient | null = null;
-  private skyHeight = 0;
+  private backdropCanvas: HTMLCanvasElement | null = null;
+  private backdropKey = '';
+
+  /**
+   * Fond fixe d'un monde : dégradé du ciel et grandes lueurs (nébuleuse, supernova, trou noir), dessinés une seule fois
+   * par taille d'écran et par monde, à demi-résolution (ce sont des dégradés doux). Peindre ces dégradés en plein écran
+   * à chaque image coûtait trop cher sur les téléphones modestes.
+   */
+  private backdrop(world: number): HTMLCanvasElement {
+    const key = `${this.width}x${this.height}-${world}`;
+    if (this.backdropCanvas && this.backdropKey === key) return this.backdropCanvas;
+    const canvas = this.backdropCanvas ?? document.createElement('canvas');
+    const w = Math.max(1, Math.round(this.width / 2));
+    const h = Math.max(1, Math.round(this.height / 2));
+    canvas.width = w;
+    canvas.height = h;
+    const g = canvas.getContext('2d')!;
+    const theme = worldPalette(world);
+    const sky = g.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, theme.sky[0]);
+    sky.addColorStop(0.55, theme.sky[1]);
+    sky.addColorStop(1, theme.sky[2]);
+    g.fillStyle = sky;
+    g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'lighter';
+    const glow = (cx: number, cy: number, r: number, stops: [number, string][]) => {
+      const rg = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+      for (const [at, color] of stops) rg.addColorStop(at, color);
+      g.fillStyle = rg;
+      g.fillRect(0, 0, w, h);
+    };
+    const id = worldThemeId(world);
+    if (id === 'nebula') {
+      // Grands nuages colorés.
+      for (let i = 0; i < 3; i++) {
+        glow(w * (0.2 + 0.3 * i + 0.08 * Math.sin(i * 2)), h * (0.25 + 0.25 * i + 0.05 * Math.cos(i)), Math.max(w, h) * (0.35 + 0.08 * i), [
+          [0, (i === 1 ? theme.accent : theme.glow) + '22'],
+          [1, theme.glow + '00'],
+        ]);
+      }
+    } else if (id === 'supernova') {
+      // L'étoile qui explose, en haut.
+      glow(w / 2, h * 0.04, Math.max(w, h) * 0.75, [
+        [0, theme.accent + '66'],
+        [0.25, theme.glow + '22'],
+        [1, theme.glow + '00'],
+      ]);
+    } else if (id === 'blackhole') {
+      // Lueur violette diffuse ; le trou noir lui-même est dessiné avec les dangers.
+      glow(w / 2, h * 0.55, Math.max(w, h) * 0.7, [
+        [0, theme.glow + '18'],
+        [1, theme.glow + '00'],
+      ]);
+    }
+    this.backdropCanvas = canvas;
+    this.backdropKey = key;
+    return canvas;
+  }
+
+  /** Décor animé du monde (purement visuel), par-dessus le fond fixe. */
+  private drawDecor(world: number, dt: number): void {
+    const ctx = this.ctx;
+    const theme = worldPalette(world);
+    const id = worldThemeId(world);
+    const w = this.width;
+    const h = this.height;
+    ctx.globalCompositeOperation = 'lighter';
+    if (id === 'asteroids') {
+      // Rochers lointains qui défilent.
+      this.decorScroll = (this.decorScroll + dt * 0.012) % 1;
+      ctx.fillStyle = theme.glow + '30';
+      for (let i = 0; i < 9; i++) {
+        const x = ((i * 0.37 + 0.11) % 1) * w;
+        const y = (((i * 0.53 + this.decorScroll * (0.6 + (i % 3) * 0.3)) % 1.2) - 0.1) * h;
+        const r = (8 + (i % 4) * 7) * (this.dpr > 1 ? 1 : 0.8);
+        ctx.beginPath();
+        for (let k = 0; k < 7; k++) {
+          const a = (k / 7) * Math.PI * 2 + i;
+          const rr = r * (0.75 + 0.25 * Math.sin(k * 2.3 + i));
+          if (k === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (id === 'supernova') {
+      // Les rayons de l'étoile qui explose (sa lueur est dans le fond fixe).
+      const cx = w / 2;
+      const cy = h * 0.04;
+      ctx.strokeStyle = theme.accent + '14';
+      ctx.lineWidth = 18;
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI + this.clock * 0.03;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * w * 1.4, cy + Math.sin(a) * h * 1.4);
+        ctx.stroke();
+      }
+    } else if (id === 'ionstorm') {
+      // Tempête ionique : brume et éclairs lointains.
+      const flick = Math.sin(this.clock * 7.3) * Math.sin(this.clock * 3.1);
+      if (flick > 0.85) {
+        ctx.fillStyle = theme.accent + '12';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.strokeStyle = theme.glow + '18';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const x = ((i * 0.29 + this.clock * 0.02) % 1) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x - 40, h);
+        ctx.stroke();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  private decorScroll = 0;
 
   // ------------------------------------------------------------ Menu
 
   /** Fond du menu : étoiles et une grande forme néon qui tourne. */
-  drawMenu(dt: number, fx: Effects): void {
+  drawMenu(dt: number, fx: Effects, world = 0): void {
     this.clock += dt;
-    this.background(dt, 0.6);
+    this.background(dt, 0.6, world);
     const ctx = this.ctx;
     const tier = Math.floor(this.clock / 6) % BALANCE.tiers.length;
     const fade = Math.min(1, (this.clock % 6) * 2, (6 - (this.clock % 6)) * 2);
@@ -167,7 +280,7 @@ export class Renderer {
     this.clock += dt;
     const run = state.run;
     const boss = run.phase === 'boss';
-    this.background(dt * run.timeScale, boss ? 2.2 : 1.2);
+    this.background(dt * run.timeScale, boss ? 2.2 : 1.2, worldOf(run.level));
     const ctx = this.ctx;
     // Bords du terrain (visibles sur écrans larges).
     ctx.fillStyle = '#ffffff06';
@@ -178,10 +291,13 @@ export class Renderer {
 
     ctx.save();
     if (fx.shake > 0) ctx.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
+    this.drawHazards(state, a, worldOf(run.level), false);
     for (const b of run.bosses) this.drawBoss(state, b, a);
     this.drawEnemies(state, a);
     this.drawLaser(state);
+    this.drawBeam(state);
     this.drawProjectiles(state, a);
+    this.drawHazards(state, a, worldOf(run.level), true);
     this.drawBullets(state, a);
     this.drawOrbs(state);
     this.drawCannon(state);
@@ -236,6 +352,11 @@ export class Renderer {
     const color = boss.golden ? visual.goldColor : tierColor(boss.tier);
     const moving = run.phase === 'boss';
     const x = boss.x + (moving ? boss.vx * STEP * a : 0);
+    if (isComposite(boss)) {
+      this.drawComposite(state, boss, x, color);
+      this.drawWaveShield(state, boss, x);
+      return;
+    }
     const rot = boss.rotation;
     const pts = bossVertices({ ...boss, x });
 
@@ -320,31 +441,217 @@ export class Renderer {
       }
     }
 
-    // Bouclier des vagues : bulle qui protège la forme, puis se brise.
-    if (run.phase === 'waves' || run.phase === 'bossIntro') {
-      const intro = run.phase === 'bossIntro' ? run.phaseTimer / BALANCE.level.bossIntroTime : 1;
-      const flicker = run.phase === 'bossIntro' ? (Math.sin(this.clock * 40) > 0 ? 1 : 0.4) : 1;
-      const r = waveShieldRadius(boss) * (0.9 + 0.1 * intro);
-      ctx.globalAlpha = intro * flicker;
-      this.circle(x, boss.y, r);
-      const g = ctx.createRadialGradient(this.sx(x), this.sy(boss.y), r * this.scale * 0.6, this.sx(x), this.sy(boss.y), r * this.scale);
-      g.addColorStop(0, visual.shieldColor + '00');
-      g.addColorStop(1, visual.shieldColor + '40');
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.setLineDash([14, 8]);
-      ctx.lineDashOffset = -this.clock * 30;
-      ctx.strokeStyle = visual.shieldColor + 'aa';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    }
+    this.drawWaveShield(state, boss, x);
     if (boss.rings > 0 && moving) {
       this.circle(x, boss.y, outerRingRadius(boss) + 0.01);
       ctx.strokeStyle = '#ffffff10';
       ctx.lineWidth = 1;
       ctx.stroke();
+    }
+  }
+
+  /** Bouclier des vagues : bulle qui protège la forme, puis se brise. */
+  private drawWaveShield(state: GameState, boss: Boss, x: number): void {
+    const run = state.run;
+    if (run.phase !== 'waves' && run.phase !== 'bossIntro') return;
+    const ctx = this.ctx;
+    const intro = run.phase === 'bossIntro' ? run.phaseTimer / BALANCE.level.bossIntroTime : 1;
+    const flicker = run.phase === 'bossIntro' ? (Math.sin(this.clock * 40) > 0 ? 1 : 0.4) : 1;
+    const r = waveShieldRadius(boss) * (0.9 + 0.1 * intro);
+    ctx.globalAlpha = intro * flicker;
+    this.circle(x, boss.y, r);
+    const g = ctx.createRadialGradient(this.sx(x), this.sy(boss.y), r * this.scale * 0.6, this.sx(x), this.sy(boss.y), r * this.scale);
+    g.addColorStop(0, visual.shieldColor + '00');
+    g.addColorStop(1, visual.shieldColor + '40');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.setLineDash([14, 8]);
+    ctx.lineDashOffset = -this.clock * 30;
+    ctx.strokeStyle = visual.shieldColor + 'aa';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  /** Bloc carré orienté (super boss). */
+  private block(cx: number, cy: number, half: number, angle: number): void {
+    const ctx = this.ctx;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    ctx.beginPath();
+    for (const [u, v] of [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ]) {
+      const px = cx + (u * c - v * s) * half;
+      const py = cy + (u * s + v * c) * half;
+      ctx.lineTo(this.sx(px), this.sy(py));
+    }
+    ctx.closePath();
+  }
+
+  /** Super boss et titan : anneaux de blocs blindés, canons, cœur lumineux. */
+  private drawComposite(state: GameState, boss: Boss, x: number, color: string): void {
+    const ctx = this.ctx;
+    const moving = state.run.phase === 'boss';
+    const view = { ...boss, x };
+    ctx.lineJoin = 'round';
+    for (const p of boss.parts) {
+      if (p.role !== 'armor' && p.hp <= 0) continue;
+      const pos = partPosition(view, p);
+      const ang = partAngle(view, p);
+      this.block(pos.x, pos.y, p.half, ang);
+      if (p.role === 'armor') {
+        ctx.fillStyle = '#1a1f2c';
+        ctx.fill();
+        ctx.strokeStyle = visual.armorColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.strokeStyle = color + '55';
+        ctx.lineWidth = 1;
+        this.block(pos.x, pos.y, p.half * 0.55, ang);
+        ctx.stroke();
+      } else if (p.role === 'gun') {
+        ctx.fillStyle = p.flash > 0 ? '#ffffffcc' : visual.gunColor + '33';
+        ctx.fill();
+        ctx.strokeStyle = visual.gunColor + '55';
+        ctx.lineWidth = 7;
+        ctx.stroke();
+        ctx.strokeStyle = p.flash > 0 ? '#ffffff' : visual.gunColor;
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+        // Fût pointé vers le canon du joueur.
+        const c = state.run.cannon;
+        const a = Math.atan2(c.y - pos.y, c.x - pos.x);
+        ctx.beginPath();
+        ctx.moveTo(this.sx(pos.x), this.sy(pos.y));
+        ctx.lineTo(this.sx(pos.x + Math.cos(a) * p.half * 1.6), this.sy(pos.y + Math.sin(a) * p.half * 1.6));
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        // Vie du canon.
+        const w = p.half * 2 * this.scale;
+        ctx.fillStyle = '#ffffff22';
+        ctx.fillRect(this.sx(pos.x) - w / 2, this.sy(pos.y - p.half) - 8, w, 3);
+        ctx.fillStyle = visual.gunColor;
+        ctx.fillRect(this.sx(pos.x) - w / 2, this.sy(pos.y - p.half) - 8, (w * p.hp) / p.maxHp, 3);
+      } else {
+        // Cœur : la seule cible qui fait perdre le boss.
+        const pulse = 0.8 + 0.2 * Math.sin(this.clock * 6);
+        ctx.fillStyle = boss.flash > 0 ? '#ffffffdd' : color + '40';
+        ctx.fill();
+        ctx.strokeStyle = color + '40';
+        ctx.lineWidth = 12 * pulse;
+        ctx.stroke();
+        ctx.strokeStyle = boss.flash > 0 ? '#ffffff' : color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        this.circle(pos.x, pos.y, p.half * 0.45 * pulse);
+        ctx.fillStyle = visual.weakColor;
+        ctx.fill();
+        if (boss.enraged && moving) {
+          this.circle(pos.x, pos.y, p.half * 1.6);
+          ctx.strokeStyle = `rgba(255,70,90,${(0.35 + 0.35 * Math.sin(this.clock * 10)).toFixed(2)})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  /** Dangers du monde. `front` : ce qui passe devant les ennemis (alertes, colonnes de feu). */
+  private drawHazards(state: GameState, a: number, world: number, front: boolean): void {
+    const ctx = this.ctx;
+    const theme = worldPalette(world);
+    for (const h of state.run.hazards) {
+      const x = h.x + h.vx * STEP * a;
+      const y = h.y + h.vy * STEP * a;
+      if (!front && h.kind === 'cloud') {
+        const g = ctx.createRadialGradient(this.sx(x), this.sy(y), 0, this.sx(x), this.sy(y), h.r * this.scale);
+        g.addColorStop(0, theme.accent + '30');
+        g.addColorStop(0.7, theme.glow + '18');
+        g.addColorStop(1, theme.glow + '00');
+        ctx.fillStyle = g;
+        this.circle(x, y, h.r);
+        ctx.fill();
+      } else if (!front && h.kind === 'rock') {
+        ctx.beginPath();
+        for (let k = 0; k < 8; k++) {
+          const ang = h.rot + (k / 8) * Math.PI * 2;
+          const rr = h.r * (0.78 + 0.22 * Math.sin(k * 2.7 + h.id));
+          const px = this.sx(x + Math.cos(ang) * rr);
+          const py = this.sy(y + Math.sin(ang) * rr);
+          if (k === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = h.flash > 0 ? '#ffffffbb' : '#3a2c22';
+        ctx.fill();
+        ctx.strokeStyle = theme.accent + 'aa';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else if (!front && h.kind === 'hole') {
+        // Trou noir : disque d'accrétion tournant et horizon sombre.
+        const R = h.r * this.scale;
+        ctx.globalCompositeOperation = 'lighter';
+        for (let k = 0; k < 3; k++) {
+          ctx.beginPath();
+          ctx.ellipse(this.sx(x), this.sy(y), R * (2.6 + k * 0.7), R * (1 + k * 0.3), h.rot * (0.6 + k * 0.2), 0, Math.PI * 2);
+          ctx.strokeStyle = (k === 0 ? theme.accent : theme.glow) + '55';
+          ctx.lineWidth = 3 - k * 0.7;
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        this.circle(x, y, h.r);
+        ctx.fillStyle = '#000000';
+        ctx.fill();
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else if (front && h.kind === 'flare') {
+        const x0 = this.sx(x - h.r);
+        const w = h.r * 2 * this.scale;
+        const top = this.sy(0);
+        const bottom = this.sy(W.height);
+        if (h.stage === 0) {
+          const blink = Math.sin(this.clock * 20) > 0 ? 0.35 : 0.15;
+          ctx.fillStyle = `rgba(255,120,60,${blink})`;
+          ctx.fillRect(x0, top, w, bottom - top);
+          ctx.setLineDash([10, 8]);
+          ctx.strokeStyle = '#ff7a3d';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x0, top, w, bottom - top);
+          ctx.setLineDash([]);
+        } else {
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = '#ff7a3d88';
+          ctx.fillRect(x0 - w * 0.2, top, w * 1.4, bottom - top);
+          ctx.fillStyle = '#fff2c0cc';
+          ctx.fillRect(x0 + w * 0.25, top, w * 0.5, bottom - top);
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      } else if (front && h.kind === 'strike') {
+        if (h.stage === 0) {
+          const k = Math.max(0, h.timer);
+          this.circle(x, y, h.r);
+          ctx.strokeStyle = theme.accent;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          this.circle(x, y, h.r * (0.2 + 0.8 * (1 - k)));
+          ctx.fillStyle = theme.accent + '30';
+          ctx.fill();
+        } else {
+          ctx.globalCompositeOperation = 'lighter';
+          this.circle(x, y, h.r);
+          ctx.fillStyle = theme.accent + '88';
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      }
     }
   }
 
@@ -404,29 +711,89 @@ export class Renderer {
 
   private drawProjectiles(state: GameState, a: number): void {
     const ctx = this.ctx;
-    const color = state.meta.boostTime > 0 ? visual.goldColor : visual.cannonColor;
+    const base = state.meta.boostTime > 0 ? visual.goldColor : visual.cannonColors[state.meta.cannon];
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
-    ctx.strokeStyle = color + '66';
-    ctx.lineWidth = BALANCE.cannon.projectileRadius * this.scale * 1.5;
-    ctx.beginPath();
+    // Balles et plombs : traits lumineux (dessinés en deux passes groupées).
+    for (const [width, color, len] of [
+      [1.5, base + '66', 0.022],
+      [0.55, '#ffffff', 0.015],
+    ] as const) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = BALANCE.cannon.projectileRadius * this.scale * width;
+      ctx.beginPath();
+      for (const p of state.run.projectiles) {
+        if (p.kind !== 'bullet' && p.kind !== 'pellet') continue;
+        const x = p.x + p.vx * STEP * a;
+        const y = p.y + p.vy * STEP * a;
+        const l = p.kind === 'pellet' ? len * 0.6 : len;
+        ctx.moveTo(this.sx(x), this.sy(y));
+        ctx.lineTo(this.sx(x - p.vx * l), this.sy(y - p.vy * l));
+      }
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
     for (const p of state.run.projectiles) {
       const x = p.x + p.vx * STEP * a;
       const y = p.y + p.vy * STEP * a;
-      ctx.moveTo(this.sx(x), this.sy(y));
-      ctx.lineTo(this.sx(x - p.vx * 0.022), this.sy(y - p.vy * 0.022));
+      if (p.kind === 'missile') {
+        // Missile : flèche et traînée de fumée.
+        const ang = Math.atan2(p.vy, p.vx);
+        ctx.beginPath();
+        ctx.moveTo(this.sx(x - p.vx * 0.06), this.sy(y - p.vy * 0.06));
+        ctx.lineTo(this.sx(x), this.sy(y));
+        ctx.strokeStyle = '#ffb34755';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        this.path(polygonVertices(3, 0.018, ang + Math.PI / 2, x, y));
+        ctx.fillStyle = base;
+        ctx.fill();
+      } else if (p.kind === 'plasma') {
+        this.circle(x, y, p.radius * 2);
+        ctx.fillStyle = base + '33';
+        ctx.fill();
+        this.circle(x, y, p.radius);
+        ctx.fillStyle = base + 'cc';
+        ctx.fill();
+        this.circle(x, y, p.radius * 0.45);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
     }
-    ctx.stroke();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = BALANCE.cannon.projectileRadius * this.scale * 0.55;
-    ctx.beginPath();
-    for (const p of state.run.projectiles) {
-      const x = p.x + p.vx * STEP * a;
-      const y = p.y + p.vy * STEP * a;
-      ctx.moveTo(this.sx(x), this.sy(y));
-      ctx.lineTo(this.sx(x - p.vx * 0.015), this.sy(y - p.vy * 0.015));
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  /** Canon « Rayon » : faisceau continu jusqu'à ce qu'il touche. */
+  private drawBeam(state: GameState): void {
+    const c = state.run.cannon;
+    if (!c.beamOn) return;
+    const ctx = this.ctx;
+    const tip = BALANCE.cannon.radius * 1.4;
+    const x0 = c.x + Math.cos(c.angle) * tip;
+    const y0 = c.y + Math.sin(c.angle) * tip;
+    const len = (c.beamTop - y0) / Math.sin(c.angle);
+    const x1 = x0 + Math.cos(c.angle) * len;
+    const y1 = c.beamTop;
+    const color = visual.cannonColors.beam;
+    const w = (BALANCE.cannons.beam.width ?? 0.028) * this.scale * (1 + 0.25 * state.meta.abilities.multishot);
+    const flick = 0.85 + 0.15 * Math.sin(this.clock * 50);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (const [k, col] of [
+      [2.4, color + '30'],
+      [1, color + 'aa'],
+      [0.3, '#ffffff'],
+    ] as const) {
+      ctx.beginPath();
+      ctx.moveTo(this.sx(x0), this.sy(y0));
+      ctx.lineTo(this.sx(x1), this.sy(y1));
+      ctx.strokeStyle = col;
+      ctx.lineWidth = w * k * flick;
+      ctx.stroke();
     }
-    ctx.stroke();
+    this.circle(x1, y1, 0.018 * flick);
+    ctx.fillStyle = '#ffffffcc';
+    ctx.fill();
     ctx.lineCap = 'butt';
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -460,7 +827,7 @@ export class Renderer {
     const ctx = this.ctx;
     const x = this.sx(run.cannon.x);
     const top = this.sy(-0.05);
-    const bottom = this.sy(W.cannonY - BALANCE.cannon.radius);
+    const bottom = this.sy(run.cannon.y - BALANCE.cannon.radius);
     const w = (BALANCE.weapons.laser.width ?? 0.04) * this.scale;
     const flick = 0.8 + 0.2 * Math.sin(this.clock * 60);
     ctx.globalCompositeOperation = 'lighter';
@@ -496,11 +863,27 @@ export class Renderer {
     if (run.phase === 'gameOver') return;
     const dying = run.phase === 'dying';
     if (dying && run.phaseTimer >= BALANCE.level.dyingDuration * 0.75) return;
-    const color = dying ? (Math.sin(this.clock * 30) > 0 ? '#ff5a5a' : '#ffffff') : visual.cannonColor;
+    const kind = state.meta.cannon;
+    const color = dying ? (Math.sin(this.clock * 30) > 0 ? '#ff5a5a' : '#ffffff') : visual.cannonColors[kind];
     const s = this.scale;
     const r = BALANCE.cannon.radius;
     const x = this.sx(c.x);
-    const y = this.sy(W.cannonY);
+    const y = this.sy(c.y);
+
+    // Cône de visée automatique (limité par l'angle débloqué).
+    if (c.autoAimTime > 0 && !dying) {
+      const half = aimHalfAngle(state.meta.abilities.aimAngle);
+      const len = 0.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, len, -Math.PI / 2 - half, -Math.PI / 2 + half);
+      ctx.closePath();
+      ctx.fillStyle = color + '12';
+      ctx.fill();
+      ctx.strokeStyle = color + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     if (c.invulnerable > 0 && !dying && Math.sin(this.clock * 40) > 0.3) ctx.globalAlpha = 0.45;
 
     // Socle.
@@ -521,15 +904,49 @@ export class Renderer {
     ctx.translate(x, y);
     ctx.rotate(c.angle);
     const back = this.recoil * 0.012 * s;
-    const barrels = state.meta.abilities.multishot >= 1 ? [-0.22, 0.22] : [0];
-    for (const off of barrels) {
+    const barrel = (off: number, len: number, w: number) => {
       ctx.beginPath();
-      ctx.rect(r * 0.2 * s - back, (off - 0.2) * r * s, r * 1.45 * s, r * 0.4 * s);
+      ctx.rect(r * 0.2 * s - back, (off - w / 2) * r * s, r * len * s, r * w * s);
       ctx.fillStyle = '#10142a';
       ctx.fill();
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.stroke();
+    };
+    // Chaque type de canon a sa silhouette.
+    if (kind === 'burst') {
+      for (const off of [-0.3, 0, 0.3]) barrel(off, 1.35, 0.22);
+    } else if (kind === 'shotgun') {
+      ctx.beginPath();
+      ctx.moveTo(r * 0.2 * s - back, -0.22 * r * s);
+      ctx.lineTo(r * 1.5 * s - back, -0.48 * r * s);
+      ctx.lineTo(r * 1.5 * s - back, 0.48 * r * s);
+      ctx.lineTo(r * 0.2 * s - back, 0.22 * r * s);
+      ctx.closePath();
+      ctx.fillStyle = '#10142a';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (kind === 'beam') {
+      barrel(0, 1.2, 0.34);
+      ctx.beginPath();
+      ctx.arc(r * 1.45 * s - back, 0, r * 0.26 * s, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else if (kind === 'missile') {
+      barrel(-0.26, 1.15, 0.42);
+      barrel(0.26, 1.15, 0.42);
+    } else if (kind === 'plasma') {
+      barrel(0, 1, 0.3);
+      ctx.beginPath();
+      ctx.arc(r * 1.3 * s - back, 0, r * 0.38 * s, 0, Math.PI * 2);
+      ctx.fillStyle = color + '55';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    } else {
+      for (const off of state.meta.abilities.multishot >= 1 ? [-0.22, 0.22] : [0]) barrel(off, 1.45, 0.4);
     }
     ctx.restore();
 
@@ -586,7 +1003,7 @@ export class Renderer {
     if (dying) return;
     const barW = Math.min(W.width * s * 0.42, 170);
     const bx = this.ox - barW / 2;
-    const by = this.sy(W.cannonY + r * 1.45);
+    const by = this.sy(W.cannonMaxY + r * 1.2);
     const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
     ctx.fillStyle = '#ffffff14';
     ctx.fillRect(bx, by, barW, 6);
@@ -622,7 +1039,9 @@ export class Renderer {
       ctx.fillRect(x, y, barW * Math.min(1, ratio), h);
       ctx.fillStyle = '#ffffffd0';
       ctx.textAlign = 'left';
-      ctx.fillText(`${t('bossPhase')} · ${t(`boss.${living[0]?.tier ?? 0}`)}`, x, y - 3);
+      const first = living[0];
+      const name = first && first.kind !== 'normal' ? t(`boss.${first.kind}`) : t(`boss.${first?.tier ?? 0}`);
+      ctx.fillText(`${t('bossPhase')} · ${name}`, x, y - 3);
       ctx.textAlign = 'right';
       ctx.fillText(formatNumber(Math.ceil(hp)), x + barW, y - 3);
       return;

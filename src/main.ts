@@ -12,8 +12,10 @@ import {
   buyRunUpgrade,
   buyWeapon,
   buyWorkshop,
+  buyCannon,
   continueRun,
   doubleRunDiamonds,
+  selectCannon,
   startRun,
   toggleEquip,
   useAbility,
@@ -22,10 +24,10 @@ import { formatNumber } from './game/bignum';
 import { isFighting } from './game/cannon';
 import { ACHIEVEMENTS, BALANCE } from './game/config';
 import type { GameEvent } from './game/events';
-import { offlineDiamonds, worldOf } from './game/formulas';
+import { bossKindAt, offlineDiamonds, worldOf } from './game/formulas';
 import { polygonVertices } from './game/geometry';
 import { startLoop } from './game/loop';
-import { checkAchievements, rollDaily } from './game/progress';
+import { checkAchievements, claimAchievement, claimDaily, claimDailyBonus, rollDaily } from './game/progress';
 import { AutoPlayer, spendCoins } from './game/autoplayer';
 import { STEP, step } from './game/simulation';
 import { W } from './game/state';
@@ -34,12 +36,14 @@ import { isNative, setupPlatform } from './platform';
 import { Effects } from './render/effects';
 import { Renderer } from './render/renderer';
 import { enemyColor, enemyVertices, tierColor, tierVertices } from './render/shapes';
+import { cloudAvailable, cloudDownload, cloudSignIn, cloudSignedIn, cloudUpload, progressScore } from './cloud';
 import { clearSave, exportCode, importCode, loadGame, saveGame } from './storage/save';
 import type { Settings } from './storage/save';
 import { setClickSound } from './ui/dom';
 import { Hud } from './ui/hud';
 import { TouchInput } from './ui/input';
 import { Screens } from './ui/screens';
+import type { CloudStatus } from './ui/screens';
 import { Toasts } from './ui/toast';
 
 const VERSION = pkg.version;
@@ -87,7 +91,14 @@ const renderer = new Renderer(canvas);
 const events: GameEvent[] = [];
 const toasts = new Toasts(app);
 
-const save = () => saveGame(state, settings, extra);
+/**
+ * Vrai quand une autre sauvegarde vient d'être écrite (import, effacement, sauvegarde Google) : plus aucune écriture
+ * locale avant le rechargement de la page, sinon la sauvegarde automatique à la fermeture l'écraserait.
+ */
+let reloading = false;
+const save = () => {
+  if (!reloading) saveGame(state, settings, extra);
+};
 
 function today(): string {
   const d = new Date();
@@ -105,12 +116,12 @@ async function rewarded(placement: RewardPlacement): Promise<boolean> {
   adBusy = true;
   try {
     ads ??= await createAds(isNative);
-    audio.suspend();
+    audio.setMuted(true);
     const ok = await ads.showRewarded(placement);
     if (!ok) toasts.show(t('toast.adUnavailable'));
     return ok;
   } finally {
-    audio.resume();
+    audio.setMuted(false);
     adBusy = false;
   }
 }
@@ -124,10 +135,80 @@ function maybeInterstitial(): void {
   extra.lastInterstitialAt = now;
   void (async () => {
     ads ??= await createAds(isNative);
-    audio.suspend();
+    audio.setMuted(true);
+    adBusy = true;
     await ads.showInterstitial();
-    audio.resume();
+    adBusy = false;
+    audio.setMuted(false);
   })();
+}
+
+// ------------------------------------------------------------ Sauvegarde Google (Google Play Jeux)
+
+const cloud: CloudStatus = { available: false, native: isNative, enabled: false, lastSync: 0, busy: false };
+let lastCloudUpload = 0;
+
+function cloudDescription(): string {
+  return t('menu.best', { level: state.meta.bestLevel });
+}
+
+/** Récupère la sauvegarde du compte si elle est plus avancée, sinon envoie la nôtre (jamais de perte). */
+async function syncCloud(manual: boolean): Promise<void> {
+  if (!cloud.available || cloud.busy) return;
+  cloud.busy = true;
+  try {
+    if (!(await cloudSignedIn()) && !(manual && (await cloudSignIn()))) throw new Error('non connecté');
+    const remote = await cloudDownload();
+    const data = remote ? importCode(remote) : null;
+    if (data && progressScore(data.state.meta) > progressScore(state.meta)) {
+      saveGame(data.state, settings, data.extra, localStorage, Date.now());
+      reloading = true;
+      toasts.show(t('cloud.restored'), 'gem');
+      setTimeout(() => location.reload(), 1200);
+      return;
+    }
+    if (await cloudUpload(exportCode(state, settings, extra), cloudDescription())) {
+      cloud.lastSync = Date.now();
+      lastCloudUpload = Date.now();
+    } else if (manual) {
+      toasts.show(t('cloud.error'));
+    }
+  } catch {
+    if (manual) toasts.show(t('cloud.error'));
+  } finally {
+    cloud.busy = false;
+  }
+}
+
+async function enableCloud(): Promise<void> {
+  if (!cloud.available || cloud.busy) return;
+  cloud.busy = true;
+  const ok = await cloudSignIn();
+  cloud.busy = false;
+  if (!ok) {
+    toasts.show(t('cloud.error'));
+    return;
+  }
+  settings = { ...settings, cloudSync: true };
+  cloud.enabled = true;
+  save();
+  await syncCloud(true);
+}
+
+/** Envoi automatique de la progression (au plus toutes les 2 minutes). */
+function cloudAutoUpload(force = false): void {
+  if (!cloud.enabled || cloud.busy) return;
+  if (!force && Date.now() - lastCloudUpload < 120_000) return;
+  lastCloudUpload = Date.now();
+  void cloudUpload(exportCode(state, settings, extra), cloudDescription()).then((ok) => {
+    if (ok) cloud.lastSync = Date.now();
+  });
+}
+
+async function initCloud(): Promise<void> {
+  cloud.available = await cloudAvailable();
+  cloud.enabled = cloud.available && settings.cloudSync && (await cloudSignedIn());
+  if (cloud.enabled) await syncCloud(false);
 }
 
 // ------------------------------------------------------------ Navigation
@@ -270,6 +351,44 @@ const screens = new Screens(app, {
   buyWeapon(id) {
     if (buyWeapon(state, id, events)) save();
   },
+  buyCannon(id) {
+    if (buyCannon(state, id)) {
+      sfx.play('gem');
+      save();
+    }
+  },
+  selectCannon(id) {
+    if (selectCannon(state, id)) save();
+  },
+  claimAchievement(id) {
+    const gems = claimAchievement(state, id);
+    if (gems > 0) {
+      sfx.play('gem');
+      toasts.show(`+${gems} ${t('gems').toLowerCase()}`, 'gem');
+      save();
+    }
+  },
+  claimDaily(index) {
+    const gems = claimDaily(state, index);
+    if (gems > 0) {
+      sfx.play('gem');
+      checkAchievements(state, events);
+      save();
+    }
+  },
+  claimDailyBonus() {
+    if (claimDailyBonus(state) > 0) {
+      sfx.play('achievement');
+      save();
+    }
+  },
+  cloudStatus: () => cloud,
+  cloudEnable() {
+    void enableCloud();
+  },
+  cloudSyncNow() {
+    void syncCloud(true);
+  },
   toggleEquip(id) {
     if (toggleEquip(state, id)) save();
   },
@@ -286,11 +405,13 @@ const screens = new Screens(app, {
     const data = importCode(code);
     if (!data) return false;
     saveGame(data.state, data.settings, data.extra, localStorage, data.savedAt || Date.now());
+    reloading = true;
     setTimeout(() => location.reload(), 600);
     return true;
   },
   resetSave() {
     clearSave();
+    reloading = true;
     location.reload();
   },
   consentAvailable: () => ads?.consentAvailable() ?? false,
@@ -322,7 +443,14 @@ function handleEvents(): void {
   for (const e of events) {
     switch (e.type) {
       case 'levelStart': {
-        const sub = e.newEnemy ? t('banner.newEnemy', { name: t(`enemy.${e.newEnemy}.name`) }) : e.grand ? t('banner.grand') : e.golden ? t('banner.golden') : '';
+        const kind = bossKindAt(e.level);
+        const sub = e.newEnemy
+          ? t('banner.newEnemy', { name: t(`enemy.${e.newEnemy}.name`) })
+          : kind !== 'normal'
+            ? t(`banner.${kind}`)
+            : e.golden
+              ? t('banner.golden')
+              : '';
         effects.banner(t('banner.level', { level: e.level }), sub, e.golden ? visual.goldColor : e.grand ? visual.dangerColor : '#ffffff');
         save();
         break;
@@ -424,6 +552,7 @@ function handleEvents(): void {
         if (e.gems > 0) effects.floatText(b.x, b.y + 0.3, t('float.gems', { n: e.gems }), visual.gemColor, 1.3, 1.4);
         sfx.play('levelClear');
         save();
+        cloudAutoUpload();
         break;
       }
       case 'cannonHit':
@@ -478,22 +607,23 @@ function handleEvents(): void {
         break;
       case 'gameOver':
         save();
+        cloudAutoUpload(true);
         screens.reset('gameOver');
         break;
       case 'continued':
         break;
       case 'achievement': {
         const def = ACHIEVEMENTS.find((a) => a.id === e.id);
-        if (def) toasts.show(t('toast.achievement', { name: t(`ach.${def.stat}`, { goal: formatNumber(def.goal) }), gems: e.gems }), 'gem');
+        if (def) toasts.show(t('toast.achievementUnlocked', { name: t(`ach.${def.stat}`, { goal: formatNumber(def.goal) }) }), 'gem');
         sfx.play('achievement');
         break;
       }
       case 'dailyComplete':
-        toasts.show(t('toast.daily', { gems: e.gems }), 'gem');
+        toasts.show(t('toast.dailyDone'), 'gem');
         sfx.play('achievement');
         break;
       case 'campaignComplete':
-        toasts.show(t('toast.campaign', { gems: e.gems }), 'gem');
+        toasts.show(t('toast.campaign', { gems: e.gems, levels: BALANCE.campaignLevels }), 'gem');
         sfx.play('achievement');
         if (!extra.victoryShown) {
           extra.victoryShown = true;
@@ -501,6 +631,39 @@ function handleEvents(): void {
         }
         break;
       case 'waveStart':
+        break;
+      case 'cannonUnlocked':
+        toasts.show(t('toast.cannon', { name: t(`cannon.${e.id}.name`) }), 'gem');
+        sfx.play('achievement');
+        break;
+      case 'partDestroyed':
+        effects.shards(polygonVertices(4, e.radius, Math.PI / 4, e.x, e.y), e, visual.gunColor, 18, 0.9, 1.1);
+        effects.ring(e.x, e.y, visual.gunColor, e.radius, 0.6, 0.4, 4);
+        effects.addShake(5);
+        sfx.play('kill', 1.6);
+        break;
+      case 'cannonCrash':
+        effects.floatText(e.x, e.y - 0.08, t('float.crash'), visual.dangerColor, 1.3, 1);
+        effects.ring(e.x, e.y, visual.dangerColor, 0.04, 0.8, 0.5, 5);
+        effects.addShake(9);
+        break;
+      case 'missileBoom':
+        effects.ring(e.x, e.y, '#ffb347', e.radius * 0.3, e.radius * 4, 0.3, 3);
+        effects.sparks(e.x, e.y, '#ffb347', 6);
+        sfx.play('kill', 0.6);
+        break;
+      case 'rockKilled':
+        effects.shards(polygonVertices(7, e.radius, 0, e.x, e.y), e, '#a0703a', 10, e.radius / 0.03);
+        if (e.coins > 0) effects.floatText(e.x, e.y, '+' + formatNumber(e.coins), visual.coinColor, 0.8);
+        sfx.play('kill', 0.7);
+        break;
+      case 'hazardWarn':
+        sfx.play('blocked');
+        break;
+      case 'hazardStrike':
+        effects.addShake(e.kind === 'flare' ? 6 : 4);
+        if (e.kind === 'strike') effects.bolt([{ x: e.x + 0.02, y: e.y - 0.6 }, { x: e.x, y: e.y }]);
+        sfx.play(e.kind === 'flare' ? 'laser' : 'lightning');
         break;
     }
   }
@@ -544,7 +707,7 @@ startLoop(
       hud.update(state);
     } else {
       effects.update(frameDt);
-      renderer.drawMenu(frameDt, effects);
+      renderer.drawMenu(frameDt, effects, Math.min(worldOf(state.meta.bestLevel), BALANCE.worlds.length - 1));
     }
     screens.update();
     updateMusic();
@@ -569,6 +732,7 @@ function onHide(): void {
   hidden = true;
   hiddenAt = Date.now();
   save();
+  cloudAutoUpload(true);
   pause();
   audio.suspend();
 }
@@ -615,6 +779,9 @@ void setupPlatform({
 if (!isNative && import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
+
+// Sauvegarde Google : récupère la progression du compte au démarrage si la synchronisation est activée.
+void initCloud();
 
 // Prépare les publicités (consentement UMP sur Android) sans bloquer le démarrage.
 void createAds(isNative).then((a) => (ads = a));

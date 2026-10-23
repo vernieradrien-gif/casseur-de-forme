@@ -1,8 +1,10 @@
-import { abilityReady, buyAbility, buyRunUpgrade, buyWeapon, buyWorkshop, useAbility, workshopMaxed } from './actions';
-import { ABILITIES, ACTIVE_ABILITIES, BALANCE, RUN_UPGRADES, WEAPONS } from './config';
-import type { WorkshopId } from './config';
+import { abilityReady, buyAbility, buyRunUpgrade, buyWeapon, buyWorkshop, selectCannon, useAbility, workshopMaxed } from './actions';
+import { ABILITIES, ACTIVE_ABILITIES, BALANCE, CANNONS, RUN_UPGRADES, WEAPONS } from './config';
+import type { CannonId, WorkshopId } from './config';
 import type { GameEvent } from './events';
+import { partPosition } from './boss';
 import { abilityPrice, cost, weaponUpgradeCost } from './formulas';
+import { claimAchievement, claimDaily, claimDailyBonus, claimableAchievements } from './progress';
 import { nextRandom } from './rng';
 import { W } from './state';
 import type { GameState } from './state';
@@ -10,7 +12,7 @@ import type { GameState } from './state';
 /**
  * Joueur automatique (simulation d'équilibrage et tests) : il se place sous les cibles,
  * esquive ce qui arrive sur lui avec un temps de réaction et des erreurs, utilise ses capacités
- * et dépense tout ce qu'il gagne.
+ * et dépense tout ce qu'il gagne. Il reste près du bas de l'écran (comme la plupart des joueurs).
  */
 export interface AutoPlayerOptions {
   /** Temps entre deux décisions (secondes). */
@@ -24,9 +26,13 @@ export interface AutoPlayerOptions {
 
 export const DEFAULT_PLAYER: AutoPlayerOptions = { reaction: 0.16, noise: 0.03, blindness: 0.15, seed: 7 };
 
+/** Hauteur où le joueur automatique garde son canon. */
+const HOME_Y = W.cannonY - 0.02;
+
 export class AutoPlayer {
   private timer = 0;
   private target = 0;
+  private targetY = HOME_Y;
   private readonly rng: { seed: number };
 
   constructor(private readonly opts: AutoPlayerOptions = DEFAULT_PLAYER) {
@@ -48,15 +54,16 @@ export class AutoPlayer {
       this.useAbilities(state, events);
     }
     state.input.moveX = this.target;
+    state.input.moveY = this.targetY;
   }
 
-  private danger(state: GameState, x: number, blind: boolean[]): number {
+  private danger(state: GameState, x: number, y: number, blind: boolean[]): number {
     const run = state.run;
     const cr = BALANCE.cannon.radius;
     let d = 0;
     run.enemies.forEach((e, i) => {
       if (blind[i] || e.hp <= 0 || e.damage <= 0) return;
-      const dy = W.cannonY - e.y;
+      const dy = y - e.y;
       if (dy < -0.05) return;
       if (e.kind === 'dasher' && e.mode === 1) {
         if (Math.abs(e.tx - x) < e.radius + cr + 0.05) d += 1.2;
@@ -70,10 +77,18 @@ export class AutoPlayer {
     });
     for (const b of run.bullets) {
       if (b.damage <= 0 || b.vy <= 0) continue;
-      const t = (W.cannonY - b.y) / b.vy;
+      const t = (y - b.y) / b.vy;
       if (t < 0 || t > 1) continue;
       const px = b.x + b.vx * t;
       if (Math.abs(px - x) < b.radius + cr + 0.03) d += (1.1 - t) * 1.5;
+    }
+    for (const h of run.hazards) {
+      if (h.kind === 'flare' && Math.abs(h.x - x) < h.r + cr + 0.02) d += 2;
+      else if (h.kind === 'strike' && Math.hypot(h.x - x, h.y - y) < h.r + cr + 0.02) d += 2;
+      else if (h.kind === 'rock' && h.hp > 0 && h.y < y) {
+        const t = (y - h.y) / Math.max(0.05, h.vy);
+        if (t < 1.3 && Math.abs(h.x + h.vx * t - x) < h.r + cr + 0.03) d += 1.4 - t;
+      } else if (h.kind === 'hole' && Math.hypot(h.x - x, h.y - y) < h.r + cr + 0.08) d += 1.5;
     }
     return d;
   }
@@ -87,7 +102,7 @@ export class AutoPlayer {
     let aimW = 0.02;
     let lowest = -Infinity;
     for (const e of run.enemies) {
-      if (e.hp > 0 && e.y > 0.02 && e.y < W.cannonY - 0.2 && e.y > lowest) {
+      if (e.hp > 0 && e.y > 0.02 && e.y < c.y - 0.2 && e.y > lowest) {
         lowest = e.y;
         aimX = e.x + e.vx * 0.3;
         aimW = e.radius;
@@ -96,14 +111,17 @@ export class AutoPlayer {
     if (aimX === null && run.phase === 'boss') {
       const b = run.bosses.find((x) => x.hp > 0);
       if (b) {
-        aimX = b.x + b.vx * 0.35;
-        aimW = b.radius * 0.5;
+        // Super boss : d'abord ses canons (toujours exposés), puis le cœur.
+        const gun = b.parts.find((p) => p.role === 'gun' && p.hp > 0);
+        const gx = gun ? partPosition(b, gun).x : b.x;
+        aimX = gx + b.vx * 0.35;
+        aimW = b.kind === 'normal' ? b.radius * 0.5 : 0.03;
       }
     }
     let best = c.x;
     let bestScore = -Infinity;
     for (let x = W.cannonMinX; x <= W.cannonMaxX + 1e-9; x += 0.025) {
-      let score = -Math.abs(x - c.x) * 0.4 - this.danger(state, x, blind) * 6;
+      let score = -Math.abs(x - c.x) * 0.4 - this.danger(state, x, HOME_Y, blind) * 6;
       if (aimX !== null) score += Math.abs(x - aimX) < aimW ? 1 : -Math.abs(x - aimX) * 2;
       if (score > bestScore) {
         bestScore = score;
@@ -120,7 +138,7 @@ export class AutoPlayer {
       const enemies = run.enemies.filter((e) => e.hp > 0).length;
       const wanted =
         (id === 'autoAim' && (run.phase === 'boss' || enemies >= 4)) ||
-        (id === 'shield' && (run.cannon.hp < run.cannon.maxHp * 0.5 || this.danger(state, run.cannon.x, []) > 0.6)) ||
+        (id === 'shield' && (run.cannon.hp < run.cannon.maxHp * 0.5 || this.danger(state, run.cannon.x, run.cannon.y, []) > 0.6)) ||
         (id === 'shockwave' && (enemies >= 7 || (run.phase === 'boss' && run.cannon.hp < run.cannon.maxHp * 0.4)));
       if (wanted) useAbility(state, id, events);
     }
@@ -144,10 +162,14 @@ export function spendCoins(state: GameState): void {
 }
 
 const WORKSHOP_PRIORITY: WorkshopId[] = ['damage', 'fireRate', 'maxHp', 'coins', 'repair', 'startCoins'];
+const CANNON_PREFERENCE: CannonId[] = ['plasma', 'missile', 'beam', 'burst', 'shotgun', 'classic'];
 
-/** Dépense diamants et gemmes entre deux parties (atelier, capacités, armes). */
+/** Dépense diamants et gemmes entre deux parties (récompenses, atelier, capacités, armes, canon). */
 export function spendMeta(state: GameState): void {
   const meta = state.meta;
+  for (const id of claimableAchievements(meta)) claimAchievement(state, id);
+  meta.daily.objectives.forEach((_, i) => claimDaily(state, i));
+  claimDailyBonus(state);
   // Gemmes : Multi-tir, Visée auto, armes, puis le reste.
   const gemOrder: (() => boolean)[] = [
     () => meta.abilities.multishot === 0 && buyAbility(state, 'multishot'),
@@ -189,4 +211,7 @@ export function spendMeta(state: GameState): void {
     }
     if (!buy || !buy()) break;
   }
+  // Le meilleur canon débloqué.
+  const cannon = CANNON_PREFERENCE.find((id) => meta.cannons[id] && CANNONS.includes(id));
+  if (cannon) selectCannon(state, cannon);
 }

@@ -27,6 +27,7 @@ import {
   pickFormation,
   tierDef,
   tierIndex,
+  tierHpMultiplier,
   tierOf,
   wavesForLevel,
   weaponPower,
@@ -34,6 +35,7 @@ import {
   worldOf,
   worldStart,
   worldsUnlocked,
+  worldRamp,
 } from '../src/game/formulas';
 import { pointInPolygon, polygonVertices, shapeVertices, starVertices } from '../src/game/geometry';
 import { createMeta } from '../src/game/state';
@@ -83,12 +85,13 @@ describe('niveaux, paliers et mondes', () => {
 });
 
 describe('boss', () => {
-  it('PV = base × croissance^(niveau − 1) × multiplicateur de palier (× grand boss)', () => {
+  it('PV = base × croissance^(niveau − 1) × palier × montée du monde (× super boss)', () => {
     const b = BALANCE.boss;
     expect(bossHp(1)).toBe(b.baseHp);
-    expect(bossHp(5)).toBeCloseTo(b.baseHp * b.hpGrowth ** 4);
-    expect(bossHp(12)).toBeCloseTo(b.baseHp * b.hpGrowth ** 11 * b.tierHpMultipliers[1]);
-    expect(bossHp(10)).toBeCloseTo(b.baseHp * b.hpGrowth ** 9 * b.grandHpMultiplier);
+    expect(bossHp(5)).toBeCloseTo(b.baseHp * b.hpGrowth ** 4 * worldRamp(5));
+    expect(bossHp(12)).toBeCloseTo(b.baseHp * b.hpGrowth ** 11 * b.tierHpMultipliers[1] * worldRamp(12));
+    expect(bossHp(10)).toBeCloseTo(b.baseHp * b.hpGrowth ** 9 * worldRamp(10) ** BALANCE.boss.worldRamp.specialShare * BALANCE.special.super.hpMultiplier);
+    expect(bossHp(50)).toBeCloseTo(b.baseHp * b.hpGrowth ** 49 * tierHpMultiplier(50) * worldRamp(50) ** BALANCE.boss.worldRamp.specialShare * BALANCE.special.mega.hpMultiplier);
     // Mode infini : la croissance continue.
     expect(bossHp(150)).toBeGreaterThan(bossHp(100));
   });
@@ -134,18 +137,20 @@ describe('vagues et ennemis', () => {
     expect(enemiesPerWave(10_000)).toBe(BALANCE.waves.countMax);
   });
 
-  it('un nouveau type d’ennemi présenté à la fois (8 types entre les niveaux 1 et 40)', () => {
+  it('un nouveau type d’ennemi présenté à la fois (10 types entre les niveaux 1 et 40)', () => {
     expect(enemyKindsAt(1)).toEqual(['grunt']);
     expect(enemyKindsAt(3)).toEqual(['grunt', 'weaver']);
-    expect(enemyKindsAt(40)).toHaveLength(8);
-    expect(newEnemyAt(3)).toBe('weaver');
+    expect(enemyKindsAt(40)).toHaveLength(10);
+    expect(newEnemyAt(2)).toBe('weaver');
+    expect(newEnemyAt(5)).toBe('turret');
     expect(newEnemyAt(6)).toBe('tank');
+    expect(newEnemyAt(9)).toBe('strafer');
     expect(newEnemyAt(12)).toBe('hunter');
     expect(newEnemyAt(16)).toBe('shooter');
     expect(newEnemyAt(22)).toBe('splitter');
     expect(newEnemyAt(30)).toBe('dasher');
     expect(newEnemyAt(40)).toBe('armored');
-    expect(newEnemyAt(5)).toBeNull();
+    expect(newEnemyAt(3)).toBeNull();
     for (let i = 0; i < 20; i++) expect(pickEnemyKind(1, i / 20)).toBe('grunt');
   });
 

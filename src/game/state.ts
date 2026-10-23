@@ -1,5 +1,16 @@
-import { ABILITIES, ACTIVE_ABILITIES, BALANCE, RUN_UPGRADES, STATS, WEAPONS, WORKSHOP } from './config';
-import type { AbilityId, ActiveAbilityId, EnemyKind, RunUpgradeId, StatId, WeaponId, WorkshopId } from './config';
+import { ABILITIES, ACTIVE_ABILITIES, BALANCE, CANNONS, RUN_UPGRADES, STATS, WEAPONS, WORKSHOP } from './config';
+import type {
+  AbilityId,
+  ActiveAbilityId,
+  BossKind,
+  CannonId,
+  DailyKind,
+  EnemyKind,
+  RunUpgradeId,
+  StatId,
+  WeaponId,
+  WorkshopId,
+} from './config';
 import { cannonStats } from './formulas';
 import type { ShapeDef } from './geometry';
 
@@ -23,7 +34,7 @@ export interface Enemy {
   amp: number;
   freq: number;
   phase: number;
-  /** Étape du comportement (tireur : descend / tire / repart ; kamikaze : descend / vise / fonce). */
+  /** Étape du comportement (tireur : descend / tire / repart ; kamikaze : descend / vise / fonce…). */
   mode: number;
   timer: number;
   shots: number;
@@ -38,12 +49,29 @@ export interface Enemy {
   orbCd: number;
 }
 
+/** Bloc d'un super boss : cœur (vulnérable), blindage (invulnérable) ou canon (vulnérable, tire). */
+export interface BossPart {
+  role: 'core' | 'armor' | 'gun';
+  /** Anneau tournant (−1 : fixe par rapport au boss). */
+  ring: number;
+  angle: number;
+  dist: number;
+  half: number;
+  hp: number;
+  maxHp: number;
+  flash: number;
+  fireTimer: number;
+}
+
 export interface Boss {
   id: number;
+  kind: BossKind;
   level: number;
   tier: number;
   shape: ShapeDef;
   radius: number;
+  /** Encombrement (collisions, déplacements). */
+  span: number;
   x: number;
   y: number;
   vx: number;
@@ -75,14 +103,27 @@ export interface Boss {
   /** Indices des sommets portant une zone faible. */
   weakPoints: number[];
   flash: number;
+  /** Super boss et titan : blocs et rotation des anneaux de blindage. */
+  parts: BossPart[];
+  ringRot: number[];
 }
 
+export type ProjectileKind = 'bullet' | 'pellet' | 'missile' | 'plasma';
+
 export interface Projectile {
+  kind: ProjectileKind;
   x: number;
   y: number;
   vx: number;
   vy: number;
   damage: number;
+  radius: number;
+  /** Plasma : ennemis encore traversables et déjà touchés. */
+  pierce: number;
+  hit: number[];
+  /** Missile : rayon d'explosion. */
+  splash: number;
+  life: number;
 }
 
 export interface Bullet {
@@ -120,11 +161,18 @@ export interface WaveState {
 
 export interface Cannon {
   x: number;
+  y: number;
   /** Angle du fût (radians, −π/2 = vers le haut). */
   angle: number;
   hp: number;
   maxHp: number;
   fireTimer: number;
+  /** Rafale en cours : tirs restants et délai. */
+  burstLeft: number;
+  burstTimer: number;
+  /** Rayon (canon « Rayon ») : actif et extrémité haute atteinte. */
+  beamOn: boolean;
+  beamTop: number;
   invulnerable: number;
   shieldTime: number;
   autoAimTime: number;
@@ -138,6 +186,26 @@ export interface WeaponState {
   laserAcc: number;
   lightningTimer: number;
   orbAngle: number;
+}
+
+/** Danger propre au monde : nuage de nébuleuse, astéroïde, éruption, trou noir, frappe ionique. */
+export interface Hazard {
+  id: number;
+  kind: 'cloud' | 'rock' | 'flare' | 'hole' | 'strike';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  hp: number;
+  maxHp: number;
+  /** Éruption et frappe : temps restant d'alerte puis de brûlure. */
+  timer: number;
+  /** 0 = alerte, 1 = actif. */
+  stage: number;
+  rot: number;
+  vr: number;
+  flash: number;
 }
 
 export type Phase = 'waves' | 'bossIntro' | 'boss' | 'levelClear' | 'dying' | 'gameOver';
@@ -168,6 +236,8 @@ export interface RunState {
   enemies: Enemy[];
   projectiles: Projectile[];
   bullets: Bullet[];
+  hazards: Hazard[];
+  hazardTimer: number;
   kills: number;
   coinsEarned: number;
   diamondsEarned: number;
@@ -180,11 +250,20 @@ export interface RunState {
   nextId: number;
 }
 
+export interface DailyObjective {
+  id: DailyKind;
+  target: number;
+  gems: number;
+  progress: number;
+  claimed: boolean;
+}
+
 export interface DailyState {
   /** Jour (AAAA-MM-JJ) fourni par l'interface. */
   date: string;
-  kills: number;
-  done: boolean;
+  objectives: DailyObjective[];
+  /** Bonus quand tous les objectifs du jour sont récupérés. */
+  bonusClaimed: boolean;
 }
 
 export interface CollectionState {
@@ -192,6 +271,8 @@ export interface CollectionState {
   bosses: number[];
   golden: number[];
   enemies: EnemyKind[];
+  /** Super boss et titans vaincus. */
+  special: BossKind[];
 }
 
 /** Progression permanente. */
@@ -202,13 +283,18 @@ export interface MetaState {
   /** Plus haut niveau terminé (bonus de premier passage). */
   highestCleared: number;
   workshop: Record<WorkshopId, number>;
-  /** Niveau des capacités (0 = verrouillée). */
+  /** Niveau des capacités (0 = verrouillée ; angle de visée : 0 = angle de base). */
   abilities: Record<AbilityId, number>;
   /** Niveau des armes (0 = verrouillée). */
   weapons: Record<WeaponId, number>;
   equipped: WeaponId[];
+  /** Canons débloqués et canon choisi. */
+  cannons: Record<CannonId, boolean>;
+  cannon: CannonId;
   stats: Record<StatId, number>;
+  /** Succès débloqués, et ceux dont la récompense a été récupérée. */
   achievements: string[];
+  achievementsClaimed: string[];
   collection: CollectionState;
   daily: DailyState;
   campaignComplete: boolean;
@@ -218,8 +304,9 @@ export interface MetaState {
 
 /** Commandes du joueur, déjà traduites en coordonnées monde par l'interface. */
 export interface Input {
-  /** Abscisse vers laquelle déplacer le canon (null = ne bouge pas). */
+  /** Position vers laquelle déplacer le canon (null = ne bouge pas). */
   moveX: number | null;
+  moveY: number | null;
 }
 
 export interface GameState {
@@ -236,6 +323,8 @@ export function record<K extends string, V>(keys: readonly K[], value: V): Recor
 }
 
 export function createMeta(): MetaState {
+  const cannons = record(CANNONS, false);
+  cannons.classic = true;
   return {
     diamonds: 0,
     gems: 0,
@@ -245,10 +334,13 @@ export function createMeta(): MetaState {
     abilities: record(ABILITIES, 0),
     weapons: record(WEAPONS, 0),
     equipped: [],
+    cannons,
+    cannon: 'classic',
     stats: record(STATS, 0),
     achievements: [],
-    collection: { bosses: [], golden: [], enemies: [] },
-    daily: { date: '', kills: 0, done: false },
+    achievementsClaimed: [],
+    collection: { bosses: [], golden: [], enemies: [], special: [] },
+    daily: { date: '', objectives: [], bonusClaimed: false },
     campaignComplete: false,
     boostTime: 0,
   };
@@ -277,10 +369,15 @@ export function createRun(meta: MetaState, level = 1): RunState {
     bosses: [],
     cannon: {
       x: 0,
+      y: BALANCE.world.cannonY,
       angle: -Math.PI / 2,
       hp: stats.maxHp,
       maxHp: stats.maxHp,
       fireTimer: 0,
+      burstLeft: 0,
+      burstTimer: 0,
+      beamOn: false,
+      beamTop: 0,
       invulnerable: 0,
       shieldTime: 0,
       autoAimTime: 0,
@@ -290,6 +387,8 @@ export function createRun(meta: MetaState, level = 1): RunState {
     enemies: [],
     projectiles: [],
     bullets: [],
+    hazards: [],
+    hazardTimer: 1,
     kills: 0,
     coinsEarned: 0,
     diamondsEarned: 0,
@@ -301,10 +400,10 @@ export function createRun(meta: MetaState, level = 1): RunState {
   };
 }
 
-/** État complet ; la partie n'est préparée (vagues, boss) qu'au premier `step` ou par `startLevel`. */
+/** État complet ; la partie n'est préparée (vagues, boss) qu'au premier `step`. */
 export function createState(seed = Date.now() | 0): GameState {
   const meta = createMeta();
-  return { run: createRun(meta), meta, input: { moveX: null }, seed, time: 0 };
+  return { run: createRun(meta), meta, input: { moveX: null, moveY: null }, seed, time: 0 };
 }
 
 export const W = BALANCE.world;

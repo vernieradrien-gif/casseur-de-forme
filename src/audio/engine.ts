@@ -80,11 +80,25 @@ export class AudioEngine {
     this.sfx.gain.setTargetAtTime(0.9 * this.sfxVolume * this.sfxVolume, t, 0.05);
   }
 
+  /** Son coupé (publicité affichée) : rien ne reprend tant que la pub n'est pas fermée. */
+  muted = false;
+
+  setMuted(on: boolean): void {
+    this.muted = on;
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(on ? 0 : 1, t, on ? 0.01 : 0.15);
+    if (on) this.suspend();
+    else this.resume();
+  }
+
   suspend(): void {
     if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend().catch(() => {});
   }
 
   resume(): void {
+    if (this.muted) return;
     if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {});
   }
 }
