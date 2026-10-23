@@ -2,7 +2,7 @@
 
 > Ce document est la **source de vérité** du projet. En cas de doute ou de contradiction, c'est lui qui fait foi.
 >
-> **Version 4.** Le canon suit le doigt dans toutes les directions (contact avec le boss = gros dégâts), types de canon, super boss en blocs, 5 mondes à thème qui agissent sur le canon, plusieurs objectifs du jour, récompenses à récupérer, sauvegarde Google (option), musique de jeu épique, progression plus lente. Recherche préalable : [recherche-design.md](recherche-design.md). Historique en fin de document.
+> **Version 5.** 11 canons (certains avec un bonus passif, certains seulement en jouant, un canon légendaire en fin de campagne), armes cachées offertes en fin de monde, succès « monde sans dégât », plus aucune pub automatique, consentement publicitaire revu. Version 4 : canon libre en 2D, super boss en blocs, 5 mondes à thème, objectifs du jour, sauvegarde Google. Recherche préalable : [recherche-design.md](recherche-design.md). Historique en fin de document.
 
 ---
 
@@ -25,13 +25,13 @@ TypeScript strict + Vite, Canvas 2D, Web Audio, Capacitor (Android), AdMob (`@ca
 - Hasard de la simulation par générateur à graine (tests reproductibles).
 - Grands nombres : un seul module de calcul et un seul formateur (1,2 K, 3,4 M…).
 - Formes = sommets calculés depuis (côtés, rayon, rotation) ; étoile = rayons alternés.
-- Publicités uniquement via `src/ads/` (`showRewarded`, `showInterstitial`), version factice sur le web, **identifiants AdMob de test uniquement**.
+- Publicités uniquement via `src/ads/` (`showRewarded`) : **seulement des pubs récompensées que le joueur demande**, version factice sur le web, **identifiants AdMob de test uniquement**.
 - Tout l'équilibrage dans `src/config/*.json`.
 
 ## 3. Gameplay
 
 ### 3.1 Contrôle
-- Glisser le doigt n'importe où sur l'écran : le canon **suit le doigt** de gauche à droite **et de haut en bas** (déplacement relatif, le doigt ne cache pas le canon). Il peut monter jusqu'au boss.
+- Glisser le doigt n'importe où sur l'écran : le canon **suit le doigt** de gauche à droite **et de haut en bas** (déplacement relatif, le doigt ne cache pas le canon). Il reproduit exactement le mouvement du doigt (même distance) ; contre un bord, l'écart se recale. Il peut monter jusqu'au boss.
 - **Contact** : si le canon touche le boss ou son bouclier de vagues, il subit de gros dégâts de zone (35 % de ses PV max), il est repoussé et reste invulnérable 1,2 s.
 - Le canon tire **en continu, droit vers le haut**, même sans toucher l'écran. Cadence de départ : 2,5 tirs/s (à améliorer avec les pièces et l'atelier).
 - **Visée automatique** : capacité à débloquer (gemmes). Pendant quelques secondes, le canon s'oriente seul vers l'ennemi le plus menaçant, **dans un cône limité** : 20° au départ, +20° par niveau de la capacité « Angle de visée » (disponible une fois la visée auto débloquée), **160° au plus**.
@@ -81,22 +81,36 @@ PV, dégâts et pièces des ennemis augmentent à chaque niveau.
 Au-delà du niveau 250 (fin des 5 mondes), **mode infini** : les mondes et les formes recommencent, plus forts.
 
 ### 3.5 Armes secondaires (Armurerie)
-Débloquées avec des gemmes, améliorées avec des diamants, équipées dans des emplacements (1 emplacement au départ, 2e au meilleur niveau 30, 3e au meilleur niveau 60).
+Débloquées avec des gemmes, améliorées avec des diamants, équipées dans des emplacements (1 emplacement au départ, 2e au meilleur niveau 30, 3e au meilleur niveau 60, 4e au meilleur niveau 151).
 - **Orbes** : sphères en orbite autour du canon ; détruisent les ennemis et les projectiles ennemis au contact.
 - **Laser** : rayon vertical périodique qui transperce tout et ignore le blindage.
 - **Éclairs** : frappent périodiquement l'ennemi le plus proche et rebondissent sur les suivants.
 
-### 3.5 bis Canons (types de tir)
-Le canon principal peut changer de type (écran **Canons**) ; chacun a son tir et ses multiplicateurs de cadence et de dégâts.
+**Armes cachées** : invisibles dans l'armurerie tant qu'elles ne sont pas obtenues ; offertes (niveau 1) en terminant un monde, puis améliorées avec des diamants.
 
-| Canon | Tir | Obtention |
-|-------|-----|-----------|
-| Classique | tir droit régulier | dès le départ |
-| Rafale | rafales de 3 tirs rapides | gratuit au niveau 15, ou 60 gemmes |
-| Pompe | gerbe de plombs en éventail, courte portée | gratuit après 20 boss vaincus, ou 80 gemmes |
-| Rayon | faisceau continu qui traverse les ennemis | gratuit au niveau 50, ou 150 gemmes |
-| Missiles | missiles à tête chercheuse, explosion en zone | 120 gemmes uniquement |
-| Plasma | grosses sphères qui traversent plusieurs ennemis | gratuit au niveau 101, ou 250 gemmes |
+| Arme | Obtention | Effet |
+|------|-----------|-------|
+| Drones | fin du monde 1 | deux drones escortent le canon et tirent sur les ennemis proches |
+| Gel | fin du monde 2 | aura qui ralentit ennemis (−40 %) et tirs ennemis (−45 %), et les abîme |
+| Nova | fin du monde 3 | anneau de 14 tirs autour du canon toutes les 3,2 s |
+| Trou de ver | fin du monde 4 | tourbillon qui aspire et broie le plus gros groupe d'ennemis |
+
+### 3.5 bis Canons (types de tir)
+Le canon principal peut changer de type (écran **Canons**) ; chacun a son tir et ses multiplicateurs de cadence et de dégâts. Certains donnent un **bonus passif**, actif tant que ce canon est choisi.
+
+| Canon | Tir | Bonus passif | Obtention |
+|-------|-----|--------------|-----------|
+| Classique | tir droit régulier | — | dès le départ |
+| Rafale | rafales de 3 tirs rapides | — | gratuit au niveau 15, ou 60 gemmes |
+| Pompe | gerbe de plombs en éventail, courte portée | +20 % PV | gratuit après 20 boss vaincus, ou 80 gemmes |
+| Missiles | missiles à tête chercheuse, explosion en zone | — | 120 gemmes uniquement |
+| Rayon | faisceau continu qui traverse les ennemis | capacités rechargées 15 % plus vite | gratuit au niveau 40, ou 150 gemmes |
+| Plasma | grosses sphères qui traversent plusieurs ennemis | +50 % sur les points faibles | gratuit après 15 super boss, ou 200 gemmes |
+| Jumeaux | deux fûts qui tirent tour à tour | +15 % pièces | **seulement en jouant** : atteindre le monde 2 |
+| Ricochet | tirs inclinés qui rebondissent sur les bords | +20 % diamants | **seulement en jouant** : atteindre le monde 3 |
+| Gatling | cadence qui monte tant qu'elle tire | +15 % de réparation par niveau | **seulement en jouant** : atteindre le monde 4 |
+| Foudre | arcs qui frappent droit devant puis rebondissent | capacités rechargées 20 % plus vite | **seulement en jouant** : atteindre le monde 5 |
+| **Prisme** (légendaire) | éventail de sphères qui traversent tout | +25 % dégâts et +25 % pièces | **terminer les 5 mondes** |
 
 ### 3.6 Capacités (gemmes)
 - **Visée auto** (bouton) : visée automatique quelques secondes, recharge.
@@ -144,7 +158,7 @@ Nombres de dégâts flottants (couleur différente pour les zones faibles), écl
 
 **Atelier (diamants)** : Dégâts, Cadence, PV de base, Gain de pièces, Pièces de départ, Réparation (soin en fin de niveau), Coffre hors ligne (durée max).
 
-**Succès** : 30 succès. La récompense (gemmes) se **récupère en touchant le succès** dans l'écran Succès (pastille sur le menu quand une récompense attend).
+**Succès** : 45 succès, dont « terminer le monde N » et **« terminer le monde N sans prendre aucun dégât »** (les 50 niveaux du monde dans la même partie, sans un seul coup encaissé ; une partie qui commence au début du monde compte), super boss, titans, canons et armes. La récompense (gemmes) se **récupère en touchant le succès** dans l'écran Succès (pastille sur le menu quand une récompense attend).
 
 **Objectifs du jour** : **3 objectifs** tirés chaque jour dans une liste de 8 (détruire des ennemis, vaincre des boss, toucher des points faibles, attraper une étoile dorée, utiliser des capacités, jouer des parties, terminer des niveaux, acheter des améliorations), à récupérer à la main ; bonus de 5 gemmes quand les 3 sont récupérés.
 
@@ -164,7 +178,8 @@ Portrait, boutons d'au moins 56 dp.
 - **Pause** : reprendre, paramètres, menu principal (la partie est conservée).
 - **Défaite** : niveau atteint, record, gains ; continuer (pub), doubler les diamants (pub), rejouer, menu.
 - **Bienvenue** (gains hors ligne), **Victoire** (niveau 250 atteint, fin des 5 mondes).
-- **Paramètres** : musique, effets sonores, vibration, économie d'énergie (30 images/s), langue, sauvegarde Google, consentement publicités, export/import de la sauvegarde, effacer, À propos, politique de confidentialité.
+- **Paramètres** : musique, effets sonores, vibration, économie d'énergie (30 images/s), langue, export/import de la sauvegarde, effacer, version, politique de confidentialité ; « Sauvegarde Google » seulement quand elle est disponible, « Consentement publicités » seulement là où la loi l'exige.
+- **Menu** : la barre du monde se remplit selon le niveau max atteint dans ce monde.
 - Pause automatique en arrière-plan ; bouton retour Android géré.
 
 **Rendu** : fond sombre étoilé propre à chaque monde (nébuleuse, astéroïdes, supernova, trou noir, tempête ionique), formes néon (contour lumineux, remplissage translucide), palette par palier, 300 particules max, silhouettes distinctes (accessibilité).
@@ -173,7 +188,7 @@ Portrait, boutons d'au moins 56 dp.
 Musiques composées et synthétisées en code (Web Audio) : thème du menu (calme, avec nappes), thème de jeu **épique** (cuivres, percussions, sans les nappes du menu), thème de boss (intense) qui démarre **quand le bouclier du boss tombe**, fondu entre les thèmes. La musique et les sons sont **coupés pendant les publicités**. Effets : tir, impact, explosion, boss vaincu, canon touché, explosion du canon, gemme, clic, fin de niveau. Volumes réglables séparément.
 
 ## 8. Publicités
-**Récompensées** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min). **Interstitiel** rare : au plus toutes les 4 min, après 3 min de session, uniquement au retour au menu après une défaite. Jamais de pub pendant un niveau. Consentement RGPD (UMP) sur Android ; politique de confidentialité publiée sur GitHub Pages.
+**Seulement des pubs récompensées, toujours demandées par le joueur** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min). **Aucune pub automatique** (pas d'interstitiel), jamais de pub pendant un niveau. Consentement RGPD (Google UMP) sur Android **avant** tout démarrage du SDK publicitaire ; sans réponse de Google (hors ligne), aucune pub ; contenu des pubs limité à « PG ». Politique de confidentialité publiée sur GitHub Pages.
 
 ## 9. Données
 Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie en cours (reprise au début du niveau), méta-progression, succès, collection, objectif quotidien, paramètres, horodatage. Sauvegarde toutes les 10 s, à chaque niveau, à chaque passage en arrière-plan. Export/import en code texte. Sauvegarde Google Play Jeux (Saved Games) en option sur Android. Script de simulation sans rendu pour l'équilibrage (joueur automatique).
@@ -184,7 +199,8 @@ Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie e
 3. **Jeu complet v3** *(fait)* : contrôle au glisser, niveaux vagues → boss, 8 ennemis, propriétés et zones faibles, armes, capacités, mondes, menus, succès, collection, hors ligne, audio, i18n, PWA.
 4. **Android et pubs** *(fait)* : Capacitor, AdMob test + UMP, APK construit par GitHub Actions.
 5. **Version 4** *(fait)* : déplacement libre et contact, cône de visée, types de canon, tourelles et mitrailleurs, super boss et titans, 5 mondes à thème, plusieurs objectifs du jour, récompenses à récupérer, sauvegarde Google, musique épique, équilibrage revu.
-6. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
+6. **Version 5** *(fait)* : 11 canons dont 5 obtenus en jouant (bonus passifs, canon légendaire), armes cachées de fin de monde, succès « monde sans dégât », plus de pub automatique, consentement revu, textes allégés.
+7. **Publication** (à faire par le propriétaire avec son compte Google Play) : clé de signature privée, fiche Google Play, test fermé (12 testeurs, 14 jours), production. Voir `docs/publication.md`.
 
 ## 11. Critères d'acceptation v1
 - 250 niveaux jouables (5 mondes), puis mode infini ; le contrôle au doigt fait la différence.
@@ -202,4 +218,5 @@ Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie e
 - **v1** : jeu idle, la forme encaisse les tirs automatiques ; renaissance au niveau 30.
 - **v2** : la forme devient un boss qui lance des vagues ; canon contrôlable (3 modes) avec PV ; pièces, diamants, gemmes ; défaite = retour au niveau 1.
 - **v3** : contrôle unique au glisser avec tir droit ; visée auto = capacité ; niveaux vagues puis boss ; 8 ennemis ; armes ; mondes de 50 niveaux ; menu principal ; audio ; Android.
+- **v5** : 5 nouveaux canons (Jumeaux, Ricochet, Gatling, Foudre, Prisme légendaire) et bonus passifs ; 4 armes cachées offertes en fin de monde et 4e emplacement ; 15 nouveaux succès dont « monde sans dégât » ; barre du monde selon le niveau max ; suppression de l'interstitiel ; consentement UMP avant le SDK ; suivi du doigt exact ; textes allégés.
 - **v4** (retours du propriétaire après test de l'APK) : canon libre en 2D et dégâts de contact ; cône de visée 20° → 160° ; 6 types de canon ; tourelles et mitrailleurs ; super boss en blocs (tous les 10 niveaux) et titans (tous les 50) ; 5 mondes à thème qui agissent sur le canon, campagne de 250 niveaux ; 3 objectifs du jour ; récompenses des succès à récupérer ; sauvegarde Google ; musique de jeu épique, changement au bouclier du boss, silence pendant les pubs ; départ plus lent (cadence initiale réduite, boss plus solides) et difficulté qui monte vers la fin de chaque monde.

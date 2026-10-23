@@ -5,7 +5,7 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 - **Jouer sur le web (téléphone ou PC)** : https://vernieradrien-gif.github.io/casseur-de-forme/
   (ajouter `?reset` à l'adresse efface la sauvegarde, `?autoplay` lance une démonstration automatique)
 - **APK Android (test)** : https://github.com/vernieradrien-gif/casseur-de-forme/releases/download/android-latest/casseur-de-forme.apk
-- Cahier des charges (source de vérité, version 4) : [docs/cahier-des-charges.md](docs/cahier-des-charges.md) ·
+- Cahier des charges (source de vérité, version 5) : [docs/cahier-des-charges.md](docs/cahier-des-charges.md) ·
   recherche : [docs/recherche-design.md](docs/recherche-design.md) · publication : [docs/publication.md](docs/publication.md)
 
 ## Installer l'APK sur Android
@@ -16,7 +16,24 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : version 4 (retours après le test de l'APK)
+## État : version 5
+
+- **11 canons** : en plus des six premiers, Jumeaux, Ricochet, Gatling et Foudre s'obtiennent **seulement en jouant**
+  (atteindre les mondes 2 à 5), et le **Prisme**, canon légendaire, en terminant les 5 mondes. Plusieurs canons ont un
+  **bonus passif** (PV, pièces, diamants, recharge des capacités, points faibles, réparation, dégâts).
+- **Armes cachées** dans l'armurerie, offertes à la fin des mondes 1 à 4 : Drones, Gel, Nova, Trou de ver ; 4e
+  emplacement au niveau 151.
+- **45 succès**, dont « terminer le monde N sans prendre de dégât » pour chaque monde.
+- **Barre du monde** du menu remplie selon le niveau max atteint.
+- **Plus aucune pub automatique** : seulement des vidéos récompensées que le joueur demande.
+- **RGPD** : consentement Google UMP demandé avant de démarrer les publicités ; bouton de consentement là où la loi
+  l'exige.
+- **Suivi du doigt** exact (même distance que le doigt, recalage contre les bords).
+- **Textes allégés** (paramètres, aides).
+- Check-list de publication : [docs/publication.md](docs/publication.md) · textes de la fiche :
+  [docs/fiche-google-play.md](docs/fiche-google-play.md).
+
+### Version 4 (retours après le test de l'APK)
 
 - **Canon libre** : il suit le doigt de haut en bas et de gauche à droite ; toucher le boss ou son bouclier = gros dégâts.
 - **Visée auto dans un cône** : 20° au départ, élargi par la capacité « Angle de visée » jusqu'à 160°.
@@ -67,6 +84,25 @@ Chaque push sur `main` publie le jeu sur GitHub Pages (`.github/workflows/deploy
 branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`.github/workflows/android.yml`).
 
 ## Décisions prises
+
+### Version 5
+- **Bonus passifs** : actifs seulement tant que le canon est choisi (le choix du canon devient un vrai compromis). En
+  changeant de canon en cours de partie, la jauge de PV garde la même proportion.
+- **Canons « en jouant »** : Jumeaux (niveau 51), Ricochet (101), Gatling (151), Foudre (201) ne s'achètent pas ;
+  Prisme demande d'avoir terminé le niveau 250. Rayon passe au niveau 40, Plasma à 15 super boss ou 200 gemmes.
+- **Foudre** : chaque arc frappe le premier obstacle droit devant (ennemi, rocher, bloc ou boss, en respectant le
+  blindage), puis rebondit sur 2 ennemis proches (×0,7).
+- **Armes cachées** : invisibles tant qu'elles ne sont pas obtenues, offertes au niveau 1 (et équipées s'il reste une
+  place), puis améliorées avec des diamants. Un joueur qui a déjà fini un monde les reçoit au lancement de la mise à jour.
+- **« Monde sans dégât »** : les 50 niveaux du monde dans la même partie sans un seul coup encaissé (le bouclier et
+  l'invulnérabilité ne comptent pas comme un coup). Une partie qui commence au début du monde compte.
+- **Publicités** : l'interstitiel est supprimé du code ; le consentement UMP est demandé avant d'initialiser le SDK ; si
+  Google ne répond pas (hors ligne), aucune pub n'est demandée et une nouvelle tentative a lieu au prochain bonus ;
+  contenu maximal « PG ».
+- **Paramètres** : « Sauvegarde Google » et « Consentement publicités » n'apparaissent que lorsqu'ils servent.
+- **Barre du monde** : la barre ne se remplissait pas (élément en ligne sans largeur) ; corrigé pour toutes les barres.
+- **Contrôle** : le canon reproduit exactement le déplacement du doigt (avant : ×1,35, d'où un décalage) et va plus vite
+  (6 unités/s au lieu de 3) pour ne plus traîner derrière un geste rapide.
 
 ### Version 4
 - **Déplacement** : le canon peut monter jusqu'en haut de l'écran (y ≥ 0,1) pour suivre vraiment le doigt. Le contact avec le

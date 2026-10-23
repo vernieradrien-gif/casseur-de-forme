@@ -36,7 +36,7 @@ const W = BALANCE.world;
 
 /** Tir simple du canon (projectile classique). */
 function bullet(x: number, y: number, vx: number, vy: number, damage: number): Projectile {
-  return { kind: 'bullet', x, y, vx, vy, damage, radius: BALANCE.cannon.projectileRadius, pierce: 0, hit: [], splash: 0, life: 3 };
+  return { kind: 'bullet', x, y, vx, vy, damage, radius: BALANCE.cannon.projectileRadius, pierce: 0, hit: [], splash: 0, life: 3, bounces: 0 };
 }
 
 function run(state: GameState, seconds: number, each?: (s: GameState, ev: GameEvent[]) => void): GameEvent[] {

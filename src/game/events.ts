@@ -1,4 +1,4 @@
-import type { ActiveAbilityId, BossKind, CannonId, DailyKind, EnemyKind } from './config';
+import type { ActiveAbilityId, BossKind, CannonId, DailyKind, EnemyKind, WeaponId } from './config';
 import type { Vec } from './geometry';
 
 /**
@@ -33,7 +33,13 @@ export type GameEvent =
   | { type: 'bulletDestroyed'; x: number; y: number }
   | { type: 'ability'; id: ActiveAbilityId }
   | { type: 'laser'; x: number }
-  | { type: 'lightning'; points: Vec[] }
+  /** Arc électrique : arme Éclairs, ou canon Foudre. */
+  | { type: 'lightning'; points: Vec[]; source: 'weapon' | 'cannon' }
+  | { type: 'droneShot' }
+  | { type: 'nova'; x: number; y: number }
+  | { type: 'vortex'; x: number; y: number }
+  /** Arme cachée offerte en terminant un monde. */
+  | { type: 'weaponUnlocked'; id: WeaponId }
   | { type: 'cannonBurst'; x: number; y: number; step: number }
   | { type: 'cannonDestroyed'; x: number; y: number }
   | { type: 'gameOver'; level: number }

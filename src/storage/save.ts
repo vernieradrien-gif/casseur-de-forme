@@ -33,9 +33,7 @@ export interface Settings {
 export interface Extra {
   /** Instant (ms) où le boost publicitaire redevient disponible. */
   boostReadyAt: number;
-  /** Dernière publicité interstitielle (ms). */
-  lastInterstitialAt: number;
-  /** Écran de victoire (niveau 100) déjà montré. */
+  /** Écran de victoire (fin de la campagne) déjà montré. */
   victoryShown: boolean;
   /** Une partie commencée peut être reprise (« Continuer »). */
   runActive: boolean;
@@ -50,7 +48,7 @@ export function defaultSettings(): Settings {
 }
 
 export function defaultExtra(): Extra {
-  return { boostReadyAt: 0, lastInterstitialAt: 0, victoryShown: false, runActive: false };
+  return { boostReadyAt: 0, victoryShown: false, runActive: false };
 }
 
 export interface SavedRun {
@@ -225,6 +223,7 @@ function readMeta(m: Raw): MetaState {
   };
   if (meta.daily.objectives.length === 0) meta.daily.date = '';
   meta.campaignComplete = m.campaignComplete === true;
+  meta.flawless = [...new Set(arr(m.flawless).filter((w): w is number => typeof w === 'number' && Number.isInteger(w) && w >= 0 && w < BALANCE.worlds.length))];
   meta.boostTime = num(m.boostTime, 0, 0, 3600);
   return meta;
 }
@@ -255,7 +254,7 @@ export function deserialize(raw: unknown): Loaded {
     run.diamondsEarned = num(r.diamondsEarned, 0);
     run.gemsEarned = num(r.gemsEarned, 0);
     run.diamondsDoubled = r.diamondsDoubled === true;
-    const maxHp = cannonStats(run.upgrades, meta.workshop).maxHp;
+    const maxHp = cannonStats(run.upgrades, meta.workshop, meta.cannon).maxHp;
     run.cannon.maxHp = maxHp;
     const hp = num(r.hp, 0);
     run.cannon.hp = hp > 0 ? Math.min(hp, maxHp) : maxHp;
@@ -272,7 +271,6 @@ export function deserialize(raw: unknown): Loaded {
 
   const extra: Extra = {
     boostReadyAt: num(e.boostReadyAt, 0),
-    lastInterstitialAt: num(e.lastInterstitialAt, 0),
     victoryShown: e.victoryShown === true || meta.campaignComplete,
     runActive: hasRun,
   };

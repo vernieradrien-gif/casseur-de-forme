@@ -420,7 +420,7 @@
     "projectileSpeed": 2.2,
     "projectileRadius": 0.012,
     "radius": 0.05,
-    "moveSpeed": 3,
+    "moveSpeed": 6,
     "healOnLevelClear": 0.3,
     "hitInvulnerability": 0.25,
     "continueHp": 0.5,
@@ -524,11 +524,58 @@
       "chains": 2,
       "range": 0.38
     },
+    "drones": {
+      "gemCost": 0,
+      "baseCost": 8,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 0.9,
+      "count": 2,
+      "cooldown": 0.7,
+      "range": 0.7,
+      "speed": 1.6,
+      "worldUnlock": 1
+    },
+    "cryo": {
+      "gemCost": 0,
+      "baseCost": 9,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 0.6,
+      "radius": 0.2,
+      "slow": 0.4,
+      "bulletSlow": 0.45,
+      "worldUnlock": 2
+    },
+    "nova": {
+      "gemCost": 0,
+      "baseCost": 10,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 1.4,
+      "count": 14,
+      "cooldown": 3.2,
+      "speed": 1.2,
+      "worldUnlock": 3
+    },
+    "vortex": {
+      "gemCost": 0,
+      "baseCost": 11,
+      "costGrowth": 1.5,
+      "maxLevel": 25,
+      "damageFactor": 3,
+      "cooldown": 6,
+      "duration": 2.5,
+      "radius": 0.12,
+      "pull": 0.5,
+      "worldUnlock": 4
+    },
     "levelEffect": 0.2,
     "slotLevels": [
       1,
       30,
-      60
+      60,
+      151
     ]
   },
   "abilities": {
@@ -652,10 +699,6 @@
   "checkpoint": {
     "coinShare": 1
   },
-  "ads": {
-    "interstitialMinGapMinutes": 4,
-    "interstitialMinSessionMinutes": 3
-  },
   "cannons": {
     "classic": {
       "rate": 1,
@@ -680,15 +723,13 @@
       "spread": 0.55,
       "unlockStat": "bossKills",
       "unlockValue": 20,
-      "gemCost": 80
-    },
-    "beam": {
-      "rate": 1,
-      "damage": 0.95,
-      "width": 0.028,
-      "unlockStat": "bestLevel",
-      "unlockValue": 50,
-      "gemCost": 150
+      "gemCost": 80,
+      "passive": [
+        {
+          "stat": "maxHp",
+          "value": 0.2
+        }
+      ]
     },
     "missile": {
       "rate": 0.5,
@@ -700,15 +741,117 @@
       "unlockValue": 0,
       "gemCost": 120
     },
+    "beam": {
+      "rate": 1,
+      "damage": 0.95,
+      "width": 0.028,
+      "unlockStat": "bestLevel",
+      "unlockValue": 40,
+      "gemCost": 150,
+      "passive": [
+        {
+          "stat": "cooldown",
+          "value": 0.15
+        }
+      ]
+    },
     "plasma": {
       "rate": 0.45,
       "damage": 2.5,
       "pierce": 4,
       "radius": 0.028,
       "speed": 1.5,
+      "unlockStat": "superBosses",
+      "unlockValue": 15,
+      "gemCost": 200,
+      "passive": [
+        {
+          "stat": "weakPoint",
+          "value": 0.5
+        }
+      ]
+    },
+    "twin": {
+      "rate": 1.7,
+      "damage": 0.62,
+      "offset": 0.022,
+      "unlockStat": "bestLevel",
+      "unlockValue": 51,
+      "gemCost": 0,
+      "passive": [
+        {
+          "stat": "coins",
+          "value": 0.15
+        }
+      ]
+    },
+    "ricochet": {
+      "rate": 1.15,
+      "damage": 0.95,
+      "bounces": 2,
+      "angle": 0.32,
       "unlockStat": "bestLevel",
       "unlockValue": 101,
-      "gemCost": 250
+      "gemCost": 0,
+      "passive": [
+        {
+          "stat": "diamonds",
+          "value": 0.2
+        }
+      ]
+    },
+    "gatling": {
+      "rate": 1,
+      "damage": 0.42,
+      "spinMin": 1,
+      "spinMax": 3.4,
+      "spinTime": 2.5,
+      "unlockStat": "bestLevel",
+      "unlockValue": 151,
+      "gemCost": 0,
+      "passive": [
+        {
+          "stat": "repair",
+          "value": 0.15
+        }
+      ]
+    },
+    "storm": {
+      "rate": 0.85,
+      "damage": 1.35,
+      "chains": 2,
+      "range": 0.35,
+      "unlockStat": "bestLevel",
+      "unlockValue": 201,
+      "gemCost": 0,
+      "passive": [
+        {
+          "stat": "cooldown",
+          "value": 0.2
+        }
+      ]
+    },
+    "prism": {
+      "rate": 0.9,
+      "damage": 0.9,
+      "shots": 3,
+      "spread": 0.22,
+      "pierce": 6,
+      "radius": 0.02,
+      "speed": 1.8,
+      "unlockStat": "highestCleared",
+      "unlockValue": 250,
+      "gemCost": 0,
+      "passive": [
+        {
+          "stat": "damage",
+          "value": 0.25
+        },
+        {
+          "stat": "coins",
+          "value": 0.25
+        }
+      ]
     }
   },
   "special": {

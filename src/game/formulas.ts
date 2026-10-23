@@ -9,6 +9,7 @@ import type {
   CostDef,
   EnemyKind,
   FormationId,
+  PassiveStat,
   RunUpgradeId,
   TierDef,
   WeaponId,
@@ -238,28 +239,35 @@ export interface CannonStats {
   coinMultiplier: number;
 }
 
+/** Bonus passif du canon choisi pour une statistique (0 si aucun). */
+export function cannonPassive(cannon: CannonId, stat: PassiveStat, cfg: Balance = BALANCE): number {
+  return (cfg.cannons[cannon].passive ?? []).reduce((sum, p) => sum + (p.stat === stat ? p.value : 0), 0);
+}
+
 export function cannonStats(
   run: Record<RunUpgradeId, number>,
   workshop: Record<WorkshopId, number>,
+  cannon: CannonId = 'classic',
   cfg: Balance = BALANCE,
 ): CannonStats {
   const c = cfg.cannon;
   const r = cfg.runUpgrades;
   const w = cfg.workshop;
+  const bonus = (stat: PassiveStat) => 1 + cannonPassive(cannon, stat, cfg);
   return {
-    damage: c.baseDamage * compound(w.damage.effectPerLevel, workshop.damage) * compound(r.damage.effectPerLevel, run.damage),
+    damage: c.baseDamage * compound(w.damage.effectPerLevel, workshop.damage) * compound(r.damage.effectPerLevel, run.damage) * bonus('damage'),
     shotsPerSecond: Math.min(
       c.maxShotsPerSecond,
       c.shotsPerSecond * compound(w.fireRate.effectPerLevel, workshop.fireRate) * compound(r.fireRate.effectPerLevel, run.fireRate),
     ),
-    maxHp: c.baseHp * compound(w.maxHp.effectPerLevel, workshop.maxHp) * compound(r.maxHp.effectPerLevel, run.maxHp),
-    coinMultiplier: compound(w.coins.effectPerLevel, workshop.coins),
+    maxHp: c.baseHp * compound(w.maxHp.effectPerLevel, workshop.maxHp) * compound(r.maxHp.effectPerLevel, run.maxHp) * bonus('maxHp'),
+    coinMultiplier: compound(w.coins.effectPerLevel, workshop.coins) * bonus('coins'),
   };
 }
 
-/** Part des PV max rendue en fin de niveau (Réparation de l'atelier incluse). */
-export function healOnClear(workshop: Record<WorkshopId, number>, cfg: Balance = BALANCE): number {
-  return Math.min(1, cfg.cannon.healOnLevelClear + cfg.workshop.repair.effectPerLevel * workshop.repair);
+/** Part des PV max rendue en fin de niveau (Réparation de l'atelier et bonus du canon inclus). */
+export function healOnClear(workshop: Record<WorkshopId, number>, cannon: CannonId = 'classic', cfg: Balance = BALANCE): number {
+  return Math.min(1, cfg.cannon.healOnLevelClear + cfg.workshop.repair.effectPerLevel * workshop.repair + cannonPassive(cannon, 'repair', cfg));
 }
 
 /** Effet affiché d'un niveau d'atelier. */
@@ -269,7 +277,7 @@ export function workshopEffect(id: WorkshopId, level: number, cfg: Balance = BAL
     case 'startCoins':
       return def.effectPerLevel * level;
     case 'repair':
-      return healOnClear({ repair: level } as Record<WorkshopId, number>, cfg);
+      return healOnClear({ repair: level } as Record<WorkshopId, number>, 'classic', cfg);
     case 'offline':
       return offlineCapHours(level, cfg);
     default:

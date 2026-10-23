@@ -31,6 +31,8 @@ export function hitCannon(state: GameState, damage: number, x: number, y: number
   c.hp = Math.max(0, c.hp - damage);
   c.invulnerable = C.hitInvulnerability;
   if (run.phase === 'boss') run.hitDuringBoss = true;
+  // Succès « monde sans dégât » : la série repart au niveau suivant.
+  run.noHitFrom = run.level + 1;
   events.push({ type: 'cannonHit', damage, x, y });
   if (c.hp <= 0) startDying(state, events);
   return true;
@@ -104,6 +106,7 @@ export function updateCannon(state: GameState, dt: number, events: GameEvent[]):
     c.fireTimer = 0;
     c.burstLeft = 0;
     c.beamOn = false;
+    c.spin = 0;
     return;
   }
   fireCannon(state, dt, events);
@@ -115,9 +118,15 @@ function fireCannon(state: GameState, dt: number, events: GameEvent[]): void {
   const c = run.cannon;
   const id = state.meta.cannon;
   const def = cannonDef(id);
-  const stats = cannonStats(run.upgrades, state.meta.workshop);
-  const rate = stats.shotsPerSecond * def.rate * hazardFireBonus(state);
+  const stats = cannonStats(run.upgrades, state.meta.workshop, state.meta.cannon);
+  let rate = stats.shotsPerSecond * def.rate * hazardFireBonus(state);
   const damage = stats.damage * def.damage * boostMultiplier(state);
+
+  if (id === 'gatling') {
+    // La Gatling démarre lentement puis accélère tant qu'elle tire.
+    c.spin = Math.min(1, c.spin + dt / (def.spinTime ?? 2.5));
+    rate *= (def.spinMin ?? 1) + ((def.spinMax ?? 3) - (def.spinMin ?? 1)) * c.spin;
+  }
 
   if (id === 'beam') {
     // Le rayon est continu : ses dégâts sont appliqués par la simulation (dégâts par seconde).
@@ -158,7 +167,7 @@ function fireCannon(state: GameState, dt: number, events: GameEvent[]): void {
 export function beamDps(state: GameState): number {
   const run = state.run;
   const def = cannonDef('beam');
-  const stats = cannonStats(run.upgrades, state.meta.workshop);
+  const stats = cannonStats(run.upgrades, state.meta.workshop, state.meta.cannon);
   const multi = 1 + 0.35 * state.meta.abilities.multishot;
   return stats.shotsPerSecond * def.rate * stats.damage * def.damage * multi * boostMultiplier(state) * hazardFireBonus(state);
 }
@@ -185,6 +194,7 @@ function projectile(kind: ProjectileKind, x: number, y: number, angle: number, s
     hit: [],
     splash: 0,
     life: 3,
+    bounces: 0,
   };
 }
 
@@ -213,29 +223,56 @@ function volley(state: GameState, damage: number, events: GameEvent[]): void {
     return;
   }
 
+  if (id === 'storm') {
+    // Foudre : l'arc est lancé par la simulation (premier obstacle droit devant, puis rebonds).
+    c.bolts.push(damage);
+    events.push({ type: 'shot', x: ox, y: oy });
+    return;
+  }
+
+  if (id === 'prism') {
+    // Prisme : éventail de sphères perforantes (une de plus par niveau de Multi-tir).
+    const n = (def.shots ?? 3) + level;
+    const spread = def.spread ?? 0.2;
+    for (let i = 0; i < n; i++) {
+      const a = c.angle + spread * (i / (n - 1) - 0.5);
+      const p = projectile('plasma', ox, oy, a, def.speed ?? C.projectileSpeed, damage, def.radius ?? C.projectileRadius);
+      p.pierce = def.pierce ?? 6;
+      run.projectiles.push(p);
+    }
+    events.push({ type: 'shot', x: ox, y: oy });
+    return;
+  }
+
   const share = multi.damageShare?.[level] ?? 1;
   const kind: ProjectileKind = id === 'missile' ? 'missile' : id === 'plasma' ? 'plasma' : 'bullet';
   const speed = def.speed ?? C.projectileSpeed;
   const radius = def.radius ?? C.projectileRadius;
+  // Jumeaux : un fût puis l'autre. Ricochet : tirs inclinés à gauche puis à droite, qui rebondissent sur les bords.
+  const side = c.alt === 0 ? -1 : 1;
+  if (id === 'twin' || id === 'ricochet') c.alt = 1 - c.alt;
+  const baseOffset = id === 'twin' ? side * (def.offset ?? 0.02) : 0;
+  const baseAngle = id === 'ricochet' ? c.angle + side * (def.angle ?? 0.3) : c.angle;
   const shoot = (angle: number, offset: number) => {
     const dx = Math.cos(angle);
     const dy = Math.sin(angle);
     const p = projectile(kind, ox - dy * offset, oy + dx * offset, angle, speed, damage * share, radius);
     if (kind === 'missile') p.splash = def.splash ?? 0.08;
     if (kind === 'plasma') p.pierce = def.pierce ?? 4;
+    p.bounces = def.bounces ?? 0;
     run.projectiles.push(p);
   };
   if (level >= 2) {
     const a = multi.angle ?? 0.07;
-    shoot(c.angle, 0);
-    shoot(c.angle - a, 0);
-    shoot(c.angle + a, 0);
+    shoot(baseAngle, baseOffset);
+    shoot(baseAngle - a, baseOffset);
+    shoot(baseAngle + a, baseOffset);
   } else if (level === 1) {
     const half = (multi.spread ?? 0.03) / 2;
-    shoot(c.angle, -half);
-    shoot(c.angle, half);
+    shoot(baseAngle, baseOffset - half);
+    shoot(baseAngle, baseOffset + half);
   } else {
-    shoot(c.angle, 0);
+    shoot(baseAngle, baseOffset);
   }
   events.push({ type: 'shot', x: ox, y: oy });
 }

@@ -2,18 +2,43 @@ import { ACHIEVEMENTS, BALANCE, CANNONS, WEAPONS, WORKSHOP } from './config';
 import type { AchievementStat, CannonId, DailyKind, EnemyKind } from './config';
 import type { GameEvent } from './events';
 import type { DailyObjective, GameState, MetaState } from './state';
+import { weaponSlots } from './formulas';
 
-/** Valeur courante d'une statistique (succès, déblocage des canons). */
-export function statValue(meta: MetaState, stat: AchievementStat | string): number {
+/** Valeur courante d'une statistique (succès, déblocage des canons). `world` : monde concerné (1 à 5). */
+export function statValue(meta: MetaState, stat: AchievementStat | string, world = 0): number {
   switch (stat) {
     case 'bestLevel':
       return meta.bestLevel;
+    case 'highestCleared':
+      return meta.highestCleared;
     case 'weaponsUnlocked':
       return WEAPONS.filter((w) => meta.weapons[w] > 0).length;
     case 'workshopLevels':
       return WORKSHOP.reduce((sum, id) => sum + meta.workshop[id], 0);
+    case 'cannonsUnlocked':
+      return CANNONS.filter((c) => meta.cannons[c]).length;
+    case 'worldCleared':
+      return meta.highestCleared >= world * BALANCE.levelsPerWorld ? 1 : 0;
+    case 'flawlessWorld':
+      return meta.flawless.includes(world - 1) ? 1 : 0;
     default:
       return meta.stats[stat as keyof MetaState['stats']] ?? 0;
+  }
+}
+
+/**
+ * Récompenses de fin de monde : les armes cachées de l'armurerie sont offertes (niveau 1)
+ * et équipées s'il reste un emplacement.
+ */
+export function checkWorldRewards(state: GameState, events: GameEvent[]): void {
+  const meta = state.meta;
+  const worldsDone = Math.floor(meta.highestCleared / BALANCE.levelsPerWorld);
+  for (const id of WEAPONS) {
+    const need = BALANCE.weapons[id].worldUnlock;
+    if (!need || meta.weapons[id] > 0 || worldsDone < need) continue;
+    meta.weapons[id] = 1;
+    if (meta.equipped.length < weaponSlots(meta.bestLevel)) meta.equipped.push(id);
+    events.push({ type: 'weaponUnlocked', id });
   }
 }
 
@@ -24,7 +49,7 @@ export function statValue(meta: MetaState, stat: AchievementStat | string): numb
 export function checkAchievements(state: GameState, events: GameEvent[]): void {
   const meta = state.meta;
   for (const a of ACHIEVEMENTS) {
-    if (meta.achievements.includes(a.id) || statValue(meta, a.stat) < a.goal) continue;
+    if (meta.achievements.includes(a.id) || statValue(meta, a.stat, a.world) < a.goal) continue;
     meta.achievements.push(a.id);
     events.push({ type: 'achievement', id: a.id, gems: a.gems });
   }

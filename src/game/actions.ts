@@ -10,6 +10,7 @@ import {
   abilityPrice,
   affordable,
   bulkCost,
+  cannonPassive,
   cannonStats,
   checkpointCoins,
   cost,
@@ -27,7 +28,7 @@ import type { GameState } from './state';
 /** Recalcule les PV max du canon ; un gain de PV max soigne d'autant. */
 export function refreshMaxHp(state: GameState): void {
   const c = state.run.cannon;
-  const maxHp = cannonStats(state.run.upgrades, state.meta.workshop).maxHp;
+  const maxHp = cannonStats(state.run.upgrades, state.meta.workshop, state.meta.cannon).maxHp;
   if (maxHp > c.maxHp && c.hp > 0) c.hp += maxHp - c.maxHp;
   c.maxHp = maxHp;
   c.hp = Math.min(c.hp, maxHp);
@@ -86,7 +87,8 @@ export function buyWeapon(state: GameState, id: WeaponId, events: GameEvent[] = 
   const def = BALANCE.weapons[id];
   const level = meta.weapons[id];
   if (level === 0) {
-    if (meta.gems < def.gemCost) return false;
+    // Les armes de fin de monde ne s'achètent pas : elles sont offertes en terminant le monde.
+    if (def.worldUnlock || meta.gems < def.gemCost) return false;
     meta.gems -= def.gemCost;
     meta.weapons[id] = 1;
     if (meta.equipped.length < weaponSlots(meta.bestLevel)) meta.equipped.push(id);
@@ -121,14 +123,19 @@ export function abilityReady(state: GameState, id: ActiveAbilityId): boolean {
   return state.meta.abilities[id] > 0 && isFighting(run.phase) && run.cannon.cooldowns[id] <= 0;
 }
 
+/** Recharge d'une capacité : plus longue dans la tempête ionique, plus courte avec certains canons. */
+export function cooldownOf(state: GameState, id: ActiveAbilityId): number {
+  const world = worldTheme(state.run.level).cooldownFactor ?? 1;
+  return abilityCooldown(id, state.meta.abilities[id]) * world * Math.max(0.2, 1 - cannonPassive(state.meta.cannon, 'cooldown'));
+}
+
 /** Capacités actives (boutons). Renvoie true si elle a été déclenchée. */
 export function useAbility(state: GameState, id: ActiveAbilityId, events: GameEvent[]): boolean {
   if (!abilityReady(state, id)) return false;
   const run = state.run;
   const c = run.cannon;
   const level = state.meta.abilities[id];
-  // Tempête ionique : les capacités mettent plus longtemps à se recharger.
-  c.cooldowns[id] = abilityCooldown(id, level) * (worldTheme(run.level).cooldownFactor ?? 1);
+  c.cooldowns[id] = cooldownOf(state, id);
   if (id === 'autoAim') {
     c.autoAimTime = abilityDuration(id, level);
   } else if (id === 'shield') {
@@ -179,7 +186,7 @@ export function doubleRunDiamonds(state: GameState): number {
 
 /** Pièces au départ d'une partie (atelier + reprise au début d'un monde). */
 export function startingCoins(state: GameState, startLevel: number): number {
-  const mult = cannonStats(state.run.upgrades, state.meta.workshop).coinMultiplier;
+  const mult = cannonStats(state.run.upgrades, state.meta.workshop, state.meta.cannon).coinMultiplier;
   return BALANCE.workshop.startCoins.effectPerLevel * state.meta.workshop.startCoins + checkpointCoins(startLevel) * mult;
 }
 
@@ -202,7 +209,7 @@ export function buyCannon(state: GameState, id: CannonId): boolean {
   if (meta.cannons[id] || def.gemCost <= 0 || meta.gems < def.gemCost) return false;
   meta.gems -= def.gemCost;
   meta.cannons[id] = true;
-  meta.cannon = id;
+  selectCannon(state, id);
   return true;
 }
 
@@ -210,8 +217,15 @@ export function buyCannon(state: GameState, id: CannonId): boolean {
 export function selectCannon(state: GameState, id: CannonId): boolean {
   if (!state.meta.cannons[id]) return false;
   state.meta.cannon = id;
-  state.run.cannon.fireTimer = 0;
-  state.run.cannon.burstLeft = 0;
+  const c = state.run.cannon;
+  c.fireTimer = 0;
+  c.burstLeft = 0;
+  c.spin = 0;
+  c.bolts.length = 0;
+  // Bonus de PV du canon : la jauge garde la même proportion.
+  const ratio = c.maxHp > 0 ? c.hp / c.maxHp : 1;
+  c.maxHp = cannonStats(state.run.upgrades, state.meta.workshop, id).maxHp;
+  c.hp = c.maxHp * ratio;
   return true;
 }
 

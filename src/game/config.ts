@@ -22,11 +22,24 @@ export type EnemyKind =
 export type FormationId = 'line' | 'rain' | 'snake' | 'v' | 'fan' | 'sides';
 export type RunUpgradeId = 'damage' | 'fireRate' | 'maxHp';
 export type WorkshopId = 'damage' | 'fireRate' | 'maxHp' | 'coins' | 'startCoins' | 'repair' | 'offline';
-export type WeaponId = 'orbs' | 'laser' | 'lightning';
+export type WeaponId = 'orbs' | 'laser' | 'lightning' | 'drones' | 'cryo' | 'nova' | 'vortex';
 export type AbilityId = 'autoAim' | 'aimAngle' | 'shield' | 'shockwave' | 'multishot';
 /** Capacités déclenchées par un bouton (Multi-tir et l'angle de visée sont passifs). */
 export type ActiveAbilityId = Exclude<AbilityId, 'multishot' | 'aimAngle'>;
-export type CannonId = 'classic' | 'burst' | 'shotgun' | 'beam' | 'missile' | 'plasma';
+export type CannonId =
+  | 'classic'
+  | 'burst'
+  | 'shotgun'
+  | 'beam'
+  | 'missile'
+  | 'plasma'
+  | 'twin'
+  | 'ricochet'
+  | 'gatling'
+  | 'storm'
+  | 'prism';
+/** Bonus passifs des canons (actifs tant que le canon est choisi). */
+export type PassiveStat = 'damage' | 'maxHp' | 'coins' | 'diamonds' | 'cooldown' | 'weakPoint' | 'repair';
 export type WorldId = 'nebula' | 'asteroids' | 'supernova' | 'blackhole' | 'ionstorm';
 export type DailyKind = 'kills' | 'bosses' | 'weakHits' | 'rareStars' | 'abilityUses' | 'runs' | 'levels' | 'upgrades';
 export type BossKind = 'normal' | 'super' | 'mega';
@@ -42,7 +55,17 @@ export type StatId =
   | 'weakHits'
   | 'superBosses'
   | 'megaBosses';
-export type AchievementStat = StatId | 'bestLevel' | 'weaponsUnlocked' | 'workshopLevels';
+export type AchievementStat =
+  | StatId
+  | 'bestLevel'
+  | 'highestCleared'
+  | 'weaponsUnlocked'
+  | 'workshopLevels'
+  | 'cannonsUnlocked'
+  /** Monde `world` terminé (1 à 5). */
+  | 'worldCleared'
+  /** Monde `world` terminé sans prendre aucun dégât. */
+  | 'flawlessWorld';
 
 export interface CostDef {
   baseCost: number;
@@ -111,6 +134,13 @@ export interface WeaponDef extends CostDef {
   width?: number;
   chains?: number;
   range?: number;
+  /** Arme cachée, offerte quand ce nombre de mondes est terminé. */
+  worldUnlock?: number;
+  /** Gel : ralentissement des ennemis et des tirs ennemis dans l'aura. */
+  slow?: number;
+  bulletSlow?: number;
+  /** Trou de ver : attraction des ennemis. */
+  pull?: number;
 }
 
 export interface AbilityDef {
@@ -146,11 +176,27 @@ export interface CannonDef {
   turnRate?: number;
   pierce?: number;
   radius?: number;
+  /** Ricochet : rebonds sur les bords ; angle de tir alterné. */
+  bounces?: number;
+  angle?: number;
+  /** Jumeaux : écart entre les deux fûts. */
+  offset?: number;
+  /** Gatling : cadence de départ et maximale (multiplicateurs), temps de montée. */
+  spinMin?: number;
+  spinMax?: number;
+  spinTime?: number;
+  /** Foudre : rebonds et portée de l'arc. */
+  chains?: number;
+  range?: number;
+  /** Prisme : nombre de tirs en éventail. */
+  shots?: number;
   /** Déblocage gratuit quand la statistique atteint la valeur (vide : achat seulement). */
   unlockStat: string;
   unlockValue: number;
-  /** Prix en gemmes (0 : gratuit). */
+  /** Prix en gemmes (0 : pas d'achat possible, seulement en jouant). */
   gemCost: number;
+  /** Bonus passifs tant que ce canon est choisi (`stat` : un des PASSIVE_STATS). */
+  passive?: { stat: string; value: number }[];
 }
 
 export interface RingDef {
@@ -337,7 +383,6 @@ export interface Balance {
   worlds: WorldDef[];
   boost: { durationMinutes: number; cooldownMinutes: number; multiplier: number };
   checkpoint: { coinShare: number };
-  ads: { interstitialMinGapMinutes: number; interstitialMinSessionMinutes: number };
 }
 
 export interface AchievementDef {
@@ -345,6 +390,8 @@ export interface AchievementDef {
   stat: AchievementStat;
   goal: number;
   gems: number;
+  /** Monde concerné (succès « terminer le monde N », « sans dégât »). */
+  world?: number;
 }
 
 export const BALANCE: Balance = balanceJson;
@@ -366,9 +413,10 @@ export const ENEMY_KINDS: EnemyKind[] = [
 export const FORMATIONS: FormationId[] = ['line', 'rain', 'snake', 'v', 'fan', 'sides'];
 export const RUN_UPGRADES: RunUpgradeId[] = ['damage', 'fireRate', 'maxHp'];
 export const WORKSHOP: WorkshopId[] = ['damage', 'fireRate', 'maxHp', 'coins', 'startCoins', 'repair', 'offline'];
-export const WEAPONS: WeaponId[] = ['orbs', 'laser', 'lightning'];
+export const WEAPONS: WeaponId[] = ['orbs', 'laser', 'lightning', 'drones', 'cryo', 'nova', 'vortex'];
 export const ABILITIES: AbilityId[] = ['autoAim', 'aimAngle', 'shield', 'shockwave', 'multishot'];
-export const CANNONS: CannonId[] = ['classic', 'burst', 'shotgun', 'beam', 'missile', 'plasma'];
+export const CANNONS: CannonId[] = ['classic', 'burst', 'shotgun', 'missile', 'beam', 'plasma', 'twin', 'ricochet', 'gatling', 'storm', 'prism'];
+export const PASSIVE_STATS: PassiveStat[] = ['damage', 'maxHp', 'coins', 'diamonds', 'cooldown', 'weakPoint', 'repair'];
 export const WORLDS: WorldId[] = ['nebula', 'asteroids', 'supernova', 'blackhole', 'ionstorm'];
 export const ACTIVE_ABILITIES: ActiveAbilityId[] = ['autoAim', 'shield', 'shockwave'];
 export const STATS: StatId[] = [

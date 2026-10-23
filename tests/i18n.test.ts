@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ABILITIES, ACHIEVEMENTS, BALANCE, ENEMY_KINDS, RUN_UPGRADES, WEAPONS, WORKSHOP } from '../src/game/config';
+import { ABILITIES, ACHIEVEMENTS, BALANCE, CANNONS, ENEMY_KINDS, PASSIVE_STATS, RUN_UPGRADES, WEAPONS, WORKSHOP } from '../src/game/config';
 import { formatNumber } from '../src/game/bignum';
 import en from '../src/i18n/en.json';
 import fr from '../src/i18n/fr.json';
@@ -28,9 +28,20 @@ describe('textes français et anglais', () => {
     for (const k of keys) expect(k in fr, k).toBe(true);
   });
 
-  it('30 succès', () => {
-    expect(ACHIEVEMENTS).toHaveLength(30);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(30);
+  it('45 succès, identifiants uniques', () => {
+    expect(ACHIEVEMENTS).toHaveLength(45);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(45);
+  });
+
+  it('chaque canon a un nom, une description et des bonus valides', () => {
+    for (const id of CANNONS) {
+      expect(`cannon.${id}.name` in fr, id).toBe(true);
+      expect(`cannon.${id}.desc` in fr, id).toBe(true);
+      for (const p of BALANCE.cannons[id].passive ?? []) {
+        expect(PASSIVE_STATS, id).toContain(p.stat);
+        expect(`passive.${p.stat}` in fr, p.stat).toBe(true);
+      }
+    }
   });
 
   it('changement de langue : textes et séparateur décimal', () => {

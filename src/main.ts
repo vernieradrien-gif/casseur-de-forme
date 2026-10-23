@@ -27,7 +27,7 @@ import type { GameEvent } from './game/events';
 import { bossKindAt, offlineDiamonds, worldOf } from './game/formulas';
 import { polygonVertices } from './game/geometry';
 import { startLoop } from './game/loop';
-import { checkAchievements, claimAchievement, claimDaily, claimDailyBonus, rollDaily } from './game/progress';
+import { checkAchievements, checkWorldRewards, claimAchievement, claimDaily, claimDailyBonus, rollDaily } from './game/progress';
 import { AutoPlayer, spendCoins } from './game/autoplayer';
 import { STEP, step } from './game/simulation';
 import { W } from './game/state';
@@ -49,7 +49,6 @@ import { Toasts } from './ui/toast';
 const VERSION = pkg.version;
 const AUTOSAVE_INTERVAL_MS = 10_000;
 const PRIVACY_URL = 'https://vernieradrien-gif.github.io/casseur-de-forme/privacy.html';
-const SESSION_START = Date.now();
 /** "?autoplay" : un joueur automatique contrôle le canon (démonstration, tests de bout en bout). */
 const AUTOPLAY = new URLSearchParams(location.search).has('autoplay') ? new AutoPlayer() : null;
 
@@ -124,23 +123,6 @@ async function rewarded(placement: RewardPlacement): Promise<boolean> {
     audio.setMuted(false);
     adBusy = false;
   }
-}
-
-/** Interstitiel rare : au plus toutes les 4 min, après 3 min de session, au retour au menu après une défaite. */
-function maybeInterstitial(): void {
-  const now = Date.now();
-  const cfg = BALANCE.ads;
-  if (now - SESSION_START < cfg.interstitialMinSessionMinutes * 60_000) return;
-  if (now - extra.lastInterstitialAt < cfg.interstitialMinGapMinutes * 60_000) return;
-  extra.lastInterstitialAt = now;
-  void (async () => {
-    ads ??= await createAds(isNative);
-    audio.setMuted(true);
-    adBusy = true;
-    await ads.showInterstitial();
-    adBusy = false;
-    audio.setMuted(false);
-  })();
 }
 
 // ------------------------------------------------------------ Sauvegarde Google (Google Play Jeux)
@@ -250,7 +232,6 @@ function toMenu(): void {
   screens.reset('menu');
   effects.clear();
   save();
-  if (lost) maybeInterstitial();
 }
 
 function pause(): void {
@@ -585,8 +566,28 @@ function handleEvents(): void {
         sfx.play('laser');
         break;
       case 'lightning':
-        effects.bolt(e.points);
-        sfx.play('lightning');
+        // Canon Foudre : l'arc prend sa couleur (le son de tir est déjà joué).
+        if (e.source === 'cannon') {
+          effects.bolt(e.points, visual.cannonColors.storm);
+        } else {
+          effects.bolt(e.points);
+          sfx.play('lightning');
+        }
+        break;
+      case 'droneShot':
+        sfx.play('shot', 0.4);
+        break;
+      case 'nova':
+        effects.ring(e.x, e.y, visual.weaponColors.nova, 0.03, 0.5, 0.35, 3);
+        sfx.play('laser', 0.5);
+        break;
+      case 'vortex':
+        effects.ring(e.x, e.y, visual.weaponColors.vortex, 0.2, 0.02, 0.5, 3);
+        sfx.play('laser', 0.4);
+        break;
+      case 'weaponUnlocked':
+        toasts.show(t('toast.weapon', { name: t(`weapon.${e.id}.name`) }), 'gem');
+        sfx.play('achievement');
         break;
       case 'cannonBurst':
         effects.shards(polygonVertices(8, BALANCE.cannon.radius * (1 + e.step * 0.4), e.step, e.x, e.y), e, e.step % 2 ? '#ffb347' : visual.cannonColor, 16 + e.step * 8, 1);
@@ -682,6 +683,10 @@ function updateMusic(): void {
   else if (state.run.phase === 'boss' || state.run.phase === 'bossIntro' || (state.run.phase === 'dying' && state.run.resumePhase === 'boss')) music.play('boss');
   else music.play('game');
 }
+
+// Mise à jour du jeu : récompenses déjà méritées (armes de fin de monde, canons, succès) annoncées au lancement.
+checkWorldRewards(state, events);
+checkAchievements(state, events);
 
 startLoop(
   () => {
