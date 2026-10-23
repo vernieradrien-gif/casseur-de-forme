@@ -101,6 +101,19 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
   contenu maximal « PG ».
 - **Paramètres** : « Sauvegarde Google » et « Consentement publicités » n'apparaissent que lorsqu'ils servent.
 - **Barre du monde** : la barre ne se remplissait pas (élément en ligne sans largeur) ; corrigé pour toutes les barres.
+- **Fin de partie** : la simulation longue montrait que la campagne était impossible à finir (le joueur automatique
+  restait au niveau 98 après 32 h) : la cadence plafonne à 20 tirs/s alors que les PV des boss montaient de 16 % par
+  niveau, et les diamants ne suivaient plus le prix de l'atelier. Corrections, réglées avec `npm run sim` :
+  - au-delà de 20 tirs/s, la cadence en trop se change en dégâts ;
+  - après le niveau 51, PV ×1,15 et dégâts ×1,088 par niveau (au lieu de ×1,162 et ×1,09) ;
+  - montée de fin de monde propre à chaque monde (6, 10, 9, 9, 3) ;
+  - diamants ×1,02 par niveau après le monde 1 (gains hors ligne compris).
+
+  Résultat (jeu continu, sans pub) : monde 1 vers 3 h, monde 2 vers 5 h, monde 3 vers 11-13 h, monde 4 vers 14-16 h,
+  les 5 mondes et le Prisme vers 30-35 h selon l'adresse ; en regardant « doubler les diamants » après chaque partie :
+  campagne en 15 h. Les succès « monde sans dégât » restent des défis que le joueur automatique ne réussit pas.
+  `SIM_OVERRIDES='{"diamonds.lateGrowth":1.03}'` et `SIM_LOG=fichier` permettent d'essayer un réglage et de suivre une
+  longue simulation au fil de l'eau.
 - **Contrôle** : le canon reproduit exactement le déplacement du doigt (avant : ×1,35, d'où un décalage) et va plus vite
   (6 unités/s au lieu de 3) pour ne plus traîner derrière un geste rapide.
 
