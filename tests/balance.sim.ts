@@ -1,10 +1,12 @@
 // Simulation d'équilibrage sans rendu : `npm run sim`.
 // Des joueurs automatiques (adroit, moyen, maladroit) enchaînent les parties en dépensant tout
 // entre chaque partie ; on affiche le niveau atteint et le temps de jeu cumulé.
+import { appendFileSync } from 'node:fs';
 import { test } from 'vitest';
 import { doubleRunDiamonds, startRun } from '../src/game/actions';
 import { AutoPlayer, spendCoins, spendMeta } from '../src/game/autoplayer';
 import type { AutoPlayerOptions } from '../src/game/autoplayer';
+import { ABILITIES, ACHIEVEMENTS, BALANCE, CANNONS, WEAPONS } from '../src/game/config';
 import { checkpointCoins, worldStart, worldsUnlocked } from '../src/game/formulas';
 import type { GameEvent } from '../src/game/events';
 import { STEP, step } from '../src/game/simulation';
@@ -23,6 +25,22 @@ const PLAYERS: Record<string, AutoPlayerOptions> = {
 
 const only = process.env.SIM_PLAYER;
 
+// SIM_OVERRIDES='{"boss.hpGrowth":1.12}' : essaie des réglages sans modifier balance.json (valeurs feuilles seulement).
+if (process.env.SIM_OVERRIDES) {
+  for (const [path, value] of Object.entries(JSON.parse(process.env.SIM_OVERRIDES) as Record<string, unknown>)) {
+    const keys = path.split('.');
+    let o = BALANCE as unknown as Record<string, unknown>;
+    for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>;
+    o[keys[keys.length - 1]] = value;
+  }
+}
+
+/** Affiche, et écrit aussitôt dans SIM_LOG si défini (une longue simulation reste lisible en cours de route). */
+function log(text: string): void {
+  console.log(text);
+  if (process.env.SIM_LOG) appendFileSync(process.env.SIM_LOG, text + '\n');
+}
+
 for (const [name, opts] of Object.entries(PLAYERS)) {
   if (only && only !== name) continue;
   test(name, () => {
@@ -38,6 +56,23 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
     const gains: number[] = [];
     const runLog: string[] = [];
     let coinNote = '';
+    // Déblocages : premier instant (heures de jeu) où chaque élément est obtenu.
+    const unlocks = new Map<string, number>();
+    const note = (key: string, ok: boolean) => {
+      if (!ok || unlocks.has(key)) return;
+      unlocks.set(key, total / 3600);
+      // Affiché tout de suite : une longue simulation reste lisible même interrompue.
+      log(`› ${name} ${(total / 3600).toFixed(1)} h : ${key} (niveau max ${s.meta.bestLevel})`);
+    };
+    const track = () => {
+      const m = s.meta;
+      for (const id of CANNONS) note(`canon ${id}`, m.cannons[id]);
+      for (const id of WEAPONS) note(`arme ${id}`, m.weapons[id] > 0);
+      for (let w = 1; w <= BALANCE.worlds.length; w++) note(`monde ${w} terminé`, m.highestCleared >= w * BALANCE.levelsPerWorld);
+      note('toutes les capacités au maximum', ABILITIES.every((a) => m.abilities[a] >= BALANCE.abilities[a].maxLevel));
+      note('toutes les armes au maximum', WEAPONS.every((w) => m.weapons[w] >= BALANCE.weapons[w].maxLevel));
+      for (const share of [0.25, 0.5, 0.75, 1]) note(`succès ${share * 100} %`, m.achievements.length >= Math.ceil(ACHIEVEMENTS.length * share));
+    };
     s.meta.stats.runs = 1;
     while (total < MAX_HOURS * 3600 && s.meta.bestLevel <= 260) {
       let rt = 0;
@@ -77,7 +112,9 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
       gains.push(s.run.level - s.run.startLevel);
       if (process.env.SIM_DIAG && (process.env.SIM_DIAG === 'all' || runIdx % 6 === 5)) lines.push(`détail partie ${runIdx + 1} : ` + Object.entries(lv).map(([l, v]) => `${l}:${v.w.toFixed(0)}+${v.b.toFixed(0)}s/${v.hits}`).join(' '));
       runLog.push(`${s.run.startLevel}→${s.run.level}(${Math.round(rt / 60)}m)`);
+      if (runIdx % 5 === 4) log(`› ${name} ${(total / 3600).toFixed(1)} h : partie ${runIdx + 1} ${s.run.startLevel}→${s.run.level}, niveau max ${s.meta.bestLevel}`);
       spendMeta(s);
+      track();
       // Comme un joueur : reprend au monde le plus avancé, sauf s'il n'y progresse plus.
       let world = worldsUnlocked(s.meta.bestLevel) - 1;
       const recent = gains.slice(-3);
@@ -85,15 +122,21 @@ for (const [name, opts] of Object.entries(PLAYERS)) {
       startRun(s, world);
       runIdx++;
     }
-    console.log(
+    log(
       [
         `=== ${name} : 3 premières parties → niveaux ${first.join(', ')}`,
         ...reached,
         coinNote,
         'parties : ' + runLog.join(' '),
-        `meilleur niveau ${s.meta.bestLevel} après ${(total / 3600).toFixed(1)} h et ${runIdx} parties ; succès ${s.meta.achievements.length}/30`,
+        `meilleur niveau ${s.meta.bestLevel} après ${(total / 3600).toFixed(1)} h et ${runIdx} parties ; succès ${s.meta.achievements.length}/${ACHIEVEMENTS.length}`,
+        'déblocages : ' + [...unlocks].sort((a, b) => a[1] - b[1]).map(([k, h]) => `${k} ${h.toFixed(1)} h`).join(' · '),
+        'pas encore : ' + [
+          ...CANNONS.filter((id) => !s.meta.cannons[id]).map((id) => `canon ${id}`),
+          ...WEAPONS.filter((id) => s.meta.weapons[id] === 0).map((id) => `arme ${id}`),
+          ...ACHIEVEMENTS.filter((a) => !s.meta.achievements.includes(a.id)).map((a) => a.id),
+        ].join(', '),
         ...lines,
       ].join('\n'),
     );
-  }, 3_600_000);
+  }, 6 * 3_600_000);
 }

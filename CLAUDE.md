@@ -3,7 +3,7 @@
 **Source de vérité : [docs/cahier-des-charges.md](docs/cahier-des-charges.md).** Ce fichier n'en est qu'un résumé ; en cas de doute, relire le cahier des charges.
 
 ## Projet
-Jeu de tir vertical hybride portrait (v4) : une grande forme en haut lance des vagues d'ennemis puis devient un boss (super boss en blocs tous les 10 niveaux) ; le canon suit le doigt partout et tire seul droit vers le haut (visée auto = capacité, cône limité). 5 mondes à thème, 6 types de canon. Pièces (partie, perdues à la défaite), diamants (atelier, armes), gemmes (capacités, armes). Défaite = retour au niveau 1 ou au début d'un monde (50 niveaux). Cible web (GitHub Pages, PWA) et Android (Capacitor, APK construit par GitHub Actions).
+Jeu de tir vertical hybride portrait (v5) : une grande forme en haut lance des vagues d'ennemis puis devient un boss (super boss en blocs tous les 10 niveaux) ; le canon suit le doigt partout et tire seul droit vers le haut (visée auto = capacité, cône limité). 5 mondes à thème, 11 canons (bonus passifs), armes cachées de fin de monde. Pièces (partie, perdues à la défaite), diamants (atelier, armes), gemmes (capacités, armes). Défaite = retour au niveau 1 ou au début d'un monde (50 niveaux). Cible web (GitHub Pages, PWA) et Android (Capacitor, APK construit par GitHub Actions).
 
 ## Contraintes
 - Coût 0 € : aucun backend, hébergement statique (GitHub Pages).
@@ -20,7 +20,7 @@ Jeu de tir vertical hybride portrait (v4) : une grande forme en haut lance des v
 - Grands nombres : un seul module de calcul (`src/game/bignum.ts`) et un seul formateur (`formatNumber`, « 1,2 K », « 3,4 M »…).
 - Formes : sommets calculés depuis (côtés, rayon, rotation) ; étoile = polygone alterné rayon extérieur/intérieur (`src/game/geometry.ts`).
 - Tout l'équilibrage dans `src/config/*.json` (aucune constante de gameplay en dur).
-- Publicités : uniquement via l'interface de `src/ads/` (`showRewarded`, `showInterstitial`), version factice sur le web, identifiants AdMob de test uniquement.
+- Publicités : uniquement des pubs récompensées demandées par le joueur, via `showRewarded` de `src/ads/` (aucune pub automatique), consentement UMP avant tout chargement, version factice sur le web, identifiants AdMob de test uniquement.
 - Sauvegarde : localStorage, JSON versionné (`src/storage/`).
 
 ## Organisation

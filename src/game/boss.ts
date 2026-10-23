@@ -9,6 +9,7 @@ import {
   bossHp,
   bossKindAt,
   bossRadius,
+  cannonPassive,
   enemyKindsAt,
   isGrandBoss,
   tierIndex,
@@ -269,7 +270,7 @@ export function damageBoss(
     }
     return;
   }
-  let dmg = amount * (opts.weak ? B.weakPointMultiplier : 1);
+  let dmg = amount * (opts.weak ? B.weakPointMultiplier * (1 + cannonPassive(state.meta.cannon, 'weakPoint')) : 1);
   if (!opts.pierce && boss.armor > 0) dmg = applyArmor(dmg, bossArmorValue(boss.armor, boss.level));
   boss.sinceHit = 0;
   boss.flash = 0.07;

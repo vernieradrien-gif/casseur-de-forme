@@ -4,6 +4,7 @@ import type { GameEvent } from './events';
 import { cannonStats, enemyStats } from './formulas';
 import { angleDelta, clamp } from './math';
 import { addDaily, addKill, discoverEnemy } from './progress';
+import { cryoFactor } from './weapons';
 import { nextRandom } from './rng';
 import { W } from './state';
 import type { Enemy, GameState, Spawn } from './state';
@@ -68,7 +69,7 @@ export function killEnemy(state: GameState, e: Enemy, events: GameEvent[]): void
   const run = state.run;
   const meta = state.meta;
   e.hp = -Infinity;
-  const coins = e.coins * cannonStats(run.upgrades, meta.workshop).coinMultiplier * boostMultiplier(state);
+  const coins = e.coins * cannonStats(run.upgrades, meta.workshop, meta.cannon).coinMultiplier * boostMultiplier(state);
   run.coins += coins;
   run.coinsEarned += coins;
   addKill(state, events);
@@ -225,8 +226,10 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
         break;
     }
 
-    e.x += e.vx * dt + e.amp * e.freq * Math.cos(e.freq * e.age + e.phase) * dt;
-    e.y += e.vy * dt;
+    // Gel : les ennemis proches du canon avancent plus lentement.
+    const md = dt * cryoFactor(state, e.x, e.y, false);
+    e.x += e.vx * md + e.amp * e.freq * Math.cos(e.freq * e.age + e.phase) * md;
+    e.y += e.vy * md;
     // Les ennemis qui ondulent rebondissent sur les bords.
     if (e.amp > 0 && Math.abs(e.x) > HALF - e.radius) {
       e.x = clamp(e.x, -HALF + e.radius, HALF - e.radius);

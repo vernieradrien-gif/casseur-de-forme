@@ -9,6 +9,7 @@ import type {
   CostDef,
   EnemyKind,
   FormationId,
+  PassiveStat,
   RunUpgradeId,
   TierDef,
   WeaponId,
@@ -86,7 +87,15 @@ export function worldProgress(level: number, cfg: Balance = BALANCE): number {
 /** La difficulté accélère vers la fin de chaque monde, puis souffle au début du suivant. */
 export function worldRamp(level: number, cfg: Balance = BALANCE): number {
   const r = cfg.boss.worldRamp;
-  return 1 + r.amount * Math.pow(worldProgress(level, cfg), r.power);
+  const byWorld = r.amountByWorld;
+  const amount = byWorld?.length ? byWorld[Math.min(worldOf(level, cfg), byWorld.length - 1)] : r.amount;
+  return 1 + amount * Math.pow(worldProgress(level, cfg), r.power);
+}
+
+/** Croissance d'un niveau à l'autre : `early` jusqu'à `lateGrowth.fromLevel`, puis `late` (plus douce). */
+export function growLevel(base: number, early: number, late: number, level: number, cfg: Balance = BALANCE): number {
+  const from = cfg.lateGrowth.fromLevel;
+  return grow(base, early, Math.min(level, from) - 1) * Math.pow(late, Math.max(0, level - from));
 }
 
 // ---------- Boss ----------
@@ -105,7 +114,7 @@ export function bossHp(level: number, cfg: Balance = BALANCE): number {
   const special = kind === 'mega' ? cfg.special.mega.hpMultiplier : kind === 'super' ? cfg.special.super.hpMultiplier : 1;
   // Les super boss suivent une montée plus douce (ils sont déjà un pic de difficulté).
   const ramp = Math.pow(worldRamp(level, cfg), kind === 'normal' ? 1 : b.worldRamp.specialShare);
-  return grow(b.baseHp, b.hpGrowth, level - 1) * tierHpMultiplier(level, cfg) * ramp * special;
+  return growLevel(b.baseHp, b.hpGrowth, cfg.lateGrowth.hp, level, cfg) * tierHpMultiplier(level, cfg) * ramp * special;
 }
 
 export function bossRadius(level: number, cfg: Balance = BALANCE): number {
@@ -122,8 +131,13 @@ export function bossCoins(level: number, golden: boolean, cfg: Balance = BALANCE
 /** Diamants pour un niveau terminé ; bonus si le niveau est franchi pour la première fois. */
 export function bossDiamonds(level: number, firstClear: boolean, cfg: Balance = BALANCE): number {
   const d = cfg.diamonds;
-  const base = d.perBoss + Math.floor((level - 1) / d.bonusEveryLevels);
-  return base * (isGrandBoss(level, cfg) ? d.grandMultiplier : 1) + (firstClear ? d.firstClearBonus : 0);
+  const base = (d.perBoss + Math.floor((level - 1) / d.bonusEveryLevels)) * lateDiamondFactor(level, cfg);
+  return Math.round(base * (isGrandBoss(level, cfg) ? d.grandMultiplier : 1)) + (firstClear ? d.firstClearBonus : 0);
+}
+
+/** Après le premier monde, les diamants suivent la difficulté (sinon l'atelier ne progresse plus). */
+export function lateDiamondFactor(level: number, cfg: Balance = BALANCE): number {
+  return Math.pow(cfg.diamonds.lateGrowth, Math.max(0, level - cfg.lateGrowth.fromLevel));
 }
 
 /** Gemmes au premier passage d'un grand boss. */
@@ -134,7 +148,7 @@ export function grandBossGems(level: number, cfg: Balance = BALANCE): number {
 
 export function bossBulletDamage(level: number, cfg: Balance = BALANCE): number {
   const b = cfg.boss.bullet;
-  return grow(b.damage, b.damageGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare);
+  return growLevel(b.damage, b.damageGrowth, cfg.lateGrowth.damage, level, cfg) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare);
 }
 
 export function bossFireInterval(level: number, cfg: Balance = BALANCE): number {
@@ -171,8 +185,8 @@ export function enemyStats(kind: EnemyKind, level: number, cfg: Balance = BALANC
   const e = cfg.enemies[kind];
   const s = cfg.enemyScaling;
   return {
-    hp: grow(e.hp, s.hpGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.enemyHpShare),
-    damage: grow(e.damage, s.damageGrowth, level - 1) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare),
+    hp: growLevel(e.hp, s.hpGrowth, cfg.lateGrowth.hp, level, cfg) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.enemyHpShare),
+    damage: growLevel(e.damage, s.damageGrowth, cfg.lateGrowth.damage, level, cfg) * Math.pow(worldRamp(level, cfg), cfg.boss.worldRamp.damageShare),
     coins: grow(e.coins, s.coinGrowth, level - 1),
     speed: e.speed,
     radius: e.radius,
@@ -238,28 +252,36 @@ export interface CannonStats {
   coinMultiplier: number;
 }
 
+/** Bonus passif du canon choisi pour une statistique (0 si aucun). */
+export function cannonPassive(cannon: CannonId, stat: PassiveStat, cfg: Balance = BALANCE): number {
+  return (cfg.cannons[cannon].passive ?? []).reduce((sum, p) => sum + (p.stat === stat ? p.value : 0), 0);
+}
+
 export function cannonStats(
   run: Record<RunUpgradeId, number>,
   workshop: Record<WorkshopId, number>,
+  cannon: CannonId = 'classic',
   cfg: Balance = BALANCE,
 ): CannonStats {
   const c = cfg.cannon;
   const r = cfg.runUpgrades;
   const w = cfg.workshop;
+  const bonus = (stat: PassiveStat) => 1 + cannonPassive(cannon, stat, cfg);
+  // Au-delà de la cadence maximale, la cadence en trop se change en dégâts (les achats restent utiles).
+  const rate = c.shotsPerSecond * compound(w.fireRate.effectPerLevel, workshop.fireRate) * compound(r.fireRate.effectPerLevel, run.fireRate);
+  const shots = Math.min(c.maxShotsPerSecond, rate);
   return {
-    damage: c.baseDamage * compound(w.damage.effectPerLevel, workshop.damage) * compound(r.damage.effectPerLevel, run.damage),
-    shotsPerSecond: Math.min(
-      c.maxShotsPerSecond,
-      c.shotsPerSecond * compound(w.fireRate.effectPerLevel, workshop.fireRate) * compound(r.fireRate.effectPerLevel, run.fireRate),
-    ),
-    maxHp: c.baseHp * compound(w.maxHp.effectPerLevel, workshop.maxHp) * compound(r.maxHp.effectPerLevel, run.maxHp),
-    coinMultiplier: compound(w.coins.effectPerLevel, workshop.coins),
+    damage:
+      c.baseDamage * compound(w.damage.effectPerLevel, workshop.damage) * compound(r.damage.effectPerLevel, run.damage) * bonus('damage') * (rate / shots),
+    shotsPerSecond: shots,
+    maxHp: c.baseHp * compound(w.maxHp.effectPerLevel, workshop.maxHp) * compound(r.maxHp.effectPerLevel, run.maxHp) * bonus('maxHp'),
+    coinMultiplier: compound(w.coins.effectPerLevel, workshop.coins) * bonus('coins'),
   };
 }
 
-/** Part des PV max rendue en fin de niveau (Réparation de l'atelier incluse). */
-export function healOnClear(workshop: Record<WorkshopId, number>, cfg: Balance = BALANCE): number {
-  return Math.min(1, cfg.cannon.healOnLevelClear + cfg.workshop.repair.effectPerLevel * workshop.repair);
+/** Part des PV max rendue en fin de niveau (Réparation de l'atelier et bonus du canon inclus). */
+export function healOnClear(workshop: Record<WorkshopId, number>, cannon: CannonId = 'classic', cfg: Balance = BALANCE): number {
+  return Math.min(1, cfg.cannon.healOnLevelClear + cfg.workshop.repair.effectPerLevel * workshop.repair + cannonPassive(cannon, 'repair', cfg));
 }
 
 /** Effet affiché d'un niveau d'atelier. */
@@ -269,7 +291,7 @@ export function workshopEffect(id: WorkshopId, level: number, cfg: Balance = BAL
     case 'startCoins':
       return def.effectPerLevel * level;
     case 'repair':
-      return healOnClear({ repair: level } as Record<WorkshopId, number>, cfg);
+      return healOnClear({ repair: level } as Record<WorkshopId, number>, 'classic', cfg);
     case 'offline':
       return offlineCapHours(level, cfg);
     default:
@@ -351,5 +373,5 @@ export function offlineDiamonds(bestLevel: number, offlineLevel: number, seconds
   const o = cfg.offline;
   if (!(seconds >= o.minMinutes * 60)) return 0;
   const hours = Math.min(seconds / 3600, offlineCapHours(offlineLevel, cfg));
-  return Math.floor((o.ratePerHour + o.ratePerBestLevel * bestLevel) * o.efficiency * hours);
+  return Math.floor((o.ratePerHour + o.ratePerBestLevel * bestLevel) * lateDiamondFactor(bestLevel, cfg) * o.efficiency * hours);
 }

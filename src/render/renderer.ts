@@ -10,7 +10,7 @@ import { STEP } from '../game/simulation';
 import { W } from '../game/state';
 import type { Boss, Enemy, GameState } from '../game/state';
 import { waveProgress } from '../game/waves';
-import { activeWeapons, orbPositions } from '../game/weapons';
+import { activeWeapons, cryoRadius, dronePositions, orbPositions } from '../game/weapons';
 import { t } from '../i18n';
 import type { Effects } from './effects';
 import { enemyColor, enemyVertices, tierColor, tierVertices, worldPalette } from './shapes';
@@ -299,6 +299,7 @@ export class Renderer {
     this.drawProjectiles(state, a);
     this.drawHazards(state, a, worldOf(run.level), true);
     this.drawBullets(state, a);
+    this.drawWorldWeapons(state);
     this.drawOrbs(state);
     this.drawCannon(state);
     this.drawRings(fx);
@@ -733,10 +734,24 @@ export class Renderer {
       ctx.stroke();
     }
     ctx.lineCap = 'butt';
+    const prism = state.meta.cannon === 'prism' && state.meta.boostTime <= 0;
+    let n = 0;
     for (const p of state.run.projectiles) {
       const x = p.x + p.vx * STEP * a;
       const y = p.y + p.vy * STEP * a;
-      if (p.kind === 'missile') {
+      if (p.kind === 'plasma' && prism) {
+        // Prisme : sphères aux couleurs de l'arc-en-ciel.
+        const col = visual.prismColors[(n++ + Math.floor(this.clock * 6)) % visual.prismColors.length];
+        this.circle(x, y, p.radius * 2);
+        ctx.fillStyle = col + '33';
+        ctx.fill();
+        this.circle(x, y, p.radius);
+        ctx.fillStyle = col + 'dd';
+        ctx.fill();
+        this.circle(x, y, p.radius * 0.4);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      } else if (p.kind === 'missile') {
         // Missile : flèche et traînée de fumée.
         const ang = Math.atan2(p.vy, p.vx);
         ctx.beginPath();
@@ -856,6 +871,67 @@ export class Renderer {
     ctx.globalCompositeOperation = 'source-over';
   }
 
+  /** Armes de fin de monde : drones, aura de gel, trou de ver. */
+  private drawWorldWeapons(state: GameState): void {
+    const run = state.run;
+    if (run.phase === 'gameOver' || run.phase === 'dying') return;
+    const weapons = activeWeapons(state);
+    if (weapons.length === 0) return;
+    const ctx = this.ctx;
+    const colors = visual.weaponColors;
+    ctx.globalCompositeOperation = 'lighter';
+    if (weapons.includes('cryo')) {
+      const c = run.cannon;
+      const r = cryoRadius(state);
+      this.circle(c.x, c.y, r);
+      ctx.fillStyle = colors.cryo + '10';
+      ctx.fill();
+      ctx.setLineDash([5, 7]);
+      ctx.lineDashOffset = -this.clock * 12;
+      ctx.strokeStyle = colors.cryo + '55';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (weapons.includes('vortex') && run.weapons.vortexTime > 0) {
+      const w = run.weapons;
+      const r = BALANCE.weapons.vortex.radius ?? 0.12;
+      const fade = Math.min(1, w.vortexTime / 0.4);
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        const start = this.clock * 6 + (k * Math.PI * 2) / 3;
+        for (let i = 0; i <= 20; i++) {
+          const t = i / 20;
+          const ang = start + t * Math.PI * 1.6;
+          const rr = r * (1.15 - t * 0.9);
+          const px = this.sx(w.vortexX + Math.cos(ang) * rr);
+          const py = this.sy(w.vortexY + Math.sin(ang) * rr);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = colors.vortex + Math.round(0x99 * fade).toString(16).padStart(2, '0');
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      this.circle(w.vortexX, w.vortexY, r * 0.25);
+      ctx.fillStyle = '#0a0518';
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+    }
+    if (weapons.includes('drones')) {
+      for (const d of dronePositions(state)) {
+        this.path(polygonVertices(4, 0.016, this.clock * 2, d.x, d.y));
+        ctx.fillStyle = colors.drones + '55';
+        ctx.fill();
+        ctx.strokeStyle = colors.drones;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
   private drawCannon(state: GameState): void {
     const ctx = this.ctx;
     const run = state.run;
@@ -944,6 +1020,45 @@ export class Renderer {
       ctx.fillStyle = color + '55';
       ctx.fill();
       ctx.strokeStyle = color;
+      ctx.stroke();
+    } else if (kind === 'twin') {
+      barrel(-0.3, 1.45, 0.3);
+      barrel(0.3, 1.45, 0.3);
+    } else if (kind === 'ricochet') {
+      barrel(0, 1.25, 0.34);
+      ctx.beginPath();
+      ctx.moveTo(r * 1.2 * s - back, -0.45 * r * s);
+      ctx.lineTo(r * 1.6 * s - back, 0);
+      ctx.lineTo(r * 1.2 * s - back, 0.45 * r * s);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (kind === 'gatling') {
+      // Trois fûts qui tournent de plus en plus vite.
+      const phase = this.clock * (5 + 30 * run.cannon.spin);
+      for (let k = 0; k < 3; k++) barrel(0.3 * Math.sin(phase + (k * Math.PI * 2) / 3), 1.5, 0.16);
+    } else if (kind === 'storm') {
+      barrel(0, 1.05, 0.3);
+      ctx.beginPath();
+      ctx.moveTo(r * 1.25 * s - back, -0.35 * r * s);
+      ctx.lineTo(r * 1.45 * s - back, 0.05 * r * s);
+      ctx.lineTo(r * 1.35 * s - back, -0.05 * r * s);
+      ctx.lineTo(r * 1.6 * s - back, 0.35 * r * s);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (kind === 'prism') {
+      barrel(0, 0.95, 0.3);
+      const hue = visual.prismColors[Math.floor(this.clock * 6) % visual.prismColors.length];
+      ctx.beginPath();
+      ctx.moveTo(r * 1.0 * s - back, -0.5 * r * s);
+      ctx.lineTo(r * 1.7 * s - back, 0);
+      ctx.lineTo(r * 1.0 * s - back, 0.5 * r * s);
+      ctx.closePath();
+      ctx.fillStyle = hue + '66';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
       ctx.stroke();
     } else {
       for (const off of state.meta.abilities.multishot >= 1 ? [-0.22, 0.22] : [0]) barrel(off, 1.45, 0.4);
@@ -1125,7 +1240,7 @@ export class Renderer {
     for (const b of fx.bolts) {
       ctx.globalAlpha = Math.min(1, b.life / 0.1);
       for (const [w, c] of [
-        [7, visual.lightningColor + '40'],
+        [7, b.color + '40'],
         [2, '#ffffff'],
       ] as const) {
         ctx.beginPath();

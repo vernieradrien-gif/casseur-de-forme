@@ -106,8 +106,29 @@
     "shotgun": "#ffb347",
     "beam": "#ff6bd6",
     "missile": "#ff5a5a",
-    "plasma": "#b18cff"
+    "plasma": "#b18cff",
+    "twin": "#5cf2c4",
+    "ricochet": "#ffe066",
+    "gatling": "#ff8a3d",
+    "storm": "#9ad8ff",
+    "prism": "#f3d9ff"
   },
   "armorColor": "#8b93a7",
-  "gunColor": "#ff6b4a"
+  "gunColor": "#ff6b4a",
+  "weaponColors": {
+    "orbs": "#a9c4ff",
+    "laser": "#ff6bd6",
+    "lightning": "#d6ecff",
+    "drones": "#7cffd9",
+    "cryo": "#9fe8ff",
+    "nova": "#ffd36b",
+    "vortex": "#c08cff"
+  },
+  "prismColors": [
+    "#ff6b6b",
+    "#ffd93d",
+    "#6bff95",
+    "#6bd6ff",
+    "#b18cff"
+  ]
 }

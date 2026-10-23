@@ -1,4 +1,4 @@
-import { abilityReady, buyAbility, buyRunUpgrade, buyWeapon, buyWorkshop, selectCannon, useAbility, workshopMaxed } from './actions';
+import { abilityReady, buyAbility, buyCannon, buyRunUpgrade, buyWeapon, buyWorkshop, selectCannon, useAbility, workshopMaxed } from './actions';
 import { ABILITIES, ACTIVE_ABILITIES, BALANCE, CANNONS, RUN_UPGRADES, WEAPONS } from './config';
 import type { CannonId, WorkshopId } from './config';
 import type { GameEvent } from './events';
@@ -162,7 +162,7 @@ export function spendCoins(state: GameState): void {
 }
 
 const WORKSHOP_PRIORITY: WorkshopId[] = ['damage', 'fireRate', 'maxHp', 'coins', 'repair', 'startCoins'];
-const CANNON_PREFERENCE: CannonId[] = ['plasma', 'missile', 'beam', 'burst', 'shotgun', 'classic'];
+const CANNON_PREFERENCE: CannonId[] = ['prism', 'storm', 'gatling', 'ricochet', 'plasma', 'twin', 'missile', 'beam', 'burst', 'shotgun', 'classic'];
 
 /** Dépense diamants et gemmes entre deux parties (récompenses, atelier, capacités, armes, canon). */
 export function spendMeta(state: GameState): void {
@@ -187,6 +187,10 @@ export function spendMeta(state: GameState): void {
       (a, b) => abilityPrice(a, meta.abilities[a]) - abilityPrice(b, meta.abilities[b]),
     )[0];
     if (!id || !buyAbility(state, id)) break;
+  }
+  // Canons vendus en gemmes, du moins cher au plus cher, une fois les capacités achetées.
+  for (const id of CANNONS.filter((c) => !meta.cannons[c] && BALANCE.cannons[c].gemCost > 0).sort((a, b) => BALANCE.cannons[a].gemCost - BALANCE.cannons[b].gemCost)) {
+    if (!buyCannon(state, id)) break;
   }
   // Diamants : l'amélioration la moins chère (atelier ou arme équipée).
   for (;;) {

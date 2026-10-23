@@ -266,7 +266,7 @@ describe('super boss en blocs', () => {
     const ev: GameEvent[] = [];
     const pos = partPosition(boss, armor);
     // Tir sur un bloc blindé : rien.
-    s.run.projectiles.push({ kind: 'bullet', x: pos.x, y: pos.y + 0.004, vx: 0, vy: -0.01, damage: 5, radius: 0.012, pierce: 0, hit: [], splash: 0, life: 3 });
+    s.run.projectiles.push({ kind: 'bullet', x: pos.x, y: pos.y + 0.004, vx: 0, vy: -0.01, damage: 5, radius: 0.012, pierce: 0, hit: [], splash: 0, life: 3, bounces: 0 });
     const hp = boss.hp;
     ev.push(...run(s, STEP));
     expect(boss.hp).toBe(hp);

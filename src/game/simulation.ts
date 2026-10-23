@@ -18,6 +18,7 @@ import type { GameEvent } from './events';
 import {
   bossCoins,
   bossDiamonds,
+  cannonPassive,
   cannonStats,
   grandBossGems,
   healOnClear,
@@ -30,12 +31,12 @@ import { pointInPolygon } from './geometry';
 import type { Vec } from './geometry';
 import { damageRock, updateHazards } from './hazards';
 import { angleDelta, clamp, compact } from './math';
-import { addDaily, addToSet, checkAchievements } from './progress';
+import { addDaily, addToSet, checkAchievements, checkWorldRewards } from './progress';
 import { nextRandom } from './rng';
 import { W } from './state';
 import type { Boss, BossPart, Enemy, GameState, Projectile } from './state';
 import { startWave, updateWaves } from './waves';
-import { updateWeapons } from './weapons';
+import { chainFrom, cryoFactor, updateWeapons } from './weapons';
 
 /** Pas de temps fixe de la simulation : 60 mises à jour par seconde. */
 export const STEP = 1 / 60;
@@ -78,6 +79,7 @@ export function step(state: GameState, events: GameEvent[]): void {
   updateHazards(state, dt, events);
   updateWeapons(state, dt, events);
   updateBeam(state, dt, events);
+  updateBolts(state, events);
   updateProjectiles(state, dt, events);
   updateBullets(state, dt, events);
   updateEnemies(state, dt, events);
@@ -152,9 +154,9 @@ function clearLevel(state: GameState, events: GameEvent[]): void {
   run.hazards = run.hazards.filter((h) => h.kind === 'cloud' || h.kind === 'hole');
 
   const firstClear = level > meta.highestCleared;
-  const diamonds = bossDiamonds(level, firstClear);
+  const diamonds = Math.round(bossDiamonds(level, firstClear) * (1 + cannonPassive(meta.cannon, 'diamonds')));
   let gems = firstClear ? grandBossGems(level) : 0;
-  const coins = bossCoins(level, run.golden) * cannonStats(run.upgrades, meta.workshop).coinMultiplier * boostMultiplier(state);
+  const coins = bossCoins(level, run.golden) * cannonStats(run.upgrades, meta.workshop, meta.cannon).coinMultiplier * boostMultiplier(state);
   meta.diamonds += diamonds;
   run.diamondsEarned += diamonds;
   run.coins += coins;
@@ -177,6 +179,9 @@ function clearLevel(state: GameState, events: GameEvent[]): void {
     addToSet(meta.collection.golden, tier);
   }
   if (!run.hitDuringBoss) meta.stats.noHitBosses++;
+  // Monde entier terminé dans cette partie sans prendre aucun dégât.
+  const perWorld = BALANCE.levelsPerWorld;
+  if (level % perWorld === 0 && run.noHitFrom <= level - perWorld + 1) addToSet(meta.flawless, level / perWorld - 1);
   addDaily(state, 'bosses', 1, events);
   addDaily(state, 'levels', 1, events);
   if (level === BALANCE.campaignLevels && !meta.campaignComplete) {
@@ -188,11 +193,12 @@ function clearLevel(state: GameState, events: GameEvent[]): void {
   run.gemsEarned += gems;
 
   const c = run.cannon;
-  c.hp = Math.min(c.maxHp, c.hp + c.maxHp * healOnClear(meta.workshop));
+  c.hp = Math.min(c.maxHp, c.hp + c.maxHp * healOnClear(meta.workshop, meta.cannon));
   c.autoAimTime = 0;
   run.phase = 'levelClear';
   run.phaseTimer = L.nextLevelDelay;
   events.push({ type: 'levelClear', level, coins, diamonds, gems, golden: run.golden });
+  checkWorldRewards(state, events);
   checkAchievements(state, events);
 }
 
@@ -302,6 +308,38 @@ function updateBeam(state: GameState, dt: number, events: GameEvent[]): void {
   }
 }
 
+/** Canon « Foudre » : chaque arc frappe le premier obstacle droit devant, puis rebondit sur les ennemis proches. */
+function updateBolts(state: GameState, events: GameEvent[]): void {
+  const c = state.run.cannon;
+  if (c.bolts.length === 0) return;
+  const def = BALANCE.cannons.storm;
+  const tip = BALANCE.cannon.radius * 1.6;
+  const x0 = c.x + Math.cos(c.angle) * tip;
+  const y0 = c.y + Math.sin(c.angle) * tip;
+  for (const dmg of c.bolts) {
+    const { hits, end } = raycast(state, x0, y0, c.angle, 0.05, false);
+    const h = hits[0];
+    const points: Vec[] = [{ x: x0, y: y0 }];
+    if (h?.enemy) {
+      points.push(...chainFrom(state, h.enemy, dmg, def.chains ?? 2, def.range ?? 0.35, events));
+    } else if (h?.rock) {
+      damageRock(state, h.rock, dmg, events);
+      points.push({ x: h.x, y: h.y });
+    } else if (h?.boss && h.part) {
+      damagePart(state, h.boss, h.part, dmg, h.x, h.y, events);
+      if (h.part.role === 'core') countWeakHit(state, events);
+      points.push({ x: h.x, y: h.y });
+    } else if (h?.boss) {
+      damageBoss(state, h.boss, dmg, h.x, h.y, events);
+      points.push({ x: h.x, y: h.y });
+    } else {
+      points.push(end);
+    }
+    events.push({ type: 'lightning', points, source: 'cannon' });
+  }
+  c.bolts.length = 0;
+}
+
 // ---------------------------------------------------------------- Tirs du canon
 
 function nearestTarget(state: GameState, p: Projectile): Vec | null {
@@ -360,6 +398,12 @@ function updateProjectiles(state: GameState, dt: number, events: GameEvent[]): v
     }
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    if (p.bounces > 0 && Math.abs(p.x) > HALF - p.radius) {
+      // Ricochet sur le bord de l'écran.
+      p.x = clamp(p.x, -HALF + p.radius, HALF - p.radius);
+      p.vx = -p.vx;
+      p.bounces--;
+    }
     if (p.y < -0.1 || p.y > W.height + 0.1 || Math.abs(p.x) > HALF + 0.1) return false;
     const pr = p.radius;
 
@@ -440,8 +484,10 @@ function updateBullets(state: GameState, dt: number, events: GameEvent[]): void 
   const fighting = isFighting(run.phase);
   for (const b of run.bullets) {
     if (b.damage <= 0) continue;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
+    // Gel : les tirs ennemis ralentissent près du canon.
+    const k = dt * cryoFactor(state, b.x, b.y, true);
+    b.x += b.vx * k;
+    b.y += b.vy * k;
     if (b.y > W.height + 0.05 || b.y < -0.1 || Math.abs(b.x) > HALF + 0.05) {
       b.damage = 0;
       continue;

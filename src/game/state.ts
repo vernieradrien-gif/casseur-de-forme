@@ -124,6 +124,8 @@ export interface Projectile {
   /** Missile : rayon d'explosion. */
   splash: number;
   life: number;
+  /** Ricochet : rebonds restants sur les bords. */
+  bounces: number;
 }
 
 export interface Bullet {
@@ -173,6 +175,12 @@ export interface Cannon {
   /** Rayon (canon « Rayon ») : actif et extrémité haute atteinte. */
   beamOn: boolean;
   beamTop: number;
+  /** Jumeaux et Ricochet : fût ou angle alterné à chaque tir. */
+  alt: number;
+  /** Gatling : montée en cadence (0 à 1). */
+  spin: number;
+  /** Foudre : arcs tirés à ce pas (dégâts), lancés par la simulation. */
+  bolts: number[];
   invulnerable: number;
   shieldTime: number;
   autoAimTime: number;
@@ -186,6 +194,14 @@ export interface WeaponState {
   laserAcc: number;
   lightningTimer: number;
   orbAngle: number;
+  /** Drones, Nova, Trou de ver : recharges. */
+  droneTimer: number;
+  novaTimer: number;
+  vortexTimer: number;
+  /** Trou de ver actif : position et temps restant. */
+  vortexX: number;
+  vortexY: number;
+  vortexTime: number;
 }
 
 /** Danger propre au monde : nuage de nébuleuse, astéroïde, éruption, trou noir, frappe ionique. */
@@ -247,6 +263,8 @@ export interface RunState {
   diamondsDoubled: boolean;
   /** Le canon a été touché pendant la phase boss (succès « sans dégâts »). */
   hitDuringBoss: boolean;
+  /** Premier niveau de la série en cours sans aucun dégât (succès « monde sans dégât »). */
+  noHitFrom: number;
   nextId: number;
 }
 
@@ -298,6 +316,8 @@ export interface MetaState {
   collection: CollectionState;
   daily: DailyState;
   campaignComplete: boolean;
+  /** Mondes (0-indexés) terminés en une partie sans prendre aucun dégât. */
+  flawless: number[];
   /** Boost ×2 restant (secondes de jeu). */
   boostTime: number;
 }
@@ -342,6 +362,7 @@ export function createMeta(): MetaState {
     collection: { bosses: [], golden: [], enemies: [], special: [] },
     daily: { date: '', objectives: [], bonusClaimed: false },
     campaignComplete: false,
+    flawless: [],
     boostTime: 0,
   };
 }
@@ -352,7 +373,7 @@ export function createWaves(): WaveState {
 
 export function createRun(meta: MetaState, level = 1): RunState {
   const upgrades = record(RUN_UPGRADES, 0);
-  const stats = cannonStats(upgrades, meta.workshop);
+  const stats = cannonStats(upgrades, meta.workshop, meta.cannon);
   return {
     level,
     startLevel: level,
@@ -378,12 +399,27 @@ export function createRun(meta: MetaState, level = 1): RunState {
       burstTimer: 0,
       beamOn: false,
       beamTop: 0,
+      alt: 0,
+      spin: 0,
+      bolts: [],
       invulnerable: 0,
       shieldTime: 0,
       autoAimTime: 0,
       cooldowns: record(ACTIVE_ABILITIES, 0),
     },
-    weapons: { laserTimer: 2, laserActive: 0, laserAcc: 0, lightningTimer: 1, orbAngle: 0 },
+    weapons: {
+      laserTimer: 2,
+      laserActive: 0,
+      laserAcc: 0,
+      lightningTimer: 1,
+      orbAngle: 0,
+      droneTimer: 0.5,
+      novaTimer: 2,
+      vortexTimer: 3,
+      vortexX: 0,
+      vortexY: 0,
+      vortexTime: 0,
+    },
     enemies: [],
     projectiles: [],
     bullets: [],
@@ -396,6 +432,7 @@ export function createRun(meta: MetaState, level = 1): RunState {
     continued: false,
     diamondsDoubled: false,
     hitDuringBoss: false,
+    noHitFrom: level,
     nextId: 1,
   };
 }

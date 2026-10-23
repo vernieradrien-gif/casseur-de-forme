@@ -93,7 +93,7 @@ export function damageRock(state: GameState, h: Hazard, amount: number, events: 
   h.flash = 0.06;
   if (h.hp <= 0) {
     const run = state.run;
-    const coins = enemyStats('grunt', run.level).coins * cannonStats(run.upgrades, state.meta.workshop).coinMultiplier * boostMultiplier(state);
+    const coins = enemyStats('grunt', run.level).coins * cannonStats(run.upgrades, state.meta.workshop, state.meta.cannon).coinMultiplier * boostMultiplier(state);
     run.coins += coins;
     run.coinsEarned += coins;
     events.push({ type: 'rockKilled', x: h.x, y: h.y, radius: h.r, coins });

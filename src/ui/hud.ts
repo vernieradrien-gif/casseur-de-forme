@@ -1,9 +1,9 @@
-import { abilityReady } from '../game/actions';
+import { abilityReady, cooldownOf } from '../game/actions';
 import { formatNumber } from '../game/bignum';
 import { isFighting } from '../game/cannon';
 import { ACTIVE_ABILITIES, BALANCE, RUN_UPGRADES } from '../game/config';
 import type { ActiveAbilityId, RunUpgradeId } from '../game/config';
-import { abilityCooldown, affordable, bulkCost, cannonStats } from '../game/formulas';
+import { affordable, bulkCost, cannonStats } from '../game/formulas';
 import type { GameState } from '../game/state';
 import { formatDuration, t } from '../i18n';
 import { button, currencyIcon, el, setDisabled, setText, toggleClass } from './dom';
@@ -107,7 +107,7 @@ export class Hud {
     toggleClass(this.boost, 'hidden', meta.boostTime <= 0);
     if (meta.boostTime > 0) setText(this.boost, `×2 · ${formatDuration(meta.boostTime)}`);
 
-    const stats = cannonStats(run.upgrades, meta.workshop);
+    const stats = cannonStats(run.upgrades, meta.workshop, meta.cannon);
     const step = BULK_STEPS[this.bulkIndex];
     const over = run.phase === 'gameOver' || run.phase === 'dying';
     for (const u of this.upgrades) {
@@ -129,7 +129,7 @@ export class Hud {
       toggleClass(a.btn, 'hidden', level === 0);
       if (level === 0) continue;
       const cd = c.cooldowns[a.id];
-      const ratio = cd / abilityCooldown(a.id, level);
+      const ratio = Math.min(1, cd / cooldownOf(state, a.id));
       const active = (a.id === 'autoAim' && c.autoAimTime > 0) || (a.id === 'shield' && c.shieldTime > 0);
       a.btn.style.setProperty('--cd', `${Math.round(ratio * 360)}deg`);
       toggleClass(a.btn, 'active', active);

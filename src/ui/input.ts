@@ -1,8 +1,7 @@
 import type { Vec } from '../game/geometry';
+import { clamp } from '../game/math';
+import { W } from '../game/state';
 import type { GameState } from '../game/state';
-
-/** Sensibilité du glisser relatif. */
-const DRAG_GAIN = 1.35;
 
 /**
  * Contrôle unique : le canon suit le doigt, de gauche à droite et de haut en bas
@@ -97,9 +96,19 @@ export class TouchInput {
     this.reset();
   }
 
+  /**
+   * Le canon reproduit exactement le déplacement du doigt (même distance, sans amplification) : l'écart entre le doigt
+   * et le canon reste constant. Contre un bord, l'ancrage suit le doigt pour que le canon reparte dès qu'il revient.
+   */
   private apply(w: Vec): void {
     const input = this.state().input;
-    input.moveX = this.startCannon.x + (w.x - this.start.x) * DRAG_GAIN;
-    input.moveY = this.startCannon.y + (w.y - this.start.y) * DRAG_GAIN;
+    const x = this.startCannon.x + (w.x - this.start.x);
+    const y = this.startCannon.y + (w.y - this.start.y);
+    const cx = clamp(x, W.cannonMinX, W.cannonMaxX);
+    const cy = clamp(y, W.cannonMinY, W.cannonMaxY);
+    this.start.x += x - cx;
+    this.start.y += y - cy;
+    input.moveX = cx;
+    input.moveY = cy;
   }
 }

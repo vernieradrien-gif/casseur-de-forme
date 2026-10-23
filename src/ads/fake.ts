@@ -37,8 +37,6 @@ export class FakeAds implements AdService {
     });
   }
 
-  async showInterstitial(): Promise<void> {}
-
   consentAvailable(): boolean {
     return false;
   }

@@ -724,6 +724,7 @@ button:disabled {
 }
 
 .progress-fill {
+  display: block;
   height: 100%;
   width: 0;
   border-radius: 3px;
@@ -1230,4 +1231,15 @@ button:disabled {
   .menu-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* ---------- v5 : bonus des canons, canon légendaire ---------- */
+
+.cannon-bonus {
+  color: var(--ok);
+}
+
+.item.special {
+  border-color: #f3d9ff88;
+  background: linear-gradient(120deg, #ff6b6b14, #ffd93d14, #6bff9514, #6bd6ff14, #b18cff14);
 }

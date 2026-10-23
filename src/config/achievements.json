@@ -28,5 +28,20 @@
   { "id": "workshop25", "stat": "workshopLevels", "goal": 25, "gems": 4 },
   { "id": "workshop100", "stat": "workshopLevels", "goal": 100, "gems": 10 },
   { "id": "noHit", "stat": "noHitBosses", "goal": 1, "gems": 5 },
-  { "id": "daily7", "stat": "dailyCompleted", "goal": 7, "gems": 10 }
+  { "id": "daily7", "stat": "dailyCompleted", "goal": 7, "gems": 10 },
+  { "id": "world3", "stat": "worldCleared", "world": 3, "goal": 1, "gems": 25 },
+  { "id": "world4", "stat": "worldCleared", "world": 4, "goal": 1, "gems": 30 },
+  { "id": "world5", "stat": "worldCleared", "world": 5, "goal": 1, "gems": 50 },
+  { "id": "flawless1", "stat": "flawlessWorld", "world": 1, "goal": 1, "gems": 15 },
+  { "id": "flawless2", "stat": "flawlessWorld", "world": 2, "goal": 1, "gems": 20 },
+  { "id": "flawless3", "stat": "flawlessWorld", "world": 3, "goal": 1, "gems": 25 },
+  { "id": "flawless4", "stat": "flawlessWorld", "world": 4, "goal": 1, "gems": 30 },
+  { "id": "flawless5", "stat": "flawlessWorld", "world": 5, "goal": 1, "gems": 40 },
+  { "id": "super1", "stat": "superBosses", "goal": 1, "gems": 3 },
+  { "id": "super25", "stat": "superBosses", "goal": 25, "gems": 10 },
+  { "id": "mega1", "stat": "megaBosses", "goal": 1, "gems": 8 },
+  { "id": "mega5", "stat": "megaBosses", "goal": 5, "gems": 20 },
+  { "id": "cannons5", "stat": "cannonsUnlocked", "goal": 5, "gems": 8 },
+  { "id": "cannonsAll", "stat": "cannonsUnlocked", "goal": 11, "gems": 30 },
+  { "id": "weapons7", "stat": "weaponsUnlocked", "goal": 7, "gems": 20 }
 ]

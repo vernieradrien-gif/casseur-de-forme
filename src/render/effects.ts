@@ -45,6 +45,7 @@ export interface FloatingText {
 export interface Bolt {
   points: Vec[];
   life: number;
+  color: string;
 }
 
 export interface Banner {
@@ -153,7 +154,7 @@ export class Effects {
     this.rings.push({ x, y, radius, grow, life, maxLife: life, color, width });
   }
 
-  bolt(points: Vec[]): void {
+  bolt(points: Vec[], color = visual.lightningColor): void {
     // Trajet en zigzag entre les points (calculé une fois).
     const jagged: Vec[] = [];
     for (let i = 0; i < points.length - 1; i++) {
@@ -167,7 +168,7 @@ export class Effects {
       }
     }
     jagged.push(points[points.length - 1]);
-    this.bolts.push({ points: jagged, life: 0.18 });
+    this.bolts.push({ points: jagged, life: 0.18, color });
   }
 
   floatText(x: number, y: number, text: string, color = '#ffffff', scale = 1, life = visual.floatingTextLife): void {

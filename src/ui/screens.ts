@@ -19,7 +19,7 @@ import {
   worldThemeId,
   worldsUnlocked,
 } from '../game/formulas';
-import { polygonVertices } from '../game/geometry';
+import { polygonVertices, starVertices } from '../game/geometry';
 import { cannonUnlockProgress, claimableAchievements, claimableDaily, dailyBonusReady, statValue } from '../game/progress';
 import type { GameState } from '../game/state';
 import { formatDuration, language, t } from '../i18n';
@@ -405,6 +405,8 @@ export class Screens {
       el('div', 'item-name', info, t(`cannon.${id}.name`));
       el('div', 'item-desc', info, t(`cannon.${id}.desc`));
       el('div', 'item-desc', info, t('cannon.stats', { rate: factor(def.rate), damage: factor(def.damage) }));
+      if (def.passive?.length) el('div', 'item-desc cannon-bonus', info, passiveText(def.passive));
+      if (id === 'prism') row.classList.add('special');
       const unlock = el('div', 'item-desc cannon-unlock', info);
       const bar = el('div', 'progress hidden', info);
       const fill = el('div', 'progress-fill', bar);
@@ -420,7 +422,7 @@ export class Screens {
         const meta = this.app.state().meta;
         const owned = meta.cannons[id];
         const prog = cannonUnlockProgress(meta, id);
-        setText(unlock, owned ? '' : prog ? t(`cannon.unlock.${def.unlockStat}`, { goal: prog.goal }) : t('cannon.gemsOnly'));
+        setText(unlock, owned ? '' : cannonUnlockText(id));
         toggleClass(bar, 'hidden', owned || !prog);
         if (prog) fill.style.width = `${Math.round((prog.value / prog.goal) * 100)}%`;
         toggleClass(buy.btn, 'hidden', owned || def.gemCost <= 0);
@@ -547,11 +549,13 @@ export class Screens {
       this.on('armory', () => {
         if (!drawn) {
           drawn = true;
-          drawIcon(icon, (size) => weaponIcon(id, size), id === 'orbs' ? '#a9c4ff' : id === 'laser' ? '#ff6bd6' : '#d6ecff');
+          drawIcon(icon, (size) => weaponIcon(id, size), visual.weaponColors[id]);
         }
         const meta = this.app.state().meta;
         const level = meta.weapons[id];
         const unlocked = level > 0;
+        // Les armes de fin de monde restent invisibles tant qu'elles ne sont pas offertes.
+        toggleClass(row, 'hidden', !!def.worldUnlock && !unlocked);
         const maxed = level >= def.maxLevel;
         setText(lvl, unlocked ? t('levelShort', { level }) : '');
         setText(power, unlocked ? t('weapon.power', { value: weaponPower(level).toFixed(1) }) : '');
@@ -687,7 +691,7 @@ export class Screens {
     for (const a of ACHIEVEMENTS) {
       const row = el('div', 'item ach-item', list);
       const info = el('div', 'item-info', row);
-      el('div', 'item-name', info, t(`ach.${a.stat}`, { goal: formatNumber(a.goal) }));
+      el('div', 'item-name', info, t(`ach.${a.stat}`, { goal: formatNumber(a.goal), world: a.world ? `${a.world} (${worldName(a.world - 1)})` : '' }));
       const bar = el('div', 'progress', info);
       const fill = el('div', 'progress-fill', bar);
       const prog = el('div', 'item-desc', info);
@@ -702,7 +706,7 @@ export class Screens {
         setText(rLabel, ready ? t('ach.claim', { gems: a.gems }) : claimed ? `✓ +${a.gems}` : `+${a.gems}`);
         setDisabled(reward, !ready);
         toggleClass(reward, 'ready', ready);
-        const v = Math.min(a.goal, statValue(meta, a.stat));
+        const v = Math.min(a.goal, statValue(meta, a.stat, a.world));
         fill.style.width = `${(done ? 1 : v / a.goal) * 100}%`;
         setText(prog, t('ach.progress', { value: formatNumber(done ? a.goal : v), goal: formatNumber(a.goal) }));
         toggleClass(row, 'done', done);
@@ -745,32 +749,27 @@ export class Screens {
       sfx.set(this.app.settings().sfx);
     });
 
-    el('h3', 'section-title', s, t('cloud'));
-    el('p', 'hint left', s, t('cloud.desc'));
-    const cloudBtn = button('menu-btn', s, undefined, () => {
+    // Sauvegarde Google : affichée seulement quand elle est disponible (application configurée sur Google Play).
+    const cloudBox = el('div', 'settings-group', s);
+    el('h3', 'section-title', cloudBox, t('cloud'));
+    el('p', 'hint left', cloudBox, t('cloud.desc'));
+    const cloudBtn = button('menu-btn', cloudBox, undefined, () => {
       const st = this.app.cloudStatus();
       if (st.enabled) this.app.cloudSyncNow();
       else this.app.cloudEnable();
     });
-    const cloudInfo = el('p', 'hint', s);
+    const cloudInfo = el('p', 'hint', cloudBox);
     this.on('settings', () => {
       const st = this.app.cloudStatus();
-      toggleClass(cloudBtn, 'hidden', !st.available);
+      toggleClass(cloudBox, 'hidden', !st.available);
       setText(cloudBtn, st.busy ? '…' : st.enabled ? t('cloud.syncNow') : t('cloud.enable'));
       setDisabled(cloudBtn, st.busy);
-      setText(
-        cloudInfo,
-        !st.native ? t('cloud.unavailable') : !st.available ? t('cloud.notConfigured') : st.lastSync > 0 ? t('cloud.synced', { time: new Date(st.lastSync).toLocaleTimeString() }) : st.enabled ? t('cloud.on') : '',
-      );
+      setText(cloudInfo, st.lastSync > 0 ? t('cloud.synced', { time: new Date(st.lastSync).toLocaleTimeString() }) : st.enabled ? t('cloud.on') : '');
     });
 
-    el('h3', 'section-title', s, t('adsConsent'));
+    // Consentement publicitaire (RGPD) : modifiable à tout moment quand le formulaire de Google le demande.
     const consent = button('menu-btn', s, t('adsConsent'), () => this.app.showConsent());
-    const consentHint = el('p', 'hint', s, t('adsConsentWeb'));
-    this.on('settings', () => {
-      toggleClass(consent, 'hidden', !this.app.consentAvailable());
-      toggleClass(consentHint, 'hidden', this.app.consentAvailable());
-    });
+    this.on('settings', () => toggleClass(consent, 'hidden', !this.app.consentAvailable()));
 
     // Export / import de la sauvegarde.
     const io = el('div', 'save-io', s);
@@ -811,7 +810,7 @@ export class Screens {
     privacy.target = '_blank';
     privacy.rel = 'noopener';
     this.on('settings', () => {
-      setText(about, t('about', { version: this.app.version() }));
+      setText(about, t('version', { version: this.app.version() }));
       privacy.href = this.app.privacyUrl();
     });
     this.backButton(s);
@@ -892,6 +891,11 @@ function cannonIcon(id: CannonId, size: number): { x: number; y: number }[] {
   ];
   const shapes: Record<CannonId, [number, number][]> = {
     classic: [[-0.07, 0.1], [0.07, 0.1], [0.07, 0.55], ...base, [-0.07, 0.55]],
+    twin: [[-0.16, 0.1], [-0.06, 0.1], [-0.06, 0.4], [0.06, 0.4], [0.06, 0.1], [0.16, 0.1], [0.16, 0.55], ...base.slice(1, 3), [-0.16, 0.55]],
+    ricochet: [[-0.07, 0.2], [0, 0.06], [0.07, 0.2], [0.07, 0.55], ...base, [-0.07, 0.55]],
+    gatling: [[-0.13, 0.08], [-0.07, 0.08], [-0.03, 0.3], [0.03, 0.3], [0.07, 0.08], [0.13, 0.08], [0.13, 0.55], ...base.slice(1, 3), [-0.13, 0.55]],
+    storm: [[-0.02, 0.04], [0.1, 0.18], [0.02, 0.2], [0.08, 0.32], [0.06, 0.55], ...base, [-0.06, 0.55], [-0.04, 0.3], [-0.1, 0.28]],
+    prism: [[0, 0.04], [0.18, 0.34], [0.06, 0.34], [0.06, 0.55], ...base, [-0.06, 0.55], [-0.06, 0.34], [-0.18, 0.34]],
     burst: [[-0.2, 0.18], [-0.12, 0.18], [-0.12, 0.38], [-0.04, 0.38], [-0.04, 0.08], [0.04, 0.08], [0.04, 0.38], [0.12, 0.38], [0.12, 0.18], [0.2, 0.18], [0.2, 0.55], ...base.slice(1, 3), [-0.2, 0.55]],
     shotgun: [[-0.3, 0.1], [0.3, 0.1], [0.08, 0.5], ...base, [-0.08, 0.5]],
     beam: [[0, 0.03], [0.1, 0.13], [0.04, 0.2], [0.04, 0.55], ...base, [-0.04, 0.55], [-0.04, 0.2], [-0.1, 0.13]],
@@ -914,9 +918,48 @@ function factor(v: number): string {
   return v.toLocaleString(language(), { maximumFractionDigits: 2 });
 }
 
+/** Texte du bonus passif d'un canon : « Bonus : +15 % pièces ». */
+function passiveText(passive: { stat: string; value: number }[]): string {
+  return t('cannon.bonus', { list: passive.map((p) => t(`passive.${p.stat}`, { value: Math.round(p.value * 100) })).join(' · ') });
+}
+
+function worldName(world: number): string {
+  return t(`world.${worldThemeId(world)}.name`);
+}
+
+/** Condition de déblocage d'un canon. */
+function cannonUnlockText(id: CannonId): string {
+  const def = BALANCE.cannons[id];
+  if (!def.unlockStat) return t('cannon.gemsOnly');
+  if (def.unlockStat === 'highestCleared') return t('cannon.unlock.campaign', { worlds: BALANCE.worlds.length });
+  if (def.gemCost <= 0 && def.unlockStat === 'bestLevel') {
+    const world = worldOf(def.unlockValue);
+    return t('cannon.unlock.world', { n: world + 1, name: worldName(world) });
+  }
+  return t(`cannon.unlock.${def.unlockStat}`, { goal: def.unlockValue });
+}
+
 function weaponIcon(id: WeaponId, size: number): { x: number; y: number }[] {
   const c = size / 2;
   if (id === 'orbs') return polygonVertices(16, size * 0.22, 0, c, c);
+  if (id === 'drones') return polygonVertices(4, size * 0.3, 0, c, c);
+  if (id === 'cryo') return polygonVertices(6, size * 0.34, Math.PI / 6, c, c);
+  if (id === 'nova') return starVertices(8, size * 0.4, size * 0.16, 0, c, c);
+  if (id === 'vortex') {
+    // Spirale.
+    const out: { x: number; y: number }[] = [];
+    for (let i = 0; i <= 24; i++) {
+      const a = (i / 24) * Math.PI * 3;
+      const r = size * (0.08 + (0.32 * i) / 24);
+      out.push({ x: c + Math.cos(a) * r, y: c + Math.sin(a) * r });
+    }
+    for (let i = 24; i >= 0; i--) {
+      const a = (i / 24) * Math.PI * 3;
+      const r = size * (0.04 + (0.28 * i) / 24);
+      out.push({ x: c + Math.cos(a) * r, y: c + Math.sin(a) * r });
+    }
+    return out;
+  }
   if (id === 'laser') {
     const w = size * 0.08;
     return [
