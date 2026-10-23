@@ -5,7 +5,7 @@ import { hitCannon } from '../src/game/cannon';
 import { BALANCE, CANNONS } from '../src/game/config';
 import { spawnEnemy } from '../src/game/enemies';
 import type { GameEvent } from '../src/game/events';
-import { abilityCooldown, cannonPassive, cannonStats, healOnClear, weaponSlots } from '../src/game/formulas';
+import { abilityCooldown, cannonPassive, cannonStats, enemyStats, growLevel, healOnClear, weaponSlots, worldRamp } from '../src/game/formulas';
 import { checkAchievements, statValue } from '../src/game/progress';
 import { STEP, step } from '../src/game/simulation';
 import { createState } from '../src/game/state';
@@ -334,5 +334,26 @@ describe('succès : mondes terminés sans dégât', () => {
     const back = deserialize(JSON.parse(JSON.stringify(serialize(s, defaultSettings(), defaultExtra()))));
     expect(back.state.meta.flawless).toEqual([0, 2]);
     expect(deserialize({ version: 4, meta: { flawless: [0, 9, 'x', 0] } }).state.meta.flawless).toEqual([0]);
+  });
+});
+
+describe('équilibrage de fin de partie', () => {
+  it('au-delà de la cadence maximale, la cadence en trop devient des dégâts', () => {
+    const w = createState(40).meta.workshop;
+    const zero = { damage: 0, fireRate: 0, maxHp: 0 };
+    const base = cannonStats(zero, w);
+    const fast = cannonStats({ ...zero, fireRate: 200 }, w);
+    expect(fast.shotsPerSecond).toBe(BALANCE.cannon.maxShotsPerSecond);
+    const raw = BALANCE.cannon.shotsPerSecond * (1 + BALANCE.runUpgrades.fireRate.effectPerLevel) ** 200;
+    expect(fast.damage / base.damage).toBeCloseTo(raw / BALANCE.cannon.maxShotsPerSecond, 3);
+  });
+
+  it('après le premier monde, PV et dégâts augmentent moins vite d’un niveau à l’autre', () => {
+    const from = BALANCE.lateGrowth.fromLevel;
+    expect(growLevel(10, 1.2, 1.1, from)).toBeCloseTo(10 * 1.2 ** (from - 1));
+    expect(growLevel(10, 1.2, 1.1, from + 3)).toBeCloseTo(10 * 1.2 ** (from - 1) * 1.1 ** 3);
+    expect(enemyStats('grunt', from + 1).hp / enemyStats('grunt', from).hp).toBeCloseTo(
+      BALANCE.lateGrowth.hp * Math.sqrt(worldRamp(from + 1) / worldRamp(from)),
+    );
   });
 });

@@ -41,7 +41,7 @@
   "boss": {
     "baseHp": 52,
     "hpGrowth": 1.162,
-    "tierHpMultiplier": 1.15,
+    "tierHpMultiplier": 1.1,
     "tierHpMultipliers": [
       1,
       1.15,
@@ -59,7 +59,14 @@
       "power": 1.3,
       "specialShare": 0.6,
       "enemyHpShare": 0.5,
-      "damageShare": 0.5
+      "damageShare": 0.5,
+      "amountByWorld": [
+        6,
+        10,
+        9,
+        9,
+        3
+      ]
     },
     "grandHpMultiplier": 1.4,
     "grandRadiusMultiplier": 1.3,
@@ -630,7 +637,8 @@
     "perBoss": 1,
     "bonusEveryLevels": 5,
     "firstClearBonus": 2,
-    "grandMultiplier": 3
+    "grandMultiplier": 3,
+    "lateGrowth": 1.02
   },
   "gems": {
     "rareEnemy": 1,
@@ -956,5 +964,10 @@
       "damage": 0.25,
       "cooldownFactor": 1.25
     }
-  ]
+  ],
+  "lateGrowth": {
+    "fromLevel": 51,
+    "hp": 1.15,
+    "damage": 1.088
+  }
 }

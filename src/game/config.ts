@@ -293,7 +293,15 @@ export interface Balance {
      * Exposants appliqués : PV des super boss (specialShare), PV des ennemis (enemyHpShare),
      * dégâts des ennemis et des tirs du boss (damageShare).
      */
-    worldRamp: { amount: number; power: number; specialShare: number; enemyHpShare: number; damageShare: number };
+    worldRamp: {
+      amount: number;
+      /** Montée propre à chaque monde (remplace `amount` ; le dernier sert au mode infini). */
+      amountByWorld?: number[];
+      power: number;
+      specialShare: number;
+      enemyHpShare: number;
+      damageShare: number;
+    };
     grandHpMultiplier: number;
     grandRadiusMultiplier: number;
     radius: number;
@@ -374,7 +382,8 @@ export interface Balance {
   workshop: Record<WorkshopId, UpgradeDef>;
   weapons: Record<WeaponId, WeaponDef> & { levelEffect: number; slotLevels: number[] };
   abilities: Record<AbilityId, AbilityDef>;
-  diamonds: { perBoss: number; bonusEveryLevels: number; firstClearBonus: number; grandMultiplier: number };
+  /** `lateGrowth` : après le premier monde, les diamants augmentent de ce facteur à chaque niveau. */
+  diamonds: { perBoss: number; bonusEveryLevels: number; firstClearBonus: number; grandMultiplier: number; lateGrowth: number };
   gems: { rareEnemy: number; grandFirstClear: number; grandFirstClearPerTier: number; campaignComplete: number };
   offline: { baseHours: number; minMinutes: number; ratePerHour: number; ratePerBestLevel: number; efficiency: number };
   daily: { count: number; allBonus: number; pool: DailyDef[] };
@@ -383,6 +392,11 @@ export interface Balance {
   worlds: WorldDef[];
   boost: { durationMinutes: number; cooldownMinutes: number; multiplier: number };
   checkpoint: { coinShare: number };
+  /**
+   * Après `fromLevel`, les PV et les dégâts (boss, ennemis, tirs) augmentent moins vite d'un niveau à l'autre :
+   * les améliorations de partie suivent, la difficulté vient surtout de la fin de chaque monde.
+   */
+  lateGrowth: { fromLevel: number; hp: number; damage: number };
 }
 
 export interface AchievementDef {

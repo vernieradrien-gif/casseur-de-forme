@@ -141,11 +141,13 @@ Chaque capacité active s'améliore (durée plus longue, recharge plus courte).
 Nombres de dégâts flottants (couleur différente pour les zones faibles), éclair blanc sur les cibles touchées, secousse d'écran légère, particules, anneaux d'explosion, traînées des projectiles, flash rouge et vibration quand le canon est touché (désactivable).
 
 ## 4. Formules (modifiables en config)
-- PV du boss = base × croissance^(niveau − 1) × multiplicateur de palier × montée du monde (× super boss / titan).
-- Montée du monde = 1 + 6 × p^1,3, où p va de 0 (premier niveau du monde) à 1 (dernier) ; puissance 0,6 pour les super boss et titans, 0,5 pour les PV et dégâts des ennemis et les tirs du boss.
-- Ennemis : PV, dégâts, pièces = base du type × croissance^(niveau − 1) (× montée du monde pour les PV et les dégâts).
+- PV du boss = base × croissance par niveau × multiplicateur de palier × montée du monde (× super boss / titan).
+- Croissance par niveau des PV et des dégâts (boss, ennemis, tirs) : ×1,162 (PV) et ×1,09 (dégâts) jusqu'au niveau 51, puis **×1,15 et ×1,088** : au-delà du premier monde, les améliorations de partie suivent presque la difficulté, qui vient surtout de la fin de chaque monde.
+- Montée du monde = 1 + A × p^1,3, où p va de 0 (premier niveau du monde) à 1 (dernier) et A dépend du monde : 6, 10, 9, 9, 3 (mondes 1 à 5 ; 3 ensuite) ; puissance 0,6 pour les super boss et titans, 0,5 pour les PV et dégâts des ennemis et les tirs du boss.
+- Ennemis : PV, dégâts, pièces = base du type × croissance par niveau (× montée du monde pour les PV et les dégâts).
 - Coût d'une amélioration = coût de base × croissance^(achats).
-- Diamants par boss = 1 + plancher((niveau − 1) / 5), +2 au premier passage, ×2 avec une pub en fin de partie.
+- Cadence : au-delà de 20 tirs/s, la cadence en trop se change en dégâts.
+- Diamants par boss = (1 + plancher((niveau − 1) / 5)) × 1,02^(niveau − 51 si positif), +2 au premier passage, ×2 avec une pub en fin de partie ; les gains hors ligne suivent le même facteur.
 
 ## 5. Progression
 

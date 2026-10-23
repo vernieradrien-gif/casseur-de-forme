@@ -25,6 +25,16 @@ const PLAYERS: Record<string, AutoPlayerOptions> = {
 
 const only = process.env.SIM_PLAYER;
 
+// SIM_OVERRIDES='{"boss.hpGrowth":1.12}' : essaie des réglages sans modifier balance.json (valeurs feuilles seulement).
+if (process.env.SIM_OVERRIDES) {
+  for (const [path, value] of Object.entries(JSON.parse(process.env.SIM_OVERRIDES) as Record<string, unknown>)) {
+    const keys = path.split('.');
+    let o = BALANCE as unknown as Record<string, unknown>;
+    for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>;
+    o[keys[keys.length - 1]] = value;
+  }
+}
+
 /** Affiche, et écrit aussitôt dans SIM_LOG si défini (une longue simulation reste lisible en cours de route). */
 function log(text: string): void {
   console.log(text);
