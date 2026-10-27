@@ -69,8 +69,8 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   Claude peut générer l'image de présentation en code si tu le demandes.
 
 ### 1.5 Contenu de l'application (formulaires obligatoires)
-- [ ] **Politique de confidentialité** : l'URL ci-dessus. Google demande un moyen de contact : la page renvoie vers
-  la page du projet ; donne une adresse e-mail à Claude pour l'y ajouter si tu préfères.
+- [ ] **Politique de confidentialité** : l'URL ci-dessus. Le moyen de contact demandé par Google y figure
+  (vernier.adrien.pro@gmail.com, en français et en anglais), ainsi que le public visé (13 ans et plus).
 - [ ] **Annonces** : « Oui, l'application contient des annonces ».
 - [ ] **Accès à l'application** : toutes les fonctionnalités sont accessibles sans identifiants.
 - [ ] **Classification du contenu** (questionnaire IARC) : jeu, violence fantastique légère (formes géométriques
@@ -131,7 +131,6 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 | Secrets de la clé d'envoi ajoutés sur GitHub | Workflow qui produit l'AAB signé à chaque version |
 | IDs AdMob reçus | Vrais identifiants dans le code, mode test coupé, nouvel AAB |
 | ID Play Jeux reçu | Sauvegarde Google activée, nouvel AAB |
-| Adresse e-mail de contact reçue (facultatif) | Ajout dans la politique de confidentialité |
 | Sur demande | Image de présentation 1024 × 500 générée en code, captures d'écran au bon format |
 
 ## 3. Vérifications finales (avant d'envoyer en production)
