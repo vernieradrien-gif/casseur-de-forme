@@ -86,6 +86,7 @@ npm run e2e      # tests de bout en bout au format téléphone (Playwright)
 npm run sim      # simulation d'équilibrage sans rendu (joueurs automatiques)
 npm run build    # vérification TypeScript + construction dans dist/
 npm run icons    # régénère les icônes PNG depuis public/icon.svg
+npm run store    # images de la fiche Google Play (captures 1080 × 1920, présentation 1024 × 500) dans store-assets/
 npx cap sync android && cd android && gradlew assembleRelease   # APK local (JDK 21 + SDK Android)
 ```
 
