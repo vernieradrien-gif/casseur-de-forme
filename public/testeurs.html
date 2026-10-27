@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Devenir testeur · Prisma Blast</title>
+    <meta name="description" content="Teste Prisma Blast sur Android avant sa sortie : 3 étapes, 2 minutes." />
+    <meta name="theme-color" content="#07070f" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #07070f;
+        color: #e8e8f6;
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      main {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+      .lang {
+        text-align: right;
+        font-size: 14px;
+      }
+      .lang button {
+        background: none;
+        border: 0;
+        color: #3ee6ff;
+        font: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 4px;
+      }
+      header {
+        text-align: center;
+        margin: 8px 0 28px;
+      }
+      header img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        box-shadow: 0 0 28px #3ee6ff55;
+      }
+      h1 {
+        margin: 16px 0 4px;
+        font-size: 30px;
+        color: #fff;
+        text-shadow: 0 0 12px #3ee6ff88;
+      }
+      .muted {
+        color: #9a9ab8;
+      }
+      ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: step;
+      }
+      li {
+        counter-increment: step;
+        position: relative;
+        background: #11111f;
+        border: 1px solid #2a2a44;
+        border-radius: 16px;
+        padding: 16px 16px 18px 64px;
+        margin-bottom: 14px;
+      }
+      li::before {
+        content: counter(step);
+        position: absolute;
+        left: 16px;
+        top: 16px;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #3ee6ff;
+        color: #07070f;
+        font-weight: 800;
+        text-align: center;
+        line-height: 34px;
+      }
+      li strong {
+        display: block;
+        color: #fff;
+        font-size: 17px;
+      }
+      li p {
+        margin: 4px 0 12px;
+        color: #b8b8d0;
+        font-size: 15px;
+      }
+      .btn {
+        display: inline-block;
+        min-height: 48px;
+        line-height: 48px;
+        padding: 0 20px;
+        border-radius: 12px;
+        border: 1px solid #3ee6ff;
+        background: #12303a;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .btn.off {
+        border-color: #2a2a44;
+        background: #15152a;
+        color: #6e6e8e;
+        pointer-events: none;
+      }
+      .note {
+        margin-top: 24px;
+        padding: 14px 16px;
+        border-left: 3px solid #ff6bd6;
+        background: #1a1024;
+        border-radius: 8px;
+        font-size: 15px;
+      }
+      footer {
+        margin-top: 32px;
+        font-size: 14px;
+        text-align: center;
+      }
+      a {
+        color: #3ee6ff;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="lang"><button type="button" data-set="en">English</button><button type="button" data-set="fr" hidden>Français</button></div>
+      <header>
+        <img src="icon-192.png" alt="" />
+        <h1>Prisma Blast</h1>
+        <p class="muted" data-lang="fr">Teste le jeu sur Android avant sa sortie : 3 étapes, 2 minutes.</p>
+        <p class="muted" data-lang="en" hidden>Try the game on Android before release: 3 steps, 2 minutes.</p>
+      </header>
+
+      <section data-lang="fr">
+        <ol>
+          <li>
+            <strong>Rejoindre le groupe des testeurs</strong>
+            <p>Avec le compte Google de ton téléphone Android. Touche « Rejoindre le groupe » ; aucun e-mail ne t'est envoyé.</p>
+            <a class="btn js-group" href="#">Rejoindre le groupe</a>
+          </li>
+          <li>
+            <strong>Accepter l'invitation au test</strong>
+            <p>Sur la page Google Play qui s'ouvre, touche « Devenir testeur ». Attends quelques minutes si le jeu n'apparaît pas tout de suite.</p>
+            <a class="btn js-optin" href="#">Devenir testeur</a>
+          </li>
+          <li>
+            <strong>Installer le jeu</strong>
+            <p>Depuis le Play Store, comme n'importe quelle application.</p>
+            <a class="btn js-store" href="#">Ouvrir le Play Store</a>
+          </li>
+        </ol>
+        <p class="note js-soon">Le test ouvre très bientôt : les boutons s'activeront à ce moment-là.</p>
+        <p class="note">
+          <strong>Merci de rester inscrit au moins 14 jours</strong> : Google exige 12 testeurs pendant 14 jours d'affilée
+          avant la sortie publique. Ouvre le jeu de temps en temps et dis-moi ce que tu en penses à
+          <a href="mailto:avapps.support@gmail.com">avapps.support@gmail.com</a>.
+        </p>
+      </section>
+
+      <section data-lang="en" hidden>
+        <ol>
+          <li>
+            <strong>Join the testers group</strong>
+            <p>With the Google account of your Android phone. Tap “Join group”; no e-mail will be sent to you.</p>
+            <a class="btn js-group" href="#">Join the group</a>
+          </li>
+          <li>
+            <strong>Accept the test invitation</strong>
+            <p>On the Google Play page that opens, tap “Become a tester”. Wait a few minutes if the game does not show up right away.</p>
+            <a class="btn js-optin" href="#">Become a tester</a>
+          </li>
+          <li>
+            <strong>Install the game</strong>
+            <p>From the Play Store, like any other app.</p>
+            <a class="btn js-store" href="#">Open the Play Store</a>
+          </li>
+        </ol>
+        <p class="note js-soon">The test opens very soon: the buttons will turn on then.</p>
+        <p class="note">
+          <strong>Please stay enrolled for at least 14 days</strong>: Google requires 12 testers for 14 days in a row
+          before the public release. Open the game now and then, and tell me what you think at
+          <a href="mailto:avapps.support@gmail.com">avapps.support@gmail.com</a>.
+        </p>
+      </section>
+
+      <footer class="muted">
+        <a href="./" data-lang="fr">Voir le jeu sur le web</a><a href="./" data-lang="en" hidden>See the game on the web</a>
+        · <a href="privacy.html" data-lang="fr">Confidentialité</a><a href="privacy.html" data-lang="en" hidden>Privacy</a>
+      </footer>
+    </main>
+    <script>
+      // Liens du test fermé : à remplir quand le groupe Google et la piste de test existent (vide = bouton grisé).
+      const LINKS = {
+        group: '',
+        optin: '',
+        store: 'https://play.google.com/store/apps/details?id=io.github.vernieradrien.prismablast',
+      };
+      const ready = LINKS.group !== '' && LINKS.optin !== '';
+      for (const [key, url] of Object.entries(LINKS)) {
+        for (const a of document.querySelectorAll('.js-' + key)) {
+          if (ready && url) a.href = url;
+          else a.classList.add('off');
+        }
+      }
+      for (const n of document.querySelectorAll('.js-soon')) n.hidden = ready;
+
+      function setLang(lang) {
+        document.documentElement.lang = lang;
+        for (const n of document.querySelectorAll('[data-lang]')) n.hidden = n.dataset.lang !== lang;
+        for (const b of document.querySelectorAll('[data-set]')) b.hidden = b.dataset.set === lang;
+        document.title = lang === 'fr' ? 'Devenir testeur · Prisma Blast' : 'Become a tester · Prisma Blast';
+      }
+      for (const b of document.querySelectorAll('[data-set]')) b.addEventListener('click', () => setLang(b.dataset.set));
+      setLang((navigator.language || 'fr').toLowerCase().startsWith('fr') ? 'fr' : 'en');
+    </script>
+  </body>
+</html>
