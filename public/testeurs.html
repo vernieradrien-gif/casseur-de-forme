@@ -151,7 +151,7 @@
           </li>
           <li>
             <strong>Accepter l'invitation au test</strong>
-            <p>Sur la page Google Play qui s'ouvre, touche « Devenir testeur ». Attends quelques minutes si le jeu n'apparaît pas tout de suite.</p>
+            <p>Sur la page Google Play qui s'ouvre, touche « Devenir testeur ». Si la page indique que le test n'est pas disponible, rejoins d'abord le groupe (étape 1) puis réessaie quelques minutes plus tard.</p>
             <a class="btn js-optin" href="#">Devenir testeur</a>
           </li>
           <li>
@@ -177,7 +177,7 @@
           </li>
           <li>
             <strong>Accept the test invitation</strong>
-            <p>On the Google Play page that opens, tap “Become a tester”. Wait a few minutes if the game does not show up right away.</p>
+            <p>On the Google Play page that opens, tap “Become a tester”. If it says the test is not available, join the group first (step 1) and try again a few minutes later.</p>
             <a class="btn js-optin" href="#">Become a tester</a>
           </li>
           <li>
@@ -202,8 +202,8 @@
     <script>
       // Liens du test fermé : à remplir quand le groupe Google et la piste de test existent (vide = bouton grisé).
       const LINKS = {
-        group: '',
-        optin: '',
+        group: 'https://groups.google.com/g/prismablast',
+        optin: 'https://play.google.com/apps/testing/io.github.vernieradrien.prismablast',
         store: 'https://play.google.com/store/apps/details?id=io.github.vernieradrien.prismablast',
       };
       const ready = LINKS.group !== '' && LINKS.optin !== '';
