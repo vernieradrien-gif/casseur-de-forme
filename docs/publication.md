@@ -35,18 +35,17 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   **organisation** et les comptes plus anciens n'ont pas cette étape.
 
 ### 1.2 Clé d'envoi (privée)
-- [ ] Créer une clé d'envoi (sur le PC, avec le JDK d'Android Studio), ou réutiliser celle de ton autre application
-  (Google l'accepte, une clé par appli reste plus prudent) :
-  ```
-  "C:\Program Files\Android\Android Studio\jbr\bin\keytool" -genkeypair -v -keystore casseur-upload.jks -storetype PKCS12 -alias upload -keyalg RSA -keysize 2048 -validity 10000
-  ```
-- [ ] La garder **hors du dépôt** (gestionnaire de mots de passe + copie de sauvegarde).
+- [x] Clé d'envoi créée sur le PC, **hors du dépôt** : `Documents\PrismaBlast-cle-envoi\` (`prismablast-upload.jks`,
+  alias `upload`, mot de passe dans `LISEZMOI-identifiants.txt`).
+- [ ] En faire une **copie de sauvegarde** (gestionnaire de mots de passe, clé USB ou Drive privé).
 - [ ] Garder la **signature d'application par Google Play** (proposée par défaut). Si la clé d'envoi est perdue,
   Google peut la réinitialiser.
-- [ ] Ajouter 4 secrets au dépôt GitHub (*Settings › Secrets and variables › Actions*) : `UPLOAD_KEYSTORE_BASE64`
-  (le fichier .jks en base64), `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_ALIAS` (`upload`), `UPLOAD_KEY_PASSWORD`.
-  Claude adapte alors le workflow pour produire l'**AAB signé** (format exigé par Google Play), sans jamais voir les
-  secrets.
+- [x] AAB signé construit sur le PC : `JAVA_HOME` = JDK d'Android Studio, variables `UPLOAD_KEYSTORE_FILE`,
+  `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, puis `npx cap sync android` et `gradlew bundleRelease` dans `android/`
+  (sans ces variables, la clé de test est utilisée). Premier envoi : `versionCode` **100** ; chaque nouvel AAB doit avoir
+  un numéro plus grand (`VERSION_CODE`).
+- [ ] Facultatif : construire l'AAB sur GitHub Actions avec 4 secrets (`UPLOAD_KEYSTORE_BASE64`, `UPLOAD_KEYSTORE_PASSWORD`,
+  `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) et un `versionCode` = 100 + numéro de construction.
 
 ### 1.3 AdMob (vraies publicités)
 - [ ] Dans AdMob : *Applications › Ajouter* (Android, pas encore publiée), puis **un seul bloc d'annonces « Avec
