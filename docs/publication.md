@@ -70,7 +70,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 
 ### 1.5 Contenu de l'application (formulaires obligatoires)
 - [ ] **Politique de confidentialité** : l'URL ci-dessus. Le moyen de contact demandé par Google y figure
-  (vernier.adrien.pro@gmail.com, en français et en anglais), ainsi que le public visé (13 ans et plus).
+  (avapps.support@gmail.com, en français et en anglais), ainsi que le public visé (13 ans et plus).
 - [ ] **Annonces** : « Oui, l'application contient des annonces ».
 - [ ] **Accès à l'application** : toutes les fonctionnalités sont accessibles sans identifiants.
 - [ ] **Classification du contenu** (questionnaire IARC) : jeu, violence fantastique légère (formes géométriques
