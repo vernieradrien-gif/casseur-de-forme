@@ -25,6 +25,9 @@ android {
     // Signature avec une clé de TEST commitée dans le dépôt (casseur-test.keystore) :
     // pratique pour installer l'APK sur un téléphone, mais à NE PAS utiliser pour Google Play
     // (voir docs/publication.md pour créer la clé privée de publication).
+    // Clé d'envoi Google Play (privée, hors du dépôt) : utilisée seulement si UPLOAD_KEYSTORE_FILE est défini,
+    // avec UPLOAD_KEYSTORE_PASSWORD, UPLOAD_KEY_ALIAS et UPLOAD_KEY_PASSWORD (voir docs/publication.md).
+    def uploadKeystore = System.getenv('UPLOAD_KEYSTORE_FILE')
     signingConfigs {
         test {
             storeFile file('casseur-test.keystore')
@@ -32,13 +35,21 @@ android {
             keyAlias 'casseur'
             keyPassword 'casseur-test'
         }
+        if (uploadKeystore) {
+            upload {
+                storeFile file(uploadKeystore)
+                storePassword System.getenv('UPLOAD_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('UPLOAD_KEY_ALIAS') ?: 'upload'
+                keyPassword System.getenv('UPLOAD_KEY_PASSWORD') ?: System.getenv('UPLOAD_KEYSTORE_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.test
         }
         release {
-            signingConfig signingConfigs.test
+            signingConfig uploadKeystore ? signingConfigs.upload : signingConfigs.test
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
