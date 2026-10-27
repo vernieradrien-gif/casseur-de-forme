@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "sim": "vitest run --silent=false",
     "e2e": "playwright test",
-    "icons": "node scripts/icon-design.mjs && node scripts/make-icons.mjs"
+    "icons": "node scripts/icon-design.mjs && node scripts/make-icons.mjs",
+    "store": "npm run build && node scripts/store-assets.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",

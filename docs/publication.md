@@ -64,9 +64,9 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [ ] Textes : voir [fiche-google-play.md](fiche-google-play.md) (titre, description courte, description longue en
   français et en anglais, prêts à copier).
 - [ ] Catégorie **Jeux › Arcade**, adresse e-mail de contact, URL de la politique de confidentialité.
-- [ ] **Image de présentation 1024 × 500** (obligatoire) et **au moins 2 captures d'écran** de téléphone. Les tests
-  `npm run e2e` en produisent dans `test-results/screens/` ; des captures prises sur ton téléphone sont encore mieux.
-  Claude peut générer l'image de présentation en code si tu le demandes.
+- [ ] **Icône 512 × 512** : `public/icon-512.png`. **Image de présentation 1024 × 500** et **7 captures de téléphone
+  1080 × 1920** (9:16, assez pour que l'appli puisse être mise en avant) : `store-assets/en/` pour la fiche anglaise,
+  `store-assets/fr/` pour la fiche française. Tirées du vrai jeu par `npm run store`.
 
 ### 1.5 Contenu de l'application (formulaires obligatoires)
 - [ ] **Politique de confidentialité** : l'URL ci-dessus. Le moyen de contact demandé par Google y figure
@@ -131,7 +131,6 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 | Secrets de la clé d'envoi ajoutés sur GitHub | Workflow qui produit l'AAB signé à chaque version |
 | IDs AdMob reçus | Vrais identifiants dans le code, mode test coupé, nouvel AAB |
 | ID Play Jeux reçu | Sauvegarde Google activée, nouvel AAB |
-| Sur demande | Image de présentation 1024 × 500 générée en code, captures d'écran au bon format |
 
 ## 3. Vérifications finales (avant d'envoyer en production)
 
