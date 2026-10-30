@@ -5,5 +5,5 @@
     <string name="package_name">io.github.vernieradrien.prismablast</string>
     <string name="custom_url_scheme">io.github.vernieradrien.prismablast</string>
     <!-- Identifiant du projet Google Play Jeux (Play Console > Play Games Services > Configuration). Vide = sauvegarde cloud désactivée. -->
-    <string name="game_services_project_id" translatable="false"></string>
+    <string name="game_services_project_id" translatable="false">387852057089</string>
 </resources>

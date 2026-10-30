@@ -89,11 +89,11 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [ ] Applis gouvernementales, fonctionnalités financières, santé, actualités : **Non**.
 
 ### 1.6 Sauvegarde Google (nécessaire : seul moyen de transférer sa progression)
-- [ ] Play Console › l'application › *Croissance › Play Games Services › Configuration* : créer le projet Play Jeux.
+- [x] Play Console › l'application › *Croissance › Play Games Services › Configuration* : créer le projet Play Jeux.
 - [ ] *Propriétés* : activer **Jeux sauvegardés**.
 - [ ] *Identifiants* › Android : paquet `io.github.vernieradrien.prismablast` + **SHA-1 de la clé de signature
   d'application** (Play Console › *Intégrité de l'application*), et celui de la clé d'envoi pour tester.
-- [ ] Donner à Claude l'**ID du projet** Play Jeux (une douzaine de chiffres) : il l'ajoute dans
+- [x] Donner à Claude l'**ID du projet** Play Jeux (`387852057089`, projet Cloud « Prisma Blast ») : il l'ajoute dans
   `android/app/src/main/res/values/strings.xml` et la synchronisation se met en marche.
 - [ ] *Testeurs* : ajouter tes comptes de test, puis **publier** la configuration Play Jeux avec l'application.
 
