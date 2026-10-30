@@ -14,7 +14,8 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   dans les paramètres là où la loi l'exige, contenu limité à « PG ». Identifiants AdMob **de test** pour l'instant.
 - [x] Politique de confidentialité en français et en anglais :
   <https://vernieradrien-gif.github.io/casseur-de-forme/privacy.html>
-- [x] Sauvegarde Google (Google Play Jeux) : code prêt, option cachée tant que le projet Play Jeux n'est pas configuré.
+- [x] Sauvegarde Google (Google Play Jeux) : code prêt (synchronisation automatique, seul moyen de transférer sa
+  progression), section cachée tant que le projet Play Jeux n'est pas configuré.
 - [x] Icône 512 × 512 : `public/icon-512.png`.
 
 > L'APK de test est signé avec une **clé de test** publique (`android/app/casseur-test.keystore`). Elle ne doit
@@ -82,18 +83,18 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
     performances › Diagnostics*. Finalités : **Publicité ou marketing**, Analyse (côté Google).
   - Chiffrées en transit : **Oui**. Suppression sur demande : pas de compte dans le jeu (l'identifiant publicitaire
     se réinitialise dans les réglages Android).
-  - Si la sauvegarde Google est activée : *Activité dans l'application › Autres contenus générés par l'utilisateur*
-    (progression), **facultatif**, stockée par Google Play Jeux.
+  - Sauvegarde Google : *Activité dans l'application › Autres contenus générés par l'utilisateur*
+    (progression), **facultatif** (seulement si le joueur est connecté à Play Jeux), stockée par Google Play Jeux.
 - [ ] **Identifiant publicitaire** : « Oui », pour la publicité.
 - [ ] Applis gouvernementales, fonctionnalités financières, santé, actualités : **Non**.
 
-### 1.6 Sauvegarde Google (facultatif)
+### 1.6 Sauvegarde Google (nécessaire : seul moyen de transférer sa progression)
 - [ ] Play Console › l'application › *Croissance › Play Games Services › Configuration* : créer le projet Play Jeux.
 - [ ] *Propriétés* : activer **Jeux sauvegardés**.
 - [ ] *Identifiants* › Android : paquet `io.github.vernieradrien.prismablast` + **SHA-1 de la clé de signature
   d'application** (Play Console › *Intégrité de l'application*), et celui de la clé d'envoi pour tester.
 - [ ] Donner à Claude l'**ID du projet** Play Jeux (une douzaine de chiffres) : il l'ajoute dans
-  `android/app/src/main/res/values/strings.xml` et l'option apparaît dans les paramètres.
+  `android/app/src/main/res/values/strings.xml` et la synchronisation se met en marche.
 - [ ] *Testeurs* : ajouter tes comptes de test, puis **publier** la configuration Play Jeux avec l'application.
 
 ### 1.6 bis Trouver 12 testeurs (test fermé)

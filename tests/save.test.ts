@@ -73,7 +73,7 @@ describe('sauvegarde v4', () => {
     s.meta.cannon = 'burst';
     s.meta.abilities.autoAim = 1;
     s.meta.abilities.aimAngle = 2;
-    const settings = { ...defaultSettings(), music: 0.3, sfx: 0.4, vibration: false, powerSave: true, language: 'en' as const, cloudSync: true };
+    const settings = { ...defaultSettings(), music: 0.3, sfx: 0.4, vibration: false, powerSave: true, language: 'en' as const };
     const extra = { ...defaultExtra(), boostReadyAt: 123 };
     const data = JSON.parse(JSON.stringify(serialize(s, settings, extra, 1000)));
     expect(data.version).toBe(SAVE_VERSION);

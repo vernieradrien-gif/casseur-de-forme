@@ -52,7 +52,7 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 - **5 mondes** visibles dès le départ (« Monde 1 / 5 », carte des mondes) : Nébuleuse, Champ d'astéroïdes, Supernova,
   Trou noir, Tempête ionique ; chacun a son fond et un effet sur le canon. Campagne de 250 niveaux, puis mode infini.
 - **3 objectifs du jour** + bonus ; **récompenses des succès et objectifs à récupérer** en les touchant (pastilles sur le menu).
-- **Sauvegarde Google** (Android, facultative) : la progression suit le compte Google Play Jeux d'un téléphone à l'autre
+- **Sauvegarde Google** (Android) : la progression suit le compte Google Play Jeux d'un téléphone à l'autre
   (à activer côté Google Play : voir [docs/publication.md](docs/publication.md) § 3 bis).
 - **Musique** : thème de jeu épique sans les nappes du menu, thème de boss dès que le bouclier tombe, silence pendant les pubs.
 - **Équilibrage revu** : départ plus lent, améliorations rapides au début, difficulté qui monte vers la fin de chaque monde.
@@ -101,7 +101,7 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
   Le nom du package Google Play devient `io.github.vernieradrien.prismablast` (choix du propriétaire, avant la
   première publication : il ne pourra plus changer ensuite). Le paquet interne du code Java, la clé de sauvegarde, le
   dépôt et le fichier APK gardent l'ancien nom. Sur un téléphone, la nouvelle appli s'installe à côté de l'ancienne :
-  la progression se transfère avec Paramètres › Exporter puis Importer la sauvegarde.
+  la progression se transférait alors par export/import (retirés depuis : tout passe par Google Play Jeux).
 - **Icône** : décrite une seule fois dans `scripts/icon-design.mjs`, qui écrit `public/icon.svg` et l'icône adaptative
   Android ; `npm run icons` régénère tout (PNG compris).
 - **Musique** : chaque monde a son thème de vagues et son thème de boss (le mode infini les reprend dans l'ordre). Les
@@ -179,12 +179,15 @@ branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`
   demi-résolution ; le repeindre à chaque image faisait tomber le jeu à 21 images/s sans carte graphique (60 maintenant).
 - **Objectifs du jour** : 3 tirés au hasard (mais identiques pour tout le monde le même jour) parmi 8 ; récompense à
   récupérer ; bonus de 5 gemmes quand les 3 sont récupérés. Les anciennes récompenses de succès déjà données restent acquises.
-- **Sauvegarde Google** : Google Play Jeux v2, « Jeux sauvegardés » (un seul emplacement). Au démarrage, si la
-  synchronisation est activée, le jeu garde la sauvegarde la plus avancée (meilleur niveau, puis atelier et succès) ; envoi
+- **Sauvegarde Google** : Google Play Jeux v2, « Jeux sauvegardés » (un seul emplacement). C'est le **seul** moyen de
+  transférer sa progression : l'export/import par code et le bouton « Effacer la sauvegarde » ont été retirés (plus simple
+  pour le joueur, aucun risque d'effacement par erreur). Plus d'option à activer : au démarrage, si le joueur est connecté
+  à Play Jeux (connexion automatique de Google, sinon bouton « Se connecter » dans les paramètres), le jeu garde la sauvegarde la plus avancée (meilleur niveau, puis atelier et succès) ; envoi
   automatique à la fin d'un niveau (au plus toutes les 2 min), à la défaite et au passage en arrière-plan. Tant que
-  l'identifiant du projet Play Jeux n'est pas renseigné, l'option est affichée mais inactive.
+  l'identifiant du projet Play Jeux n'est pas renseigné, la section est cachée. `?reset` dans l'adresse efface encore la
+  sauvegarde sur le web (tests uniquement).
 - **Sauvegarde v4** : migration v3 → v4 (succès déjà payés marqués comme récupérés, canon Classique, nouveaux objectifs) ;
-  code d'export `CDF4.…` (les codes `CDF3.…` restent acceptés).
+  sauvegarde envoyée à Play Jeux encodée en `CDF4.…` (les `CDF3.…` restent lus).
 - **Musique** : thème de jeu « Épopée » (ré mineur, 124 bpm, cuivres et toms, sans nappes) ; thème de boss (146 bpm)
   lancé dès que le bouclier tombe avec un fondu rapide ; le son est coupé pendant une pub et reprend à sa fermeture.
 

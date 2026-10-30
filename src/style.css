@@ -893,27 +893,6 @@ button:disabled {
   accent-color: var(--accent);
 }
 
-.save-io {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.save-code {
-  width: 100%;
-  min-height: 84px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font: 12px ui-monospace, monospace;
-  padding: 8px;
-  user-select: text;
-  -webkit-user-select: text;
-  touch-action: auto;
-}
-
 /* ---------- Collection ---------- */
 
 .icon-grid {
