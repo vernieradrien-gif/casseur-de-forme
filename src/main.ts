@@ -136,7 +136,7 @@ async function rewarded(placement: RewardPlacement): Promise<boolean> {
 
 // ------------------------------------------------------------ Sauvegarde Google (Google Play Jeux)
 
-const cloud: CloudStatus = { available: false, native: isNative, enabled: false, lastSync: 0, busy: false };
+const cloud: CloudStatus = { available: false, native: isNative, signedIn: false, lastSync: 0, busy: false };
 let lastCloudUpload = 0;
 
 function cloudDescription(): string {
@@ -148,7 +148,8 @@ async function syncCloud(manual: boolean): Promise<void> {
   if (!cloud.available || cloud.busy) return;
   cloud.busy = true;
   try {
-    if (!(await cloudSignedIn()) && !(manual && (await cloudSignIn()))) throw new Error('non connecté');
+    cloud.signedIn = (await cloudSignedIn()) || (manual && (await cloudSignIn()));
+    if (!cloud.signedIn) throw new Error('non connecté');
     const remote = await cloudDownload();
     const data = remote ? importCode(remote) : null;
     if (data && progressScore(data.state.meta) > progressScore(state.meta)) {
@@ -171,24 +172,22 @@ async function syncCloud(manual: boolean): Promise<void> {
   }
 }
 
-async function enableCloud(): Promise<void> {
+/** Connexion manuelle à Google Play Jeux (si le joueur a refusé la connexion automatique). */
+async function signInCloud(): Promise<void> {
   if (!cloud.available || cloud.busy) return;
   cloud.busy = true;
-  const ok = await cloudSignIn();
+  cloud.signedIn = await cloudSignIn();
   cloud.busy = false;
-  if (!ok) {
+  if (!cloud.signedIn) {
     toasts.show(t('cloud.error'));
     return;
   }
-  settings = { ...settings, cloudSync: true };
-  cloud.enabled = true;
-  save();
   await syncCloud(true);
 }
 
 /** Envoi automatique de la progression (au plus toutes les 2 minutes). */
 function cloudAutoUpload(force = false): void {
-  if (!cloud.enabled || cloud.busy) return;
+  if (!cloud.signedIn || cloud.busy) return;
   if (!force && Date.now() - lastCloudUpload < 120_000) return;
   lastCloudUpload = Date.now();
   void cloudUpload(exportCode(state, settings, extra), cloudDescription()).then((ok) => {
@@ -196,10 +195,10 @@ function cloudAutoUpload(force = false): void {
   });
 }
 
+/** Au démarrage : Google Play Jeux connecte le joueur tout seul, puis on synchronise sans rien demander. */
 async function initCloud(): Promise<void> {
   cloud.available = await cloudAvailable();
-  cloud.enabled = cloud.available && settings.cloudSync && (await cloudSignedIn());
-  if (cloud.enabled) await syncCloud(false);
+  if (cloud.available) await syncCloud(false);
 }
 
 // ------------------------------------------------------------ Navigation
@@ -386,8 +385,8 @@ const screens = new Screens(app, {
     }
   },
   cloudStatus: () => cloud,
-  cloudEnable() {
-    void enableCloud();
+  cloudSignIn() {
+    void signInCloud();
   },
   cloudSyncNow() {
     void syncCloud(true);
@@ -402,20 +401,6 @@ const screens = new Screens(app, {
     save();
     // Les textes sont construits une fois : on recharge pour changer de langue.
     if (lang) location.reload();
-  },
-  exportCode: () => exportCode(state, settings, extra),
-  importCode(code) {
-    const data = importCode(code);
-    if (!data) return false;
-    saveGame(data.state, data.settings, data.extra, localStorage, data.savedAt || Date.now());
-    reloading = true;
-    setTimeout(() => location.reload(), 600);
-    return true;
-  },
-  resetSave() {
-    clearSave();
-    reloading = true;
-    location.reload();
   },
   consentAvailable: () => ads?.consentAvailable() ?? false,
   showConsent() {

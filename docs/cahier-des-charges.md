@@ -167,7 +167,7 @@ Nombres de dégâts flottants (couleur différente pour les zones faibles), écl
 
 **Collection** : formes de boss vaincues (normales et dorées), super boss et titans, types d'ennemis rencontrés.
 
-**Sauvegarde Google** (option, Android) : avec son compte Google Play Jeux, la progression est envoyée automatiquement et retrouvée sur un autre téléphone (on garde toujours la sauvegarde la plus avancée).
+**Sauvegarde Google** (Android) : seul moyen de transférer sa progression. Le joueur connecté à Google Play Jeux (connexion automatique de Google au lancement, ou bouton « Se connecter » dans les paramètres) est synchronisé sans rien activer : envoi automatique et récupération sur un autre téléphone (on garde toujours la sauvegarde la plus avancée). Pas d'export/import par code ni de bouton pour effacer la sauvegarde.
 
 **Hors ligne** : diamants = taux selon le meilleur niveau × temps absent, plafond 2 h (jusqu'à 8 h avec l'atelier), écran de bienvenue avec « Doubler (pub) » ; aucun gain si l'horloge recule.
 
@@ -181,7 +181,7 @@ Portrait, boutons d'au moins 56 dp.
 - **Pause** : reprendre, paramètres, menu principal (la partie est conservée).
 - **Défaite** : niveau atteint, record, gains ; continuer (pub), doubler les diamants (pub), rejouer, menu.
 - **Bienvenue** (gains hors ligne), **Victoire** (niveau 250 atteint, fin des 5 mondes).
-- **Paramètres** : musique, effets sonores, vibration, économie d'énergie (30 images/s), langue, export/import de la sauvegarde, effacer, version, politique de confidentialité ; « Sauvegarde Google » seulement quand elle est disponible, « Consentement publicités » seulement là où la loi l'exige.
+- **Paramètres** : musique, effets sonores, vibration, économie d'énergie (30 images/s), langue, version, politique de confidentialité ; « Sauvegarde Google » seulement quand elle est disponible, « Consentement publicités » seulement là où la loi l'exige.
 - **Menu** : la barre du monde se remplit selon le niveau max atteint dans ce monde.
 - Pause automatique en arrière-plan ; bouton retour Android géré.
 
@@ -194,7 +194,7 @@ Musiques composées et synthétisées en code (Web Audio) : thème du menu (calm
 **Seulement des pubs récompensées, toujours demandées par le joueur** : continuer après la défaite (une fois par partie) ; doubler les diamants de la partie ; doubler les gains hors ligne ; boost ×2 dégâts et pièces pendant 5 min (recharge 10 min) ; **+7 gemmes par pub, 3 pubs par jour au plus (21 gemmes)**, bouton sur le menu principal. **Aucune pub automatique** (pas d'interstitiel), jamais de pub pendant un niveau. Consentement RGPD (Google UMP) sur Android **avant** tout démarrage du SDK publicitaire ; sans réponse de Google (hors ligne), aucune pub ; contenu des pubs limité à « PG ». Politique de confidentialité publiée sur GitHub Pages.
 
 ## 9. Données
-Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie en cours (reprise au début du niveau), méta-progression, succès, collection, objectif quotidien, paramètres, horodatage. Sauvegarde toutes les 10 s, à chaque niveau, à chaque passage en arrière-plan. Export/import en code texte. Sauvegarde Google Play Jeux (Saved Games) en option sur Android. Script de simulation sans rendu pour l'équilibrage (joueur automatique).
+Sauvegarde JSON versionnée avec migrations (v1 → v2 → v3 → v4) : partie en cours (reprise au début du niveau), méta-progression, succès, collection, objectif quotidien, paramètres, horodatage. Sauvegarde toutes les 10 s, à chaque niveau, à chaque passage en arrière-plan. Synchronisation Google Play Jeux (Saved Games) automatique sur Android dès que le joueur est connecté. Script de simulation sans rendu pour l'équilibrage (joueur automatique).
 
 ## 10. Jalons
 1. **Cœur initial** *(fait)*.

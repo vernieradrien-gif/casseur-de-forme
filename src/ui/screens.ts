@@ -75,12 +75,9 @@ export interface AppApi {
   claimDaily(index: number): void;
   claimDailyBonus(): void;
   cloudStatus(): CloudStatus;
-  cloudEnable(): void;
+  cloudSignIn(): void;
   cloudSyncNow(): void;
   changeSettings(change: Partial<Settings>): void;
-  exportCode(): string;
-  importCode(code: string): boolean;
-  resetSave(): void;
   consentAvailable(): boolean;
   showConsent(): void;
   privacyUrl(): string;
@@ -93,7 +90,8 @@ type Refresh = () => void;
 export interface CloudStatus {
   available: boolean;
   native: boolean;
-  enabled: boolean;
+  /** Connecté à Google Play Jeux : la progression se synchronise toute seule. */
+  signedIn: boolean;
   lastSync: number;
   busy: boolean;
 }
@@ -182,20 +180,6 @@ export class Screens {
 
   private backButton(s: HTMLElement): void {
     button('menu-btn secondary back-btn', s, t('back'), () => this.back());
-  }
-
-  /** Bouton à confirmer d'un second toucher. */
-  private confirmButton(id: ScreenId, key: string, b: HTMLButtonElement, label: () => string, confirmLabel: string, action: () => void): void {
-    b.addEventListener('click', () => {
-      if (this.armed === key) {
-        this.armed = null;
-        action();
-      } else {
-        this.armed = key;
-      }
-      this.update();
-    });
-    this.on(id, () => setText(b, this.armed === key ? confirmLabel : label()));
   }
 
   private wallet(id: ScreenId, parent: HTMLElement, kinds: Currency[]): void {
@@ -762,61 +746,27 @@ export class Screens {
       sfx.set(this.app.settings().sfx);
     });
 
-    // Sauvegarde Google : affichée seulement quand elle est disponible (application configurée sur Google Play).
+    // Sauvegarde Google Play Jeux : seul moyen de retrouver sa progression (affichée seulement sur Android, une fois configurée).
     const cloudBox = el('div', 'settings-group', s);
     el('h3', 'section-title', cloudBox, t('cloud'));
     el('p', 'hint left', cloudBox, t('cloud.desc'));
     const cloudBtn = button('menu-btn', cloudBox, undefined, () => {
       const st = this.app.cloudStatus();
-      if (st.enabled) this.app.cloudSyncNow();
-      else this.app.cloudEnable();
+      if (st.signedIn) this.app.cloudSyncNow();
+      else this.app.cloudSignIn();
     });
     const cloudInfo = el('p', 'hint', cloudBox);
     this.on('settings', () => {
       const st = this.app.cloudStatus();
       toggleClass(cloudBox, 'hidden', !st.available);
-      setText(cloudBtn, st.busy ? '…' : st.enabled ? t('cloud.syncNow') : t('cloud.enable'));
+      setText(cloudBtn, st.busy ? '…' : st.signedIn ? t('cloud.syncNow') : t('cloud.signIn'));
       setDisabled(cloudBtn, st.busy);
-      setText(cloudInfo, st.lastSync > 0 ? t('cloud.synced', { time: new Date(st.lastSync).toLocaleTimeString() }) : st.enabled ? t('cloud.on') : '');
+      setText(cloudInfo, st.lastSync > 0 ? t('cloud.synced', { time: new Date(st.lastSync).toLocaleTimeString() }) : st.signedIn ? t('cloud.on') : t('cloud.off'));
     });
 
     // Consentement publicitaire (RGPD) : modifiable à tout moment quand le formulaire de Google le demande.
     const consent = button('menu-btn', s, t('adsConsent'), () => this.app.showConsent());
     this.on('settings', () => toggleClass(consent, 'hidden', !this.app.consentAvailable()));
-
-    // Export / import de la sauvegarde.
-    const io = el('div', 'save-io', s);
-    const area = el('textarea', 'save-code hidden', io);
-    area.setAttribute('aria-label', t('exportSave'));
-    area.spellcheck = false;
-    const ioHint = el('p', 'hint hidden', io);
-    const row = el('div', 'row-2', io);
-    button('menu-btn', row, t('exportSave'), () => {
-      area.value = this.app.exportCode();
-      area.classList.remove('hidden');
-      setText(ioHint, t('exportHint'));
-      ioHint.classList.remove('hidden');
-      area.select();
-      void navigator.clipboard?.writeText(area.value).catch(() => {});
-      mode = 'export';
-    });
-    let mode: 'export' | 'import' | '' = '';
-    const imp = button('menu-btn', row, t('importSave'), () => {
-      if (mode === 'import' && area.value.trim()) {
-        setText(ioHint, this.app.importCode(area.value) ? t('importDone') : t('importError'));
-        return;
-      }
-      mode = 'import';
-      area.value = '';
-      area.classList.remove('hidden');
-      setText(ioHint, t('importHint'));
-      ioHint.classList.remove('hidden');
-      area.focus();
-    });
-    this.on('settings', () => setText(imp, mode === 'import' ? t('importOk') : t('importSave')));
-
-    const reset = button('menu-btn danger', s, t('resetSave'), () => {});
-    this.confirmButton('settings', 'reset', reset, () => t('resetSave'), t('resetConfirm'), () => this.app.resetSave());
 
     const about = el('p', 'hint', s);
     const privacy = el('a', 'link', s, t('privacy'));

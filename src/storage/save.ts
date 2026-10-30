@@ -25,8 +25,6 @@ export interface Settings {
   /** Économie d'énergie : rendu à 30 images/s. */
   powerSave: boolean;
   language: Language;
-  /** Synchronisation avec Google Play Jeux (Android). */
-  cloudSync: boolean;
 }
 
 /** Informations hors simulation (horloge réelle). */
@@ -44,7 +42,7 @@ export function defaultLanguage(nav: string | undefined = typeof navigator !== '
 }
 
 export function defaultSettings(): Settings {
-  return { music: 0.6, sfx: 0.8, vibration: true, powerSave: false, language: defaultLanguage(), cloudSync: false };
+  return { music: 0.6, sfx: 0.8, vibration: true, powerSave: false, language: defaultLanguage() };
 }
 
 export function defaultExtra(): Extra {
@@ -268,7 +266,6 @@ export function deserialize(raw: unknown): Loaded {
   if (typeof s.vibration === 'boolean') settings.vibration = s.vibration;
   if (typeof s.powerSave === 'boolean') settings.powerSave = s.powerSave;
   if (LANGUAGES.includes(s.language as Language)) settings.language = s.language as Language;
-  if (typeof s.cloudSync === 'boolean') settings.cloudSync = s.cloudSync;
 
   const extra: Extra = {
     boostReadyAt: num(e.boostReadyAt, 0),
@@ -316,12 +313,12 @@ function fromBase64(code: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-/** Code texte à copier pour transférer sa sauvegarde. */
+/** Sauvegarde encodée en texte : c'est ce qui est envoyé à Google Play Jeux. */
 export function exportCode(state: GameState, settings: Settings, extra: Extra, now = Date.now()): string {
   return EXPORT_PREFIX + toBase64(JSON.stringify(serialize(state, settings, extra, now)));
 }
 
-/** Lit un code d'export ; renvoie null s'il est invalide. */
+/** Lit une sauvegarde encodée (Google Play Jeux) ; renvoie null si elle est invalide. */
 export function importCode(code: string): Loaded | null {
   try {
     const text = code.trim();
