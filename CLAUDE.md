@@ -20,7 +20,7 @@ Jeu de tir vertical hybride portrait (v5) : une grande forme en haut lance des v
 - Grands nombres : un seul module de calcul (`src/game/bignum.ts`) et un seul formateur (`formatNumber`, « 1,2 K », « 3,4 M »…).
 - Formes : sommets calculés depuis (côtés, rayon, rotation) ; étoile = polygone alterné rayon extérieur/intérieur (`src/game/geometry.ts`).
 - Tout l'équilibrage dans `src/config/*.json` (aucune constante de gameplay en dur).
-- Publicités : uniquement des pubs récompensées demandées par le joueur, via `showRewarded` de `src/ads/` (aucune pub automatique), consentement UMP avant tout chargement, version factice sur le web, identifiants AdMob de test uniquement.
+- Publicités : uniquement des pubs récompensées demandées par le joueur, via `showRewarded` de `src/ads/` (aucune pub automatique), consentement UMP avant tout chargement, version factice sur le web, vrais identifiants AdMob du propriétaire dans `src/ads/admob.ts` et `AndroidManifest.xml` (son téléphone est déclaré appareil de test dans AdMob).
 - Sauvegarde : localStorage, JSON versionné (`src/storage/`).
 
 ## Organisation
@@ -28,7 +28,7 @@ Jeu de tir vertical hybride portrait (v5) : une grande forme en haut lance des v
 src/game      simulation, formules, grands nombres, géométrie
 src/render    rendu Canvas 2D, particules, nombres flottants
 src/ui        interface DOM (boutons, HUD)
-src/ads       interface publicitaire (factice web, AdMob test sur Android)
+src/ads       interface publicitaire (factice web, AdMob sur Android)
 src/audio     musique et effets sonores synthétisés (Web Audio)
 public        manifeste PWA, service worker, icône SVG, politique de confidentialité
 e2e           tests Playwright

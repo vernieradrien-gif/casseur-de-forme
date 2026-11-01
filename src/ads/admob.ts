@@ -4,14 +4,14 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import type { AdService } from './index';
 
 /**
- * AdMob sur Android, avec les identifiants de TEST fournis par Google uniquement
- * (https://developers.google.com/admob/android/test-ads). Avant publication, il faudra
- * les remplacer par ceux du compte AdMob du propriétaire (voir docs/publication.md).
+ * AdMob sur Android, avec les identifiants du compte AdMob du propriétaire (vraies publicités).
+ * L'identifiant d'application est aussi dans AndroidManifest.xml. Pendant les tests, le téléphone
+ * du propriétaire est déclaré « appareil de test » dans AdMob (voir docs/publication.md).
  * Seules des pubs récompensées existent : elles ne s'affichent que quand le joueur les demande.
  */
-export const ADMOB_TEST_IDS = {
-  app: 'ca-app-pub-3940256099942544~3347511713',
-  rewarded: 'ca-app-pub-3940256099942544/5224354917',
+export const ADMOB_IDS = {
+  app: 'ca-app-pub-9572854706306858~2324874376',
+  rewarded: 'ca-app-pub-9572854706306858/8544942996',
 };
 
 /** Sécurité : une pub qui ne se ferme jamais ne bloque pas le jeu. */
@@ -51,7 +51,7 @@ export class AdMobService implements AdService {
   private async startSdk(): Promise<void> {
     if (!this.canRequestAds || this.sdkStarted) return;
     // Contenu des pubs limité à « accord parental » (jeu tous publics à partir de 13 ans).
-    await AdMob.initialize({ initializeForTesting: true, maxAdContentRating: MaxAdContentRating.ParentalGuidance });
+    await AdMob.initialize({ maxAdContentRating: MaxAdContentRating.ParentalGuidance });
     this.sdkStarted = true;
   }
 
@@ -63,7 +63,7 @@ export class AdMobService implements AdService {
       // Consentement inconnu au démarrage (par exemple hors ligne) : nouvelle demande.
       if (!this.canRequestAds || !this.sdkStarted) await this.gatherConsent();
       if (!this.canRequestAds || !this.sdkStarted) return false;
-      await AdMob.prepareRewardVideoAd({ adId: ADMOB_TEST_IDS.rewarded, isTesting: true, immersiveMode: true });
+      await AdMob.prepareRewardVideoAd({ adId: ADMOB_IDS.rewarded, immersiveMode: true });
       return await new Promise<boolean>((resolve) => {
         let rewarded = false;
         let finished = false;

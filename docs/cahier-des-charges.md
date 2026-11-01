@@ -26,7 +26,7 @@ TypeScript strict + Vite, Canvas 2D, Web Audio, Capacitor (Android), AdMob (`@ca
 - Hasard de la simulation par générateur à graine (tests reproductibles).
 - Grands nombres : un seul module de calcul et un seul formateur (1,2 K, 3,4 M…).
 - Formes = sommets calculés depuis (côtés, rayon, rotation) ; étoile = rayons alternés.
-- Publicités uniquement via `src/ads/` (`showRewarded`) : **seulement des pubs récompensées que le joueur demande**, version factice sur le web, **identifiants AdMob de test uniquement**.
+- Publicités uniquement via `src/ads/` (`showRewarded`) : **seulement des pubs récompensées que le joueur demande**, version factice sur le web, **vrais identifiants AdMob du propriétaire** (son téléphone déclaré appareil de test dans AdMob).
 - Tout l'équilibrage dans `src/config/*.json`.
 
 ## 3. Gameplay
