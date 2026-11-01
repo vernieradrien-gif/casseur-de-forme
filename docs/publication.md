@@ -62,8 +62,11 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   jamais cliquer sur tes propres pubs (risque de suspension du compte).
 - [ ] Plus tard, avant le premier paiement (70 €) : *Paiements › Informations fiscales* (formulaire W-8BEN, particulier ou
   micro-entrepreneur, convention France–États-Unis).
-- [ ] Facultatif mais conseillé : `app-ads.txt` à la racine du site web indiqué sur la fiche Play (Claude peut le
-  publier sur GitHub Pages si tu crées un dépôt `vernieradrien-gif.github.io`).
+- [x] `app-ads.txt` publié à la racine de <https://vernieradrien-gif.github.io/app-ads.txt> (dépôt
+  `vernieradrien-gif.github.io`, avec une page d'accueil « AV Apps »).
+- [ ] Play Console › *Fiche principale* › **Site Web** : `https://vernieradrien-gif.github.io`.
+- [ ] Une fois le jeu publié : AdMob › application › *Ajouter* (fiche Play), puis *Paramètres de l'application ›
+  Valider l'application › Rechercher des mises à jour* (Google peut mettre 24 h à lire le fichier).
 
 ### 1.4 Fiche Google Play
 - [ ] Textes : voir [fiche-google-play.md](fiche-google-play.md) (titre, description courte, description longue en
