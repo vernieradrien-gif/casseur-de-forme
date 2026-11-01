@@ -11,7 +11,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] `versionCode` qui augmente à chaque construction (numéro de construction GitHub Actions).
 - [x] Publicités : **uniquement des vidéos récompensées que le joueur demande** (aucune pub automatique),
   consentement RGPD Google UMP demandé **avant** de démarrer le SDK publicitaire, bouton « Consentement publicités »
-  dans les paramètres là où la loi l'exige, contenu limité à « PG ». Identifiants AdMob **de test** pour l'instant.
+  dans les paramètres là où la loi l'exige, contenu limité à « PG ». Vrais identifiants AdMob en place (version 1.4.1).
 - [x] Politique de confidentialité en français et en anglais :
   <https://vernieradrien-gif.github.io/casseur-de-forme/privacy.html>
 - [x] Sauvegarde Google (Google Play Jeux) : code prêt (synchronisation automatique, seul moyen de transférer sa
@@ -49,14 +49,19 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) et un `versionCode` = 100 + numéro de construction.
 
 ### 1.3 AdMob (vraies publicités)
-- [ ] Dans AdMob : *Applications › Ajouter* (Android, pas encore publiée), puis **un seul bloc d'annonces « Avec
+- [x] Dans AdMob : *Applications › Ajouter* (Android, pas encore publiée), puis **un seul bloc d'annonces « Avec
   récompense »** (plus besoin d'interstitiel).
-- [ ] Donner à Claude l'**ID d'application** (`ca-app-pub-…~…`) et l'**ID du bloc récompensé** (`ca-app-pub-…/…`) :
-  ce ne sont pas des secrets. Claude les met dans le code et coupe le mode test.
+- [x] Donner à Claude l'**ID d'application** (`ca-app-pub-9572854706306858~2324874376`) et l'**ID du bloc récompensé**
+  (`ca-app-pub-9572854706306858/8544942996`) : ils sont dans `src/ads/admob.ts` et `AndroidManifest.xml`, mode test coupé.
+  Bloc créé sans case « autre plate-forme de médiation », vidéo + interactive, sans eCPM minimal ni limite de fréquence.
 - [ ] *Confidentialité et messages* › **RGPD** : créer et publier le message de consentement (EEE, Royaume-Uni,
   Suisse). **Sans ce message, aucune pub ne s'affichera en Europe.**
 - [ ] *Confidentialité et messages* › **Réglementations des États américains** : créer le message (recommandé).
-- [ ] Pendant les tests : déclarer ton téléphone comme **appareil de test** et ne jamais cliquer sur tes propres pubs.
+- [ ] **Avant d'installer cette version** : déclarer ton téléphone comme **appareil de test** (AdMob › *Paramètres ›
+  Appareils de test* : identifiant publicitaire visible dans les paramètres Android › *Google › Annonces*). Sans ça, ne
+  jamais cliquer sur tes propres pubs (risque de suspension du compte).
+- [ ] Plus tard, avant le premier paiement (70 €) : *Paiements › Informations fiscales* (formulaire W-8BEN, particulier ou
+  micro-entrepreneur, convention France–États-Unis).
 - [ ] Facultatif mais conseillé : `app-ads.txt` à la racine du site web indiqué sur la fiche Play (Claude peut le
   publier sur GitHub Pages si tu crées un dépôt `vernieradrien-gif.github.io`).
 

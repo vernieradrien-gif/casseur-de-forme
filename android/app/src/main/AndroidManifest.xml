@@ -47,10 +47,10 @@
             android:authorities="${applicationId}.playgamesinitprovider"
             tools:node="remove" />
 
-        <!-- AdMob : identifiant d'application de TEST fourni par Google (à remplacer avant publication). -->
+        <!-- AdMob : identifiant d'application du compte du propriétaire (aussi dans src/ads/admob.ts). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-9572854706306858~2324874376" />
     </application>
 
     <!-- Permissions -->

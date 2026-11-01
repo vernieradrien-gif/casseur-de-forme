@@ -73,8 +73,8 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 - **Explosion du canon** en plusieurs temps au ralenti, puis écran de défaite.
 - **Musique** composée et synthétisée en code (menu calme, jeu rythmé, boss intense, fondus) et **effets sonores** ; volumes réglables.
 - **Français et anglais**, **PWA** (jouable hors connexion), **politique de confidentialité** publiée.
-- **Android** (Capacitor) : portrait, plein écran, icône tracée en code, vibration, bouton retour, AdMob (identifiants de
-  **test**) avec consentement RGPD (UMP).
+- **Android** (Capacitor) : portrait, plein écran, icône tracée en code, vibration, bouton retour, AdMob (vrais
+  identifiants du compte du propriétaire) avec consentement RGPD (UMP).
 
 ## Commandes (pour développer)
 
