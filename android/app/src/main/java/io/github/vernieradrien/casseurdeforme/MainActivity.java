@@ -17,6 +17,8 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         // Sauvegarde Google Play Jeux (plugin maison, déclaré avant le démarrage du pont Capacitor).
         registerPlugin(CloudSavePlugin.class);
+        // Demande d'avis Google Play intégrée au jeu.
+        registerPlugin(InAppReviewPlugin.class);
         super.onCreate(savedInstanceState);
         CloudSavePlugin.initIfConfigured(this);
     }

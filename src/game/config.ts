@@ -395,6 +395,11 @@ export interface Balance {
   boost: { durationMinutes: number; cooldownMinutes: number; multiplier: number };
   /** Pubs récompensées contre des gemmes : au plus `perDay` par jour, `gems` chacune. */
   gemAds: { perDay: number; gems: number };
+  /**
+   * Demande d'avis Google Play (Android) après une victoire contre un boss : à partir du niveau `firstAtLevel`,
+   * au plus `maxAsks` fois, espacées d'au moins `minDaysBetween` jours, `delay` secondes après la victoire.
+   */
+  review: { firstAtLevel: number; minDaysBetween: number; maxAsks: number; delay: number };
   checkpoint: { coinShare: number };
   /**
    * Après `fromLevel`, les PV et les dégâts (boss, ennemis, tirs) augmentent moins vite d'un niveau à l'autre :

@@ -35,6 +35,9 @@ export interface Extra {
   victoryShown: boolean;
   /** Une partie commencée peut être reprise (« Continuer »). */
   runActive: boolean;
+  /** Demandes d'avis Google Play déjà faites et instant (ms) de la dernière. */
+  reviewAsks: number;
+  reviewAskedAt: number;
 }
 
 export function defaultLanguage(nav: string | undefined = typeof navigator !== 'undefined' ? navigator.language : 'fr'): Language {
@@ -46,7 +49,7 @@ export function defaultSettings(): Settings {
 }
 
 export function defaultExtra(): Extra {
-  return { boostReadyAt: 0, victoryShown: false, runActive: false };
+  return { boostReadyAt: 0, victoryShown: false, runActive: false, reviewAsks: 0, reviewAskedAt: 0 };
 }
 
 export interface SavedRun {
@@ -271,6 +274,8 @@ export function deserialize(raw: unknown): Loaded {
     boostReadyAt: num(e.boostReadyAt, 0),
     victoryShown: e.victoryShown === true || meta.campaignComplete,
     runActive: hasRun,
+    reviewAsks: int(e.reviewAsks, 0, 0, 1000),
+    reviewAskedAt: num(e.reviewAskedAt, 0),
   };
   return { state, settings, extra, savedAt: num(d.savedAt, 0), hasRun };
 }

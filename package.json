@@ -1,7 +1,7 @@
 {
   "name": "casseur-de-forme",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -12,7 +12,9 @@
     "sim": "vitest run --silent=false",
     "e2e": "playwright test",
     "icons": "node scripts/icon-design.mjs && node scripts/make-icons.mjs",
-    "store": "npm run build && node scripts/store-assets.mjs"
+    "store": "npm run build && node scripts/store-assets.mjs",
+    "store:promo": "node scripts/store-promo.mjs",
+    "store:video": "node scripts/store-video.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",

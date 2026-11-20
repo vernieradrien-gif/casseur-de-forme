@@ -15,6 +15,7 @@ import {
   buyCannon,
   continueRun,
   doubleRunDiamonds,
+  refreshMaxHp,
   selectCannon,
   startRun,
   toggleEquip,
@@ -45,6 +46,7 @@ import { isNative, setupPlatform } from './platform';
 import { Effects } from './render/effects';
 import { Renderer } from './render/renderer';
 import { enemyColor, enemyVertices, tierColor, tierVertices } from './render/shapes';
+import { askReview, reviewDue } from './review';
 import { cloudAvailable, cloudDownload, cloudSignIn, cloudSignedIn, cloudUpload, progressScore } from './cloud';
 import { clearSave, exportCode, importCode, loadGame, saveGame } from './storage/save';
 import type { Settings } from './storage/save';
@@ -539,6 +541,8 @@ function handleEvents(): void {
         effects.floatText(b.x, b.y + 0.22, t('float.diamonds', { n: e.diamonds }), visual.diamondColor, 1.3, 1.4);
         if (e.gems > 0) effects.floatText(b.x, b.y + 0.3, t('float.gems', { n: e.gems }), visual.gemColor, 1.3, 1.4);
         sfx.play('levelClear');
+        // Juste après une victoire contre un boss : bon moment pour proposer un avis Google Play.
+        if (!AUTOPLAY && reviewDue(extra, e.level, Date.now())) askReview(extra, Date.now());
         save();
         cloudAutoUpload();
         break;
@@ -803,8 +807,10 @@ void initCloud();
 // Prépare les publicités (consentement UMP sur Android) sans bloquer le démarrage.
 void createAds(isNative).then((a) => (ads = a));
 
-// Pour les tests automatiques (Playwright) : accès en lecture à l'état.
+// Pour les tests automatiques et les vidéos de la fiche (Playwright) : accès à l'état.
 (window as unknown as { __game?: unknown }).__game = { state, settings: () => settings, effects, STEP, screen: () => screens.open, mode: () => mode,
   perf: () => ({ avg: perf.work / Math.max(1, perf.frames), max: perf.max, frames: perf.frames }),
   resetPerf: () => Object.assign(perf, { frames: 0, work: 0, max: 0 }),
+  selectCannon: (id: Parameters<typeof selectCannon>[1]) => selectCannon(state, id),
+  refreshMaxHp: () => refreshMaxHp(state),
 };
