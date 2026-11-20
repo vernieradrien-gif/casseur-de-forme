@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Thème sombre, plein écran, sans barre d'action. -->
+    <!-- Thème sombre, sans barre d'action. Plein écran géré par le code (barres masquées, bord à bord) :
+         pas de statusBarColor / navigationBarColor / windowFullscreen, obsolètes depuis Android 15. -->
     <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimary">@color/game_background</item>
         <item name="colorPrimaryDark">@color/game_background</item>
         <item name="colorAccent">#3EE6FF</item>
         <item name="android:windowBackground">@color/game_background</item>
-        <item name="android:statusBarColor">@color/game_background</item>
-        <item name="android:navigationBarColor">@color/game_background</item>
     </style>
 
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
@@ -16,7 +15,6 @@
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
         <item name="android:windowBackground">@color/game_background</item>
-        <item name="android:windowFullscreen">true</item>
     </style>
 
     <!-- Écran de démarrage (Android 12+ : icône sur fond sombre ; avant : image splash). -->

@@ -16,7 +16,14 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : version 6 (1.3.0)
+## État : version 1.4.2
+
+- **Ennemis et boss** : plus aucun ennemi ne passe sur la forme ni ne s'arrête dessus (retour du test fermé).
+- **Menu d'accueil fixe** : tout tient dans l'écran, sans glisser.
+- **AAB de production** : thème Android sans réglages obsolètes (Android 15+), permission de service au premier plan
+  retirée. Versions précédentes : 1.4.0 (sauvegarde Google Play Jeux), 1.4.1 (vrais identifiants AdMob).
+
+### Version 6 (1.3.0)
 
 - **Nouveau nom : Prisma Blast**, et nouvelle icône (un prisme néon brisé par le rayon du canon). L'identifiant Android, la
   sauvegarde, l'adresse du site et le lien de l'APK ne changent pas.
@@ -94,6 +101,16 @@ Chaque push sur `main` publie le jeu sur GitHub Pages (`.github/workflows/deploy
 branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`.github/workflows/android.yml`).
 
 ## Décisions prises
+
+### Version 1.4.2
+- **Chevauchement** : les ennemis gardent une marge (`boss.enemyClearance`) autour de la forme, bouclier, anneaux et
+  canons du super boss compris. Ceux qui apparaîtraient dessus sortent de son bord inférieur, ceux qui la frôlent la
+  contournent, ceux qui s'arrêtent pour tirer s'arrêtent sous elle.
+- **Menu** : contenu calé en bas, espace du haut variable ; sous 600 px de haut (écran partagé), le menu redevient
+  déroulant plutôt que coupé.
+- **Orientation** : le portrait reste imposé. Sur tablette et pliable, Android 16 l'ignore ; le jeu s'affiche alors
+  en colonne centrée, comme sur ordinateur. L'avertissement « grands écrans » de la Play Console est donc accepté.
+- **Permission `WAKE_LOCK`** : gardée (utilisée par les bibliothèques Google) ; seule `FOREGROUND_SERVICE` est retirée.
 
 ### Version 6
 - **Nom** : « Prisma Blast », court, compréhensible en français et en anglais, lié au canon légendaire Prisme et aux
