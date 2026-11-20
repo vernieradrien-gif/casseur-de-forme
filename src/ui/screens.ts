@@ -226,8 +226,10 @@ export class Screens {
     const wName = el('span', 'world-card-name', worldCard);
     const wBar = el('span', 'progress world-progress', worldCard);
     const wFill = el('span', 'progress-fill', wBar);
-    const wSub = el('span', 'world-card-sub', worldCard);
-    const dots = el('span', 'world-dots', worldCard);
+    // Niveau max et points des mondes sur la même ligne (menu sans défilement).
+    const wFoot = el('span', 'world-card-foot', worldCard);
+    const wSub = el('span', 'world-card-sub', wFoot);
+    const dots = el('span', 'world-dots', wFoot);
     const dotEls = Array.from({ length: BALANCE.worlds.length }, () => el('span', 'world-dot', dots));
     this.on('menu', () => {
       const meta = this.app.state().meta;
@@ -246,7 +248,8 @@ export class Screens {
       });
     });
 
-    const main = el('div', 'menu-col', s);
+    // « Continuer » et « Nouvelle partie » côte à côte.
+    const main = el('div', 'menu-play', s);
     const play = button('menu-btn primary big', main, undefined, () => {
       if (this.app.hasRun()) this.app.resume();
       else if (worldsUnlocked(this.app.state().meta.bestLevel) > 1) this.push('worlds');
@@ -281,8 +284,11 @@ export class Screens {
       toggleClass(daily, 'done', claim);
     });
 
+    // Les deux pubs récompensées côte à côte.
+    const ads = el('div', 'menu-ads', s);
+
     // Boost (pub récompensée).
-    const boost = button('menu-btn boost-btn', s, undefined, () => this.app.boostAd());
+    const boost = button('menu-btn boost-btn', ads, undefined, () => this.app.boostAd());
     const bMain = el('span', 'btn-main', boost);
     const bSub = el('span', 'btn-sub', boost);
     this.on('menu', () => {
@@ -294,7 +300,7 @@ export class Screens {
     });
 
     // Gemmes contre une pub (au plus 3 par jour).
-    const gemAd = button('menu-btn gem-ad-btn', s, undefined, () => this.app.gemAd());
+    const gemAd = button('menu-btn gem-ad-btn', ads, undefined, () => this.app.gemAd());
     const gMain = el('span', 'btn-main', gemAd);
     const gSub = el('span', 'btn-sub', gemAd);
     this.on('menu', () => {

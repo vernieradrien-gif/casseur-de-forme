@@ -579,9 +579,143 @@ button:disabled {
 
 /* ---------- Menu principal ---------- */
 
+/*
+ * Le menu d'accueil tient toujours dans l'écran, sans défilement : il occupe toute la hauteur,
+ * le contenu est calé en bas et l'espace libre du haut laisse voir la forme du jeu.
+ */
+.overlay.menu-mode {
+  overflow: hidden;
+  touch-action: none;
+}
+
 .screen-menu {
-  margin-top: 0;
-  padding-top: 16vh;
+  min-height: 100%;
+  margin: 0 auto;
+  padding-bottom: 0;
+  justify-content: flex-end;
+  gap: clamp(6px, 1.4vh, 12px);
+}
+
+.menu-play {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-play > .menu-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-play > .menu-btn.primary {
+  flex: 2;
+}
+
+.menu-ads {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.menu-ads .menu-btn {
+  min-height: 52px;
+  padding: 6px 8px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.menu-ads .btn-sub {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.screen-menu .daily-card {
+  padding: 8px 14px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.screen-menu .daily-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.screen-menu .tile {
+  min-height: 62px;
+  padding: 6px 4px;
+  gap: 4px;
+}
+
+/* Petits écrans (en hauteur) : tout se resserre un peu. */
+@media (max-height: 760px) {
+  .screen-menu .game-title {
+    font-size: clamp(30px, 9vw, 40px);
+  }
+
+  .screen-menu .tagline {
+    margin-top: 0;
+    font-size: 13px;
+  }
+
+  .screen-menu .screen-wallet {
+    font-size: 18px;
+  }
+
+  .screen-menu .menu-btn.big {
+    min-height: 58px;
+    font-size: 20px;
+  }
+
+  .screen-menu .tile {
+    min-height: 54px;
+  }
+
+  .screen-menu .tile-glyph {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Écran vraiment trop bas (écran partagé…) : le menu redevient déroulant plutôt que coupé. */
+@media (max-height: 599px) {
+  .overlay.menu-mode {
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+
+  .screen-menu {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-height: 660px) {
+  .screen-menu {
+    gap: 6px;
+  }
+
+  .screen-menu .tagline {
+    display: none;
+  }
+
+  .screen-menu .world-card {
+    padding: 8px 12px;
+    gap: 4px;
+  }
+
+  .menu-ads .menu-btn {
+    min-height: 46px;
+  }
+
+  .screen-menu .tile {
+    min-height: 50px;
+  }
 }
 
 .menu-head {
