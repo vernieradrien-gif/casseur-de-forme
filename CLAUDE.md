@@ -32,12 +32,12 @@ src/ads       interface publicitaire (factice web, AdMob sur Android)
 src/audio     musique et effets sonores synthétisés (Web Audio)
 public        manifeste PWA, service worker, icône SVG, politique de confidentialité
 e2e           tests Playwright
-scripts       génération des icônes PNG
+scripts       icônes PNG, images et vidéo de la fiche Google Play (npm run store, store:promo, store:video)
 src/storage   sauvegarde versionnée
 src/config    équilibrage (JSON)
 src/i18n      textes
 tests/        tests Vitest
-docs/         cahier des charges, recherche, publication
+docs/         cahier des charges, recherche, publication, fiche Google Play, promotion
 android/      projet Capacitor (généré, ajusté : icône, portrait, signature de test)
 ```
 

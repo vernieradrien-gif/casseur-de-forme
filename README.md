@@ -16,7 +16,14 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : version 1.4.2
+## État : version 1.5.0
+
+- **Demande d'avis Google Play** dans le jeu, juste après une victoire contre un boss (dès le niveau 8, 3 fois au
+  plus, espacées de 45 jours ; Google décide seul de l'afficher).
+- **Kit de promotion** ([docs/promotion.md](docs/promotion.md)) : fiche en 6 langues, captures avec accroche
+  (`npm run store:promo`), vidéo de gameplay (`npm run store:video`), textes pour réseaux, Reddit et presse.
+
+### Version 1.4.2
 
 - **Ennemis et boss** : plus aucun ennemi ne passe sur la forme ni ne s'arrête dessus (retour du test fermé).
 - **Menu d'accueil fixe** : tout tient dans l'écran, sans glisser.
@@ -101,6 +108,16 @@ Chaque push sur `main` publie le jeu sur GitHub Pages (`.github/workflows/deploy
 branche `ccr-*` construit l'APK et le publie dans la release `android-latest` (`.github/workflows/android.yml`).
 
 ## Décisions prises
+
+### Version 1.5.0
+- **Avis** : demandé après une victoire contre un boss (moment positif), jamais après une défaite ni en mode
+  `?autoplay`, jamais contre une récompense (interdit par Google). La demande est comptée même si Google n'affiche
+  rien (quota) : le jeu ne peut pas le savoir. La fenêtre met l'appli en pause comme un retour au bureau.
+- **Fiches étrangères** : le jeu reste en anglais et en français ; les fiches espagnole, portugaise, allemande et
+  italienne le précisent. Leurs captures sont les captures anglaises avec une accroche traduite.
+- **Vidéo** : enregistrée par Playwright dans une seule partie (sauts de niveau par victoire contre le boss, vagues
+  écourtées), sans son ; WebM accepté par YouTube et TikTok.
+- **API de test** : `window.__game` expose aussi `selectCannon` et `refreshMaxHp` (utilisés par la vidéo).
 
 ### Version 1.4.2
 - **Chevauchement** : les ennemis gardent une marge (`boss.enemyClearance`) autour de la forme, bouclier, anneaux et

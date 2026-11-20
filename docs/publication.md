@@ -12,6 +12,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] Publicités : **uniquement des vidéos récompensées que le joueur demande** (aucune pub automatique),
   consentement RGPD Google UMP demandé **avant** de démarrer le SDK publicitaire, bouton « Consentement publicités »
   dans les paramètres là où la loi l'exige, contenu limité à « PG ». Vrais identifiants AdMob en place (version 1.4.1).
+- [x] AAB 1.5.0 (`versionCode` 104) : demande d'avis Google Play après une victoire contre un boss.
 - [x] AAB de production 1.4.2 (`versionCode` 103) : thème sans réglages obsolètes d'Android 15, permission
   `FOREGROUND_SERVICE` retirée (pas de déclaration de service au premier plan à remplir).
 - [x] Politique de confidentialité en français et en anglais :
@@ -46,7 +47,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] AAB signé construit sur le PC : `JAVA_HOME` = JDK d'Android Studio, variables `UPLOAD_KEYSTORE_FILE`,
   `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, puis `npx cap sync android` et `gradlew bundleRelease` dans `android/`
   (sans ces variables, la clé de test est utilisée). Premier envoi : `versionCode` **100** ; chaque nouvel AAB doit avoir
-  un numéro plus grand (`VERSION_CODE`). Déjà envoyés : 100 (1.3.0), 101 (1.4.0), 102 (1.4.1), 103 (1.4.2).
+  un numéro plus grand (`VERSION_CODE`). Déjà envoyés : 100 (1.3.0), 101 (1.4.0), 102 (1.4.1), 103 (1.4.2), 104 (1.5.0).
 - [ ] Facultatif : construire l'AAB sur GitHub Actions avec 4 secrets (`UPLOAD_KEYSTORE_BASE64`, `UPLOAD_KEYSTORE_PASSWORD`,
   `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) et un `versionCode` = 100 + numéro de construction.
 
@@ -71,6 +72,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
   Valider l'application › Rechercher des mises à jour* (Google peut mettre 24 h à lire le fichier).
 
 ### 1.4 Fiche Google Play
+- [ ] Tout le kit (6 langues, captures avec accroche, vidéo, plan de lancement) : [promotion.md](promotion.md).
 - [ ] Textes : voir [fiche-google-play.md](fiche-google-play.md) (titre, description courte, description longue en
   français et en anglais, prêts à copier).
 - [ ] Catégorie **Jeux › Arcade**, adresse e-mail de contact, URL de la politique de confidentialité.
