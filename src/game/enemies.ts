@@ -1,3 +1,4 @@
+import { belowBosses, bossExtent } from './boss';
 import { boostMultiplier, hitCannon, isFighting } from './cannon';
 import { BALANCE } from './config';
 import type { GameEvent } from './events';
@@ -29,7 +30,8 @@ export function spawnEnemy(state: GameState, level: number, s: Omit<Spawn, 't'>,
     id: run.nextId++,
     kind: s.kind,
     x: s.x,
-    y: s.y,
+    // Un ennemi qui apparaîtrait sur la forme (ou au-dessus d'elle) sort de son bord inférieur.
+    y: Math.max(s.y, belowBosses(state, stats.radius, s.x)),
     vx: (s.vx + drift) * stats.speed,
     vy: s.vy * stats.speed,
     hp: stats.hp,
@@ -55,6 +57,9 @@ export function spawnEnemy(state: GameState, level: number, s: Omit<Spawn, 't'>,
   if (s.kind === 'turret' || s.kind === 'strafer') {
     // Hauteur où l'ennemi s'arrête pour tirer (variée pour ne pas aligner les tireurs).
     e.ty = (def.stopY ?? 0.45) + (nextRandom(state) - 0.5) * 0.24;
+    // Jamais posé sur la forme : la hauteur d'arrêt descend sous elle en gardant de la variété.
+    const below = belowBosses(state, e.radius);
+    if (e.ty < below) e.ty = below + Math.min(0.12, (below - e.ty) * 0.5);
     e.amp = 0;
     e.vx = 0;
   }
@@ -149,7 +154,7 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
         }
         break;
       case 'shooter':
-        if (e.mode === 0 && e.y >= (def.stopY ?? 0.6)) {
+        if (e.mode === 0 && e.y >= Math.max(def.stopY ?? 0.6, belowBosses(state, e.radius))) {
           e.mode = 1;
           e.timer = 0.5;
           e.vx = 0;
@@ -169,7 +174,7 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
         }
         break;
       case 'dasher':
-        if (e.mode === 0 && e.y >= (def.stopY ?? 0.55)) {
+        if (e.mode === 0 && e.y >= Math.max(def.stopY ?? 0.55, belowBosses(state, e.radius))) {
           e.mode = 1;
           e.timer = def.aimTime ?? 0.8;
           e.vx = 0;
@@ -235,6 +240,19 @@ export function updateEnemies(state: GameState, dt: number, events: GameEvent[])
       e.x = clamp(e.x, -HALF + e.radius, HALF - e.radius);
       e.phase += Math.PI;
       e.vx = -e.vx;
+    }
+
+    // Les ennemis contournent la forme au lieu de passer dessus.
+    for (const b of run.bosses) {
+      if (b.hp <= 0) continue;
+      const reach = bossExtent(b) + e.radius + BALANCE.boss.enemyClearance;
+      const dx = e.x - b.x;
+      const dy = e.y - b.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= reach) continue;
+      const k = d > 1e-6 ? reach / d : 0;
+      e.x = d > 1e-6 ? b.x + dx * k : b.x;
+      e.y = d > 1e-6 ? b.y + dy * k : b.y + reach;
     }
 
     // Collision avec le canon : l'ennemi s'écrase.

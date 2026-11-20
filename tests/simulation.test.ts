@@ -347,9 +347,9 @@ describe('ennemis', () => {
 
   it('Diviseur : se divise en 2 Éclats à sa mort', () => {
     const s = quietLevel(22, 23);
-    const d = enemy(s, 'splitter', 0, 0.5);
+    const d = enemy(s, 'splitter', 0, 0.7);
     d.hp = 0.1;
-    s.run.projectiles.push(bullet(0, 0.52, 0, -1, 1));
+    s.run.projectiles.push(bullet(0, 0.72, 0, -1, 1));
     run(s, STEP);
     expect(s.run.enemies.filter((e) => e.kind === 'grunt')).toHaveLength(2);
   });
@@ -366,11 +366,11 @@ describe('ennemis', () => {
 
   it('Blindé : son bouclier frontal absorbe les premiers tirs', () => {
     const s = quietLevel(40, 25);
-    const a = enemy(s, 'armored', 0, 0.5);
+    const a = enemy(s, 'armored', 0, 0.7);
     a.vy = 0;
     const hp = a.hp;
     for (let i = 0; i < BALANCE.enemies.armored.shieldHits!; i++) {
-      s.run.projectiles.push(bullet(0, 0.53, 0, -1, 1));
+      s.run.projectiles.push(bullet(0, 0.73, 0, -1, 1));
       run(s, STEP);
     }
     expect(a.hp).toBe(hp);
@@ -633,9 +633,9 @@ describe('progression', () => {
     rollDaily(s.meta, '2026-10-22');
     // Force un objectif « détruire des ennemis » presque terminé.
     s.meta.daily.objectives[0] = { id: 'kills', target: 150, gems: 3, progress: 149, claimed: false };
-    const e = enemy(s, 'grunt', 0, 0.5);
+    const e = enemy(s, 'grunt', 0, 0.7);
     e.hp = 0.01;
-    s.run.projectiles.push(bullet(0, 0.52, 0, -1, 1));
+    s.run.projectiles.push(bullet(0, 0.72, 0, -1, 1));
     const all = run(s, STEP);
     expect(all.some((x) => x.type === 'dailyComplete')).toBe(true);
     expect(s.meta.daily.objectives[0].progress).toBe(150);

@@ -323,6 +323,8 @@ export interface Balance {
     armorRefGrowth: number;
     armorMinFraction: number;
     waveShieldScale: number;
+    /** Marge entre les ennemis et le bord de la forme (ils ne la recouvrent jamais). */
+    enemyClearance: number;
     shieldRecharge: number;
     regenDelay: number;
     fragmentHpShare: number;

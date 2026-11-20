@@ -88,6 +88,7 @@
     "armorRefGrowth": 1.085,
     "armorMinFraction": 0.2,
     "waveShieldScale": 1.28,
+    "enemyClearance": 0.03,
     "shieldRecharge": 6,
     "regenDelay": 1.5,
     "fragmentHpShare": 0.3,

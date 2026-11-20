@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buyCannon, selectCannon, useAbility } from '../src/game/actions';
-import { damageBoss, isComposite, partPosition } from '../src/game/boss';
+import { belowBosses, damageBoss, isComposite, partPosition } from '../src/game/boss';
 import { hazardFireBonus } from '../src/game/cannon';
 import { BALANCE } from '../src/game/config';
 import { spawnEnemy } from '../src/game/enemies';
@@ -232,7 +232,9 @@ describe('nouveaux ennemis de vague', () => {
     expect(e.vy).toBe(0);
     expect(e.vx).toBe(0);
     expect(e.y).toBeCloseTo(e.ty, 1);
-    expect(Math.abs(e.ty - BALANCE.enemies.turret.stopY!)).toBeLessThanOrEqual(0.12);
+    // Hauteur d'arrêt variée, mais toujours sous la forme (jamais posée dessus).
+    expect(e.ty).toBeGreaterThanOrEqual(belowBosses(s, e.radius));
+    expect(e.ty - belowBosses(s, e.radius)).toBeLessThanOrEqual(0.12);
     expect(ev.filter((x) => x.type === 'enemyShot').length).toBeGreaterThanOrEqual(2);
   });
 
@@ -240,7 +242,11 @@ describe('nouveaux ennemis de vague', () => {
     const s = quietWaves(9, 121);
     const e = enemy(s, 'strafer', 0.1, 0.1);
     const xs: number[] = [];
-    const ev = run(s, 8, () => xs.push(e.x));
+    // Canon gardé en vie : on observe seulement le mitrailleur.
+    const ev = run(s, 8, () => {
+      xs.push(e.x);
+      s.run.cannon.hp = s.run.cannon.maxHp;
+    });
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(0.3);
     expect(ev.filter((x) => x.type === 'enemyShot').length).toBeGreaterThanOrEqual(3);
   });

@@ -190,6 +190,32 @@ export function waveShieldRadius(boss: Boss): number {
   return isComposite(boss) ? boss.span * 1.12 : boss.radius * B.waveShieldScale;
 }
 
+/** Rayon visible de la forme (bouclier de vagues, anneaux et canons du super boss compris). */
+export function bossExtent(boss: Boss): number {
+  let r = waveShieldRadius(boss);
+  if (isComposite(boss)) {
+    const def = BALANCE.special[boss.kind === 'mega' ? 'mega' : 'super'];
+    for (const ring of def.rings) r = Math.max(r, ring.dist + def.blockHalf);
+    if (def.guns > 0) r = Math.max(r, def.gunDist + def.gunHalf);
+  }
+  return r;
+}
+
+/**
+ * Hauteur au-dessous de laquelle un ennemi de rayon r placé en x ne recouvre aucune forme
+ * (-Infinity s'il est à côté). Sans x : quelle que soit sa position horizontale.
+ */
+export function belowBosses(state: GameState, r: number, x?: number): number {
+  let y = -Infinity;
+  for (const b of state.run.bosses) {
+    if (b.hp <= 0) continue;
+    const reach = bossExtent(b) + r + B.enemyClearance;
+    const dx = x === undefined ? 0 : x - b.x;
+    if (Math.abs(dx) < reach) y = Math.max(y, b.y + Math.sqrt(reach * reach - dx * dx));
+  }
+  return y;
+}
+
 /** Le cercle (x, y, r) touche-t-il le corps du boss ? (contact avec le canon) */
 export function bossTouches(boss: Boss, x: number, y: number, r: number, shielded: boolean): boolean {
   if (boss.hp <= 0) return false;
