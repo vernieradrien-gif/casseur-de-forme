@@ -5,3 +5,7 @@ coverage/
 .DS_Store
 test-results/
 playwright-report/
+
+# Sorties locales de publication (AAB signés, anciennes captures)
+*.aab
+Image playstore/
