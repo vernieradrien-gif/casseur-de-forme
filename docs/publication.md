@@ -57,10 +57,11 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] Donner à Claude l'**ID d'application** (`ca-app-pub-9572854706306858~2324874376`) et l'**ID du bloc récompensé**
   (`ca-app-pub-9572854706306858/8544942996`) : ils sont dans `src/ads/admob.ts` et `AndroidManifest.xml`, mode test coupé.
   Bloc créé sans case « autre plate-forme de médiation », vidéo + interactive, sans eCPM minimal ni limite de fréquence.
-- [ ] *Confidentialité et messages* › **RGPD** : créer et publier le message de consentement (EEE, Royaume-Uni,
-  Suisse). **Sans ce message, aucune pub ne s'affichera en Europe.**
-- [ ] *Confidentialité et messages* › **Réglementations des États américains** : créer le message (recommandé).
-- [ ] **Avant d'installer cette version** : déclarer ton téléphone comme **appareil de test** (AdMob › *Paramètres ›
+- [x] *Confidentialité et messages* › **RGPD** : message « Prisma Blast - RGPD » publié le 25/11/2026 (EEE, Royaume-Uni,
+  Suisse ; anglais + fr, de, es, it, pt ; boutons Consentir / Ne pas consentir / Gérer les options dans tous les pays).
+- [x] *Confidentialité et messages* › **Réglementations des États américains** : message « Prisma Blast - Etats americains »
+  publié le 25/11/2026 (point d'entrée : bouton « Consentement publicités » des paramètres du jeu).
+- [x] **Avant d'installer cette version** : déclarer ton téléphone (Mi11, fait) comme **appareil de test** (AdMob › *Paramètres ›
   Appareils de test* : identifiant publicitaire visible dans les paramètres Android › *Google › Annonces*). Sans ça, ne
   jamais cliquer sur tes propres pubs (risque de suspension du compte).
 - [ ] Plus tard, avant le premier paiement (70 €) : *Paiements › Informations fiscales* (formulaire W-8BEN, particulier ou
@@ -68,7 +69,8 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] `app-ads.txt` publié à la racine de <https://vernieradrien-gif.github.io/app-ads.txt> (dépôt
   `vernieradrien-gif.github.io`, avec une page d'accueil « AV Apps »).
 - [ ] Play Console › *Fiche principale* › **Site Web** : `https://vernieradrien-gif.github.io`.
-- [ ] Une fois le jeu publié : AdMob › application › *Ajouter* (fiche Play), puis *Paramètres de l'application ›
+- [ ] **Une fois le jeu publié en production** (l'appli est en « diffusion d'annonces limitée » tant qu'elle n'est pas
+  associée ; la recherche AdMob ne trouve pas une appli en test fermé) : AdMob › application › *Ajouter* (fiche Play), puis *Paramètres de l'application ›
   Valider l'application › Rechercher des mises à jour* (Google peut mettre 24 h à lire le fichier).
 
 ### 1.4 Fiche Google Play
