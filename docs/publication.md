@@ -47,7 +47,7 @@ faire avant la publication**, qui doit le faire, et dans quel ordre. Les cases `
 - [x] AAB signé construit sur le PC : `JAVA_HOME` = JDK d'Android Studio, variables `UPLOAD_KEYSTORE_FILE`,
   `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, puis `npx cap sync android` et `gradlew bundleRelease` dans `android/`
   (sans ces variables, la clé de test est utilisée). Premier envoi : `versionCode` **100** ; chaque nouvel AAB doit avoir
-  un numéro plus grand (`VERSION_CODE`). Déjà envoyés : 100 (1.3.0), 101 (1.4.0), 102 (1.4.1), 103 (1.4.2), 104 (1.5.0).
+  un numéro plus grand (`VERSION_CODE`). Déjà envoyés : 100 (1.3.0), 101 (1.4.0), 102 (1.4.1), 103 (1.4.2), 104 (1.5.0), 105 (1.5.1, version de production).
 - [ ] Facultatif : construire l'AAB sur GitHub Actions avec 4 secrets (`UPLOAD_KEYSTORE_BASE64`, `UPLOAD_KEYSTORE_PASSWORD`,
   `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) et un `versionCode` = 100 + numéro de construction.
 

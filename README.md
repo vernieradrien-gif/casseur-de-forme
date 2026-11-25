@@ -16,7 +16,12 @@ Jeu de tir néon en portrait : en haut, une grande forme géométrique lance des
 3. Si Play Protect affiche un avertissement (application de test non publiée) : *Plus de détails › Installer quand même*.
 4. Pour une mise à jour : réinstaller le nouvel APK par-dessus (même signature de test, la sauvegarde est conservée).
 
-## État : version 1.5.0
+## État : version 1.5.1 (production)
+
+- **AAB de production** : même jeu que la 1.5.0, signé avec la clé d'envoi, versionCode 105, vraies pubs
+  AdMob (vidéos récompensées uniquement). Il reste la configuration AdMob côté compte (docs/publication.md § 1.3).
+
+### Version 1.5.0
 
 - **Demande d'avis Google Play** dans le jeu, juste après une victoire contre un boss (dès le niveau 8, 3 fois au
   plus, espacées de 45 jours ; Google décide seul de l'afficher).
